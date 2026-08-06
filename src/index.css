@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Efek klik/tap global — sedikit mengecil & meredup saat ditekan */
+button,
+a,
+[role="button"] {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+button:active,
+a:active,
+[role="button"]:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
