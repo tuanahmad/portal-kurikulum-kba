@@ -12,7 +12,7 @@ export function SkeletonBlock({ className = "", style = {} }: { className?: stri
 /** Skeleton generik dipakai selagi cek sesi login (ProtectedRoute) */
 export function PageLoadingSkeleton() {
   return (
-    <div className="min-h-screen" style={{ background: C.mist }}>
+    <div className="min-h-dvh" style={{ background: C.mist }}>
       <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${C.green}, ${C.gold}, ${C.green})` }} />
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="flex flex-col items-center gap-3 mb-8">

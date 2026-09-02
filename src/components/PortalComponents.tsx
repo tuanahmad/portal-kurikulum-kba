@@ -1,5 +1,77 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { C, sheetUrl, fileUrl, folderUrl } from "../data";
+
+/** Tombol back — pola pill sekunder yang sama dipakai di seluruh app (leaf bg + border hijau). */
+export function BackButton({ to = "/home", label = "Home" }: { to?: string; label?: string }) {
+  return (
+    <Link
+      to={to}
+      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors hover:opacity-80"
+      style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {label}
+    </Link>
+  );
+}
+
+/** Kartu gradient — pola yang sama dipakai di kartu menu Home, dipakai ulang di halaman level 2. */
+export function AccentCard({
+  title,
+  desc,
+  icon,
+  gradient,
+  to,
+  href,
+}: {
+  title: string;
+  desc?: string;
+  icon: ReactNode;
+  gradient: string;
+  to?: string;
+  href?: string;
+}) {
+  const className =
+    "group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between min-h-[152px] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2";
+  const style = { background: gradient, boxShadow: "0 4px 14px rgba(28,74,51,0.14)", "--tw-ring-color": C.gold } as any;
+
+  const inner = (
+    <>
+      <span
+        className="absolute -right-6 -top-6 w-28 h-28 rounded-full transition-transform duration-500 group-hover:scale-125"
+        style={{ background: "rgba(255,255,255,0.08)" }}
+        aria-hidden="true"
+      />
+      <span className="relative w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.16)" }}>
+        {icon}
+      </span>
+      <div className="relative mt-4">
+        <span className="font-semibold text-white block">{title}</span>
+        {desc && (
+          <span className="text-xs block mt-1 leading-relaxed" style={{ color: "rgba(255,255,255,0.82)" }}>
+            {desc}
+          </span>
+        )}
+      </div>
+    </>
+  );
+
+  if (to) {
+    return (
+      <Link to={to} className={className} style={style}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={className} style={style}>
+      {inner}
+    </a>
+  );
+}
 
 // Pembatas emas ber-permata — motif dari logo
 export function GoldDivider() {

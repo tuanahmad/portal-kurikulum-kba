@@ -1,31 +1,61 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { C, LOGO, KELAS_LIST, sheetUrl } from "../data";
-import { GoldDivider } from "../components/PortalComponents";
-import { BottomNav } from "../components/BottomNav";
+import { C, KELAS_LIST, sheetUrl } from "../data";
+import { AccentCard } from "../components/PortalComponents";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function CapaianPage() {
+  const { role, kelas: myKelas } = useAuth();
+
+  if (role === "guru") {
+    return <GuruCapaian kelasName={myKelas} />;
+  }
+  return <ManagementCapaian />;
+}
+
+/* ————————————————————— Guru: langsung kelasnya sendiri ————————————————————— */
+
+function GuruCapaian({ kelasName }: { kelasName: string | null }) {
+  const kelas = KELAS_LIST.find((k) => k.name === kelasName) || null;
+
+  return (
+    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
+      <div className="max-w-3xl mx-auto px-4 py-7 sm:py-10 pb-28">
+        <header className="text-center">
+          <h1
+            className="text-xl sm:text-2xl font-semibold"
+            style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
+          >
+            Capaian Santri
+          </h1>
+          <p className="text-sm mt-2 max-w-md mx-auto" style={{ color: C.muted }}>
+            {kelasName || "Kelasmu"}
+          </p>
+        </header>
+
+        {kelas ? (
+          <CapaianLinks kelas={kelas} />
+        ) : (
+          <p className="text-sm text-center mt-8" style={{ color: C.muted }}>
+            Kelas belum diset untuk akun ini — hubungi koordinator kurikulum.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ————————————————————— Management: pilih dari 12 kelas ————————————————————— */
+
+function ManagementCapaian() {
   const [selected, setSelected] = useState<string | null>(null);
   const kelas = KELAS_LIST.find((k) => k.name === selected) || null;
 
   return (
-    <div className="min-h-screen" style={{ background: C.mist, color: C.ink }}>
-      <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${C.green}, ${C.gold}, ${C.green})` }} />
-
-      <div className="max-w-3xl mx-auto px-4 py-7 sm:py-10 pb-24">
-        <div className="mb-2">
-          <Link to="/home" className="text-xs underline" style={{ color: C.green }}>
-            ← Home
-          </Link>
-        </div>
-
+    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
+      <div className="max-w-3xl mx-auto px-4 py-7 sm:py-10 pb-28">
         <header className="text-center">
-          <img src={LOGO} alt="Logo Kuttab Budi Ashari" className="mx-auto w-40 sm:w-48 h-auto" style={{ mixBlendMode: "multiply" }} />
-          <div className="max-w-md mx-auto mt-3">
-            <GoldDivider />
-          </div>
           <h1
-            className="text-xl sm:text-2xl font-semibold mt-3"
+            className="text-xl sm:text-2xl font-semibold"
             style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
           >
             Capaian Santri
@@ -56,50 +86,49 @@ export default function CapaianPage() {
           })}
         </main>
 
-        {/* Detail kelas terpilih */}
-        {kelas && (
-          <div className="mt-6 space-y-2.5">
-            <div
-              className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl"
-              style={{ background: "#FFF", border: `1px solid ${C.line}` }}
-            >
-              <div>
-                <div className="text-sm font-semibold" style={{ color: C.ink }}>Capaian Ilmu</div>
-                <div className="text-xs" style={{ color: C.muted }}>Sifatnya deskriptif · Diisi tiap tanggal 30</div>
-              </div>
-              <a
-                href={sheetUrl(kelas.ilmuId)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-semibold px-3.5 py-1.5 rounded-full whitespace-nowrap"
-                style={{ background: C.green, color: "#FFF" }}
-              >
-                Buka & isi
-              </a>
-            </div>
-            <div
-              className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl"
-              style={{ background: "#FFF", border: `1px solid ${C.line}` }}
-            >
-              <div>
-                <div className="text-sm font-semibold" style={{ color: C.ink }}>Capaian Al-Qur'an</div>
-                <div className="text-xs" style={{ color: C.muted }}>Sifatnya angka · Diisi tiap Jum'at</div>
-              </div>
-              <a
-                href={sheetUrl(kelas.quranId)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-semibold px-3.5 py-1.5 rounded-full whitespace-nowrap"
-                style={{ background: C.green, color: "#FFF" }}
-              >
-                Buka & isi
-              </a>
-            </div>
-          </div>
-        )}
+        {kelas && <CapaianLinks kelas={kelas} />}
       </div>
-
-      <BottomNav />
     </div>
+  );
+}
+
+/* ————————————————————— Dipakai bareng ————————————————————— */
+
+function CapaianLinks({ kelas }: { kelas: { ilmuId: string; quranId: string } }) {
+  return (
+    <main className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+      <AccentCard
+        title="Capaian Ilmu"
+        desc="Sifatnya deskriptif · Diisi tiap tanggal 30"
+        icon={<BookIcon />}
+        gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`}
+        href={sheetUrl(kelas.ilmuId)}
+      />
+      <AccentCard
+        title="Capaian Al-Qur'an"
+        desc="Sifatnya angka · Diisi tiap Jum'at"
+        icon={<ChartIcon />}
+        gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
+        href={sheetUrl(kelas.quranId)}
+      />
+    </main>
+  );
+}
+
+function BookIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M4 5.5c2-1 5-1 8 .5 3-1.5 6-1.5 8-.5v13c-2-1-5-1-8 .5-3-1.5-6-1.5-8-.5v-13Z" stroke="#FFF" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M12 6v13" stroke="#FFF" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M4 20V10M11 20V4M18 20v-7" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M3 20h18" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
   );
 }

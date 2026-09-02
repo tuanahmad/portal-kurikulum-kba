@@ -1,8 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// API key ini sengaja ditaruh di sini (server-side, bukan di kode browser)
-// supaya tidak ke-expose ke publik. Fungsi ini hanya proxy baca file Drive.
-const GOOGLE_API_KEY = "AIzaSyAWtX7T4Asi_zirz8Qyp9MNQme59gEVo-Y";
+// Key disimpan sebagai Supabase secret (Project Settings -> Edge Functions -> Secrets
+// -> GOOGLE_API_KEY), BUKAN hardcode di source ini — supaya gak ke-expose walau repo public.
+const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

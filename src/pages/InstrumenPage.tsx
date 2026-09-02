@@ -1,82 +1,124 @@
-import { Link } from "react-router-dom";
-import { C, LOGO, INSTRUMEN_FOLDERS, folderUrl } from "../data";
-import { GoldDivider } from "../components/PortalComponents";
-import { BottomNav } from "../components/BottomNav";
+import { useEffect, useState } from "react";
+import { C, INSTRUMEN_FOLDERS, jenjangOf } from "../data";
+import { DriveTree } from "../components/DriveTree";
+import { SkeletonBlock } from "../components/Skeleton";
+import { useAuth } from "../contexts/AuthContext";
+import { listDriveFolders, findChildFolder, type DriveNode } from "../lib/drive";
+
+type Jenjang = "Kuttab Awwal" | "Qonuni";
+
+const GRADIENTS = [
+  `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`,
+  "linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)",
+  `linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`,
+];
 
 export default function InstrumenPage() {
+  const { role, kelas } = useAuth();
+  const myJenjang = jenjangOf(kelas);
+  const [jenjang, setJenjang] = useState<Jenjang>(myJenjang || "Kuttab Awwal");
+
+  const [state, setState] = useState<{
+    loading: boolean;
+    error: string | null;
+    result: Record<string, DriveNode[]> | null;
+  }>({ loading: true, error: null, result: null });
+
+  useEffect(() => {
+    let cancelled = false;
+    setState({ loading: true, error: null, result: null });
+    listDriveFolders(INSTRUMEN_FOLDERS.map((f) => f.folderId))
+      .then((result) => {
+        if (!cancelled) setState({ loading: false, error: null, result });
+      })
+      .catch((e) => {
+        if (!cancelled) setState({ loading: false, error: e instanceof Error ? e.message : String(e), result: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen" style={{ background: C.mist, color: C.ink }}>
-      <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${C.green}, ${C.gold}, ${C.green})` }} />
-
-      <div className="max-w-3xl mx-auto px-4 py-7 sm:py-10 pb-24">
-        <div className="mb-2">
-          <Link to="/home" className="text-xs underline" style={{ color: C.green }}>
-            ← Home
-          </Link>
-        </div>
-
+    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
+      <div className="max-w-3xl mx-auto px-4 py-7 sm:py-10 pb-28">
         <header className="text-center">
-          <img src={LOGO} alt="Logo Kuttab Budi Ashari" className="mx-auto w-40 sm:w-48 h-auto" style={{ mixBlendMode: "multiply" }} />
-          <div className="max-w-md mx-auto mt-3">
-            <GoldDivider />
-          </div>
           <h1
-            className="text-xl sm:text-2xl font-semibold mt-3"
+            className="text-xl sm:text-2xl font-semibold"
             style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
           >
             Instrumen Ilmu
           </h1>
           <p className="text-sm mt-2 max-w-md mx-auto" style={{ color: C.muted }}>
             Acuan guru dalam proses pembelajaran — modul, target, dan panduan pengajaran.
-            Bisa dibaca & didownload; pembaruan file dilakukan tim management lewat Google Drive.
+            Pembaruan file dilakukan tim management lewat Google Drive.
           </p>
         </header>
 
-        <main className="mt-6 space-y-3">
-          {INSTRUMEN_FOLDERS.map((f) =>
-            f.folderId ? (
-              <a
-                key={f.key}
-                href={folderUrl(f.folderId)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between gap-3 rounded-2xl p-4 sm:p-5 transition-shadow hover:shadow-md"
-                style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+        {role === "management" && (
+          <div className="mt-5 flex items-center justify-center gap-2">
+            {(["Kuttab Awwal", "Qonuni"] as Jenjang[]).map((j) => (
+              <button
+                key={j}
+                onClick={() => setJenjang(j)}
+                className="text-sm font-medium px-4 py-1.5 rounded-full transition-colors"
+                style={{
+                  background: jenjang === j ? C.green : "#FFF",
+                  color: jenjang === j ? "#FFF" : C.ink,
+                  border: `1px solid ${jenjang === j ? C.green : C.line}`,
+                }}
               >
-                <div>
-                  <div className="font-semibold" style={{ color: C.green }}>{f.name}</div>
-                  <div className="text-xs mt-0.5" style={{ color: C.muted }}>Folder PDF di Google Drive</div>
-                </div>
-                <span
-                  className="text-xs font-semibold px-3.5 py-1.5 rounded-full whitespace-nowrap shrink-0"
-                  style={{ background: C.green, color: "#FFF" }}
-                >
-                  Buka folder →
-                </span>
-              </a>
-            ) : (
-              <div
-                key={f.key}
-                className="flex items-center justify-between gap-3 rounded-2xl p-4 sm:p-5"
-                style={{ background: "#FFF", border: `1px solid ${C.line}` }}
-              >
-                <div>
-                  <div className="font-semibold" style={{ color: C.green }}>{f.name}</div>
-                  <div className="text-xs mt-0.5" style={{ color: C.muted }}>Folder belum tersedia</div>
-                </div>
-                <span
-                  className="text-xs font-semibold px-3.5 py-1.5 rounded-full whitespace-nowrap shrink-0"
-                  style={{ background: C.leaf, color: C.muted }}
-                >
-                  Segera hadir
-                </span>
-              </div>
-            )
-          )}
-        </main>
-      </div>
+                {j}
+              </button>
+            ))}
+          </div>
+        )}
 
-      <BottomNav />
+        {role === "guru" && !myJenjang && (
+          <p className="text-sm text-center mt-8" style={{ color: C.muted }}>
+            Kelas belum diset untuk akun ini — hubungi koordinator kurikulum.
+          </p>
+        )}
+
+        {(role === "management" || myJenjang) && (
+          <main className="mt-6 space-y-5">
+            {state.loading &&
+              INSTRUMEN_FOLDERS.map((f) => (
+                <section key={f.key}>
+                  <h2 className="text-xs font-bold uppercase tracking-[0.16em] mb-2.5 px-1" style={{ color: C.green }}>
+                    {f.name}
+                  </h2>
+                  <div className="space-y-2">
+                    <SkeletonBlock className="h-12 rounded-xl" />
+                    <SkeletonBlock className="h-12 rounded-xl" />
+                  </div>
+                </section>
+              ))}
+
+            {state.error && (
+              <p className="text-sm px-1 py-2" style={{ color: "#B3441C" }}>
+                Gagal memuat: {state.error}
+              </p>
+            )}
+
+            {state.result &&
+              INSTRUMEN_FOLDERS.map((f, i) => {
+                const nodes = state.result![f.folderId] || [];
+                const jenjangFolder = findChildFolder(nodes, jenjang);
+                const looseFiles = nodes.filter((n) => n.type === "file");
+                const combined: DriveNode[] = [...(jenjangFolder?.children ?? []), ...looseFiles];
+                return (
+                  <section key={f.key}>
+                    <h2 className="text-xs font-bold uppercase tracking-[0.16em] mb-2.5 px-1" style={{ color: C.green }}>
+                      {f.name}
+                    </h2>
+                    <DriveTree nodes={combined} section="Instrumen Ilmu" gradient={GRADIENTS[i % GRADIENTS.length]} />
+                  </section>
+                );
+              })}
+          </main>
+        )}
+      </div>
     </div>
   );
 }

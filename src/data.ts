@@ -21,6 +21,17 @@ export const LOGO = "data:image/webp;base64,UklGRq4kAABXRUJQVlA4IKIkAAAwnQCdASow
 export const sheetUrl = (id) => `https://docs.google.com/spreadsheets/d/${id}/edit`;
 export const fileUrl = (id) => `https://drive.google.com/file/d/${id}/view`;
 export const folderUrl = (id) => `https://drive.google.com/drive/folders/${id}`;
+/** Mode embed Drive — dipakai di iframe halaman /preview biar gak nampilin toolbar & tombol "Masuk"-nya Drive. */
+export const previewUrl = (id) => `https://drive.google.com/file/d/${id}/preview`;
+
+/** "Kuttab Awwal 3 Ikhwan" -> "Kuttab Awwal", "Qonuni 2 Akhwat" -> "Qonuni". Isi Instrumen Ilmu di Drive
+ *  cuma dipisah per jenjang besar ini (bukan per 12 kelas), jadi ini yang dipakai buat filter foldernya. */
+export function jenjangOf(kelasName: string | null | undefined): "Kuttab Awwal" | "Qonuni" | null {
+  if (!kelasName) return null;
+  if (kelasName.startsWith("Kuttab Awwal")) return "Kuttab Awwal";
+  if (kelasName.startsWith("Qonuni")) return "Qonuni";
+  return null;
+}
 
 // ————— Section 1: Instrumen Ilmu (acuan guru, upload lewat Google Drive langsung) —————
 // Folder ID masih placeholder kosong — isi setelah folder-folder ini dibuat di Drive.

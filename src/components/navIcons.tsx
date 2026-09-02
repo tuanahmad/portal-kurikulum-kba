@@ -1,0 +1,95 @@
+// Ikon & daftar menu navigasi — dipakai bareng oleh BottomNav (mobile/tablet) dan Sidebar (desktop)
+
+// Absen sengaja gak masuk sini — dipindah ke Menu Profil (ProfileMenu) karena
+// sifatnya aksi harian sekali klik, bukan halaman yang dibuka berulang.
+export const NAV_ITEMS = [
+  { to: "/home", label: "Home", icon: HomeIcon },
+  { to: "/instrumen", label: "Instrumen", icon: BookIcon },
+  { to: "/rpb", label: "Rencana", icon: DocIcon },
+  { to: "/capaian", label: "Capaian", icon: GridIcon },
+  { to: "/jurnal", label: "Jurnal", icon: NotebookIcon },
+];
+
+export function HomeIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-8.5Z"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function BookIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M4 5.5c2-1 5-1 8 .5 3-1.5 6-1.5 8-.5v13c-2-1-5-1-8 .5-3-1.5-6-1.5-8-.5v-13Z"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+        strokeLinejoin="round"
+      />
+      <path d="M12 6v13" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+    </svg>
+  );
+}
+
+export function DocIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+        strokeLinejoin="round"
+      />
+      <path d="M14 3.5V8h4" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinejoin="round" />
+      <path d="M8 12.5h8M8 16h5.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function GridIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.3" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.3" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.3" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.3" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+    </svg>
+  );
+}
+
+export function CalendarCheckIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="3.5" y="5" width="17" height="15" rx="2" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+      <path d="M3.5 9.5h17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+      <path d="M8 3v3.5M16 3v3.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
+      <path d="M8.5 14.5l2 2 4.5-4.5" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function NotebookIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="4.5" y="3.5" width="15" height="17" rx="2" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+      <path d="M8 3.5v17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+      <path d="M11.5 9h5M11.5 12.5h5M11.5 16h3.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function LogoutIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M9 4.5H6a1 1 0 0 0-1 1V18.5a1 1 0 0 0 1 1h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M13 8.5 17 12l-4 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M17 12H9.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}

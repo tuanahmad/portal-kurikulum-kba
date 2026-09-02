@@ -4,12 +4,24 @@ import type { Session } from "@supabase/supabase-js";
 
 type Role = "management" | "guru";
 
+// Login pakai username + PIN, bukan email asli. Username dipetakan jadi email
+// sintetis di domain ini (RFC 2606 — dijamin gak pernah nyata/bisa dikirimi email)
+// supaya tetap bisa pakai Supabase Auth (password hashing, session, dst) apa adanya.
+const AUTH_EMAIL_DOMAIN = "kba.invalid";
+
+function usernameToEmail(username: string): string {
+  return `${username.trim().toLowerCase()}@${AUTH_EMAIL_DOMAIN}`;
+}
+
 interface AuthContextValue {
   session: Session | null;
   role: Role | null;
+  kelas: string | null;
+  fullName: string | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (username: string, pin: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -17,42 +29,53 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<Role | null>(null);
+  const [kelas, setKelas] = useState<string | null>(null);
+  const [fullName, setFullName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function loadRole(userId: string) {
+  async function loadProfile(userId: string) {
     const { data, error } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, kelas, full_name")
       .eq("id", userId)
       .single();
     if (!error && data) {
       setRole(data.role as Role);
+      setKelas(data.kelas);
+      setFullName(data.full_name);
     } else {
       setRole(null);
+      setKelas(null);
+      setFullName(null);
     }
   }
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      if (session?.user) await loadRole(session.user.id);
+      if (session?.user) await loadProfile(session.user.id);
       setLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session?.user) {
-        await loadRole(session.user.id);
+        await loadProfile(session.user.id);
       } else {
         setRole(null);
+        setKelas(null);
+        setFullName(null);
       }
     });
 
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  async function signIn(username: string, pin: string) {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: usernameToEmail(username),
+      password: pin,
+    });
     return { error: error ? error.message : null };
   }
 
@@ -60,8 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }
 
+  /** Muat ulang role/kelas/nama dari profiles — dipanggil abis guru ganti nama sendiri. */
+  async function refreshProfile() {
+    if (session?.user) await loadProfile(session.user.id);
+  }
+
   return (
-    <AuthContext.Provider value={{ session, role, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, role, kelas, fullName, loading, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

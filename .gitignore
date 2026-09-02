@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Env files (Supabase URL/keys)
+.env
+.env.*
+!.env.example
+
+# Local backups / provisioning artifacts — may contain real personal data
+.backup-*.json
+
+# Editor/OS
+.vscode/*
+!.vscode/extensions.json
+.DS_Store

@@ -1,8 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { C, LOGO, RPB_FILES, REFLEKSI_FILES, fileUrl, isMonthOpen, getCurrentMonthFile } from "../data";
-import { GoldDivider } from "../components/PortalComponents";
-import { BottomNav } from "../components/BottomNav";
+import { C, RPB_FILES, REFLEKSI_FILES, fileUrl, isMonthOpen, getCurrentMonthFile } from "../data";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { useAuth } from "../contexts/AuthContext";
 import { getMyChecklist, setChecked, getAllChecklist, getMyName, updateMyName, type GuruChecklistRow } from "../lib/checklist";
@@ -11,26 +8,14 @@ export default function RpbPage() {
   const { role } = useAuth();
 
   return (
-    <div className="min-h-screen" style={{ background: C.mist, color: C.ink }}>
-      <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${C.green}, ${C.gold}, ${C.green})` }} />
-
-      <div className="max-w-3xl mx-auto px-4 py-7 sm:py-10 pb-24">
-        <div className="mb-2">
-          <Link to="/home" className="text-xs underline" style={{ color: C.green }}>
-            ← Home
-          </Link>
-        </div>
-
+    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
+      <div className="max-w-3xl mx-auto px-4 py-7 sm:py-10 pb-28">
         <header className="text-center">
-          <img src={LOGO} alt="Logo Kuttab Budi Ashari" className="mx-auto w-40 sm:w-48 h-auto" style={{ mixBlendMode: "multiply" }} />
-          <div className="max-w-md mx-auto mt-3">
-            <GoldDivider />
-          </div>
           <h1
-            className="text-xl sm:text-2xl font-semibold mt-3"
+            className="text-xl sm:text-2xl font-semibold"
             style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
           >
-            Rencana Pembelajaran Guru
+            Rencana & Refleksi
           </h1>
           <p className="text-sm mt-2 max-w-md mx-auto" style={{ color: C.muted }}>
             {role === "management"
@@ -43,8 +28,6 @@ export default function RpbPage() {
           {role === "management" ? <ManagementView /> : <GuruView />}
         </main>
       </div>
-
-      <BottomNav />
     </div>
   );
 }
@@ -234,8 +217,8 @@ function ChecklistGroup({
           return (
             <div
               key={f.id}
-              className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl"
-              style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+              className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl transition-shadow hover:shadow-md"
+              style={{ background: "#FFF", border: `1px solid ${checked ? C.green : C.line}` }}
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <button
@@ -307,7 +290,7 @@ function ManagementView() {
   return (
     <div className="space-y-4">
       {rows.map((g) => (
-        <div key={g.userId} className="rounded-2xl p-4 sm:p-5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        <div key={g.userId} className="rounded-2xl p-4 sm:p-5 transition-shadow hover:shadow-md" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
           <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
             <div className="font-semibold" style={{ color: C.green }}>{g.fullName}</div>
             <div className="flex gap-1.5">
