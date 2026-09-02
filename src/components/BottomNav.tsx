@@ -24,13 +24,15 @@ export function BottomNav() {
               key={it.to}
               to={it.to}
               title={it.label}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 min-w-0"
+              className="flex-1 flex flex-col items-center justify-center gap-1 py-3.5 min-w-0"
               style={{ color: active ? C.green : C.muted }}
             >
-              <Icon active={active} />
+              <span className="scale-125">
+                <Icon active={active} />
+              </span>
               {/* Label cuma muncul di menu yang aktif — biar 6 menu gak sesak di layar sempit */}
               {active && (
-                <span className="text-[10px] font-medium truncate max-w-full px-0.5" style={{ color: C.green }}>
+                <span className="text-xs font-medium truncate max-w-full px-0.5" style={{ color: C.green }}>
                   {it.label}
                 </span>
               )}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { C, previewUrl } from "../data";
 
@@ -10,6 +11,7 @@ export default function PreviewPage() {
   const id = params.get("id");
   const name = params.get("name") || "Dokumen";
   const section = params.get("section");
+  const [loaded, setLoaded] = useState(false);
 
   if (!id) {
     return (
@@ -55,7 +57,26 @@ export default function PreviewPage() {
         )}
       </div>
 
-      <iframe src={previewUrl(id)} title={name} className="w-full h-full border-0" allow="autoplay" />
+      {!loaded && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10" style={{ background: C.mist }}>
+          <div
+            className="w-8 h-8 rounded-full animate-spin"
+            style={{ border: `3px solid ${C.line}`, borderTopColor: C.green }}
+            aria-hidden="true"
+          />
+          <p className="text-sm" style={{ color: C.muted }}>
+            Memuat dokumen…
+          </p>
+        </div>
+      )}
+
+      <iframe
+        src={previewUrl(id)}
+        title={name}
+        className="w-full h-full border-0"
+        allow="autoplay"
+        onLoad={() => setLoaded(true)}
+      />
     </div>
   );
 }
