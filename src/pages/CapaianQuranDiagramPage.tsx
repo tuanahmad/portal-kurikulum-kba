@@ -22,6 +22,29 @@ function colorFor(name: string, idx: number): string {
   return SECTION_COLORS[name.toLowerCase().replace(/\s+/g, " ").trim()] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
 }
 
+/** Satuan angka tiap section (buat keterangan di diagram). Talaqqi/Baghdadiyah/Ziyadah/
+ *  Murojaah/Tilawah dihitung per baris; Wirid dihitung per putaran (berapa kali mengulang
+ *  hafalan di pekan itu). */
+function unitFor(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("wirid")) return "putaran";
+  if (
+    n.includes("talaqqi") ||
+    n.includes("baghdadiyah") ||
+    n.includes("ziyadah") ||
+    n.includes("muroja") ||
+    n.includes("tilawah")
+  ) {
+    return "baris";
+  }
+  return "";
+}
+
+/** 2 -> "2" ; 0.5 -> "0,5" */
+function fmt(v: number): string {
+  return Number.isInteger(v) ? String(v) : String(v).replace(".", ",");
+}
+
 /** "0,5" -> 0.5 ; "-" / "" / non-angka -> 0 */
 function parseNum(s: string): number {
   const v = parseFloat(String(s ?? "").replace(",", ".").trim());
@@ -184,19 +207,27 @@ export default function CapaianQuranDiagramPage() {
 
           {data && !loading && ready && (
             <>
-              <Legend sections={data.sections.map((s, i) => ({ name: s.name, color: colorFor(s.name, i) }))} />
+              <p className="text-xs leading-relaxed" style={{ color: C.muted }}>
+                Angka <b>Talaqqi</b>, <b>Baghdadiyah</b>, <b>Ziyadah</b> &amp; <b>Murojaah</b> dihitung dalam{" "}
+                <b>baris</b>. <b>Wirid</b> dihitung dalam <b>putaran</b> — berapa kali mengulang hafalan pada
+                pekan itu.
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {roster.map((nama, i) => {
                   const series = seriesForStudent(data, i).filter((s) => s.hasData);
                   return (
                     <div key={i} className="rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-                      <div className="text-sm font-semibold mb-2" style={{ color: C.ink }}>
+                      <div className="text-sm font-semibold mb-3" style={{ color: C.ink }}>
                         {i + 1}. {nama}
                       </div>
                       {series.length === 0 ? (
                         <p className="text-xs" style={{ color: C.muted }}>Belum ada data.</p>
                       ) : (
-                        <MiniLineChart series={series} />
+                        <div className="space-y-3">
+                          {series.map((s) => (
+                            <SectionBars key={s.section} s={s} />
+                          ))}
+                        </div>
                       )}
                     </div>
                   );
@@ -210,68 +241,56 @@ export default function CapaianQuranDiagramPage() {
   );
 }
 
-function Legend({ sections }: { sections: { name: string; color: string }[] }) {
-  return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5 rounded-xl px-3.5 py-2.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-      {sections.map((s) => (
-        <span key={s.name} className="inline-flex items-center gap-1.5 text-xs" style={{ color: C.ink }}>
-          <span className="w-3 h-[3px] rounded-full" style={{ background: s.color }} />
-          {s.name}
-        </span>
-      ))}
-    </div>
-  );
-}
+/** Satu baris = satu section, isinya diagram batang nilai per pekan (P1..Pn) + keterangan satuan. */
+function SectionBars({ s }: { s: Series }) {
+  const unit = unitFor(s.section);
+  const count = Math.max(1, s.weekCount);
+  const shown = s.weeks.slice(0, count);
+  const maxVal = Math.max(1, ...shown);
 
-function MiniLineChart({ series }: { series: Series[] }) {
   const W = 260;
-  const H = 128;
-  const padL = 22;
-  const padR = 8;
-  const padT = 8;
-  const padB = 18;
-  const plotW = W - padL - padR;
+  const H = 82;
+  const padX = 6;
+  const padT = 14; // ruang buat label angka di atas batang
+  const padB = 14; // ruang buat label P1..Pn
+  const plotW = W - padX * 2;
   const plotH = H - padT - padB;
-
-  const maxVal = Math.max(
-    5,
-    ...series.flatMap((s) => s.weeks.slice(0, Math.max(1, s.weekCount)))
-  );
-  const xFor = (weekIdx: number) => padL + (plotW * weekIdx) / 4; // 5 titik: pekan 1..5 -> idx 0..4
-  const yFor = (v: number) => padT + plotH - (plotH * v) / maxVal;
-
-  // gridlines Y (0, tengah, atas)
-  const yTicks = [0, Math.round(maxVal / 2), Math.round(maxVal)];
+  const slotW = plotW / count;
+  const barW = Math.min(24, slotW * 0.62);
+  const baseY = padT + plotH;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Grafik perkembangan per pekan">
-      {yTicks.map((t) => (
-        <g key={t}>
-          <line x1={padL} y1={yFor(t)} x2={W - padR} y2={yFor(t)} stroke={C.line} strokeWidth={1} />
-          <text x={padL - 5} y={yFor(t) + 3} textAnchor="end" fontSize={9} fill={C.muted}>
-            {t}
-          </text>
-        </g>
-      ))}
-      {[0, 1, 2, 3, 4].map((k) => (
-        <text key={k} x={xFor(k)} y={H - 5} textAnchor="middle" fontSize={9} fill={C.muted}>
-          P{k + 1}
-        </text>
-      ))}
-      {series.map((s) => {
-        const shown = s.weeks.slice(0, Math.max(1, s.weekCount));
-        const pts = shown.map((v, k) => `${xFor(k)},${yFor(v)}`).join(" ");
-        return (
-          <g key={s.section}>
-            {shown.length > 1 && (
-              <polyline points={pts} fill="none" stroke={s.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-            )}
-            {shown.map((v, k) => (
-              <circle key={k} cx={xFor(k)} cy={yFor(v)} r={2.5} fill={s.color} />
-            ))}
-          </g>
-        );
-      })}
-    </svg>
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: C.ink }}>
+          <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: s.color }} />
+          <span className="truncate">{s.section}</span>
+        </span>
+        {unit && (
+          <span className="text-[10px] font-medium uppercase tracking-wide shrink-0 ml-2" style={{ color: C.muted }}>
+            {unit}
+          </span>
+        )}
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={`Diagram batang ${s.section} per pekan`}>
+        <line x1={padX} y1={baseY} x2={W - padX} y2={baseY} stroke={C.line} strokeWidth={1} />
+        {shown.map((v, k) => {
+          const h = maxVal > 0 ? (plotH * v) / maxVal : 0;
+          const cx = padX + slotW * k + slotW / 2;
+          const y = baseY - h;
+          return (
+            <g key={k}>
+              {v > 0 && <rect x={cx - barW / 2} y={y} width={barW} height={h} rx={2} fill={s.color} />}
+              <text x={cx} y={y - 3} textAnchor="middle" fontSize={9} fill={C.muted}>
+                {v ? fmt(v) : ""}
+              </text>
+              <text x={cx} y={H - 3} textAnchor="middle" fontSize={9} fill={C.muted}>
+                P{k + 1}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
