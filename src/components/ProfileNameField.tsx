@@ -60,7 +60,7 @@ export function ProfileNameField({ variant = "light" }: { variant?: "light" | "d
           {label}
         </div>
         <div className="text-xs mt-0.5" style={{ color: mutedColor }}>
-          {role === "management" ? "Management" : "Guru"}
+          {role === "management" ? "Management" : role === "olahraga" ? "Guru Olahraga" : "Guru"}
         </div>
       </div>
       {role === "guru" && (

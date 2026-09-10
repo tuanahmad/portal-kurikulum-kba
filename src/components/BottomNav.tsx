@@ -1,10 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 import { C } from "../data";
-import { NAV_ITEMS } from "./navIcons";
+import { navItemsFor } from "./navIcons";
+import { useAuth } from "../contexts/AuthContext";
 
 /** Bottom tab bar — dipakai di mobile & tablet. Disembunyikan di layar lg ke atas (lihat Sidebar). */
 export function BottomNav() {
   const { pathname } = useLocation();
+  const { role } = useAuth();
+  const items = navItemsFor(role);
 
   return (
     <nav
@@ -16,7 +19,7 @@ export function BottomNav() {
       }}
     >
       <div className="max-w-3xl mx-auto flex items-stretch">
-        {NAV_ITEMS.map((it) => {
+        {items.map((it) => {
           const active = pathname === it.to;
           const Icon = it.icon;
           return (

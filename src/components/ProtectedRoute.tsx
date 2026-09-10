@@ -8,7 +8,7 @@ export function ProtectedRoute({
   allowedRoles,
 }: {
   children: ReactNode;
-  allowedRoles?: Array<"management" | "guru">;
+  allowedRoles?: Array<"management" | "guru" | "olahraga">;
 }) {
   const { session, role, loading } = useAuth();
 
@@ -19,7 +19,7 @@ export function ProtectedRoute({
   if (!session) return <Navigate to="/login" replace />;
 
   if (allowedRoles && role && !allowedRoles.includes(role)) {
-    return <Navigate to="/sheet" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   return <>{children}</>;

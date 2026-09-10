@@ -1,14 +1,6 @@
 import { Link } from "react-router-dom";
-import { C } from "../data";
+import { C, getGreeting } from "../data";
 import { useAuth } from "../contexts/AuthContext";
-
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 11) return "Selamat pagi";
-  if (h < 15) return "Selamat siang";
-  if (h < 18) return "Selamat sore";
-  return "Selamat malam";
-}
 
 export default function HomePage() {
   const { role, kelas, fullName } = useAuth();
@@ -67,7 +59,7 @@ export default function HomePage() {
           </h2>
         </div>
 
-        {role === "guru" ? <GuruMenu /> : <ManagementMenu />}
+        {role === "guru" ? <GuruMenu /> : role === "olahraga" ? <OlahragaMenu /> : <ManagementMenu />}
 
         <footer className="mt-10 text-center text-xs" style={{ color: C.muted }}>
           <p className="font-semibold" style={{ color: C.green }}>Kuttab Budi Ashari</p>
@@ -144,6 +136,42 @@ function ManagementMenu() {
         desc="Pilih kelas untuk lihat capaian ilmu & Al-Qur'an."
         gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`}
         icon={<ChartIcon />}
+      />
+      <HomeCard
+        to="/absen"
+        title="Rekap Absen Guru"
+        desc="Pilih kelas untuk lihat kehadiran guru per pekan."
+        gradient={`linear-gradient(135deg, ${C.greenDeep} 0%, ${C.gold} 100%)`}
+        icon={<CalendarCheckIcon />}
+      />
+      <HomeCard
+        to="/jurnal"
+        title="Rekap Daily Jurnal"
+        desc="Pilih kelas untuk lihat jurnal harian guru per pekan."
+        gradient={`linear-gradient(135deg, #8A6A20 0%, ${C.green} 100%)`}
+        icon={<NotebookIcon />}
+      />
+      <HomeCard
+        to="/olahraga"
+        title="Rekap Olahraga"
+        desc="Rencana & evaluasi olahraga Kuttab Awwal 1–3 (ikhwan & akhwat)."
+        gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`}
+        icon={<ChartIcon />}
+      />
+    </main>
+  );
+}
+
+/** Menu guru olahraga — cuma satu halaman. */
+function OlahragaMenu() {
+  return (
+    <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+      <HomeCard
+        to="/olahraga"
+        title="Rencana & Evaluasi Olahraga"
+        desc="Isi rencana kegiatan dan evaluasi olahraga Kuttab Awwal 1–3 tiap bulan."
+        gradient={`linear-gradient(135deg, ${C.greenDeep} 0%, ${C.gold} 100%)`}
+        icon={<CalendarCheckIcon />}
       />
     </main>
   );

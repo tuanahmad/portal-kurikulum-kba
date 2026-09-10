@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
-import { NAV_ITEMS, LogoutIcon, CalendarCheckIcon } from "./navIcons";
+import { navItemsFor, LogoutIcon, CalendarCheckIcon } from "./navIcons";
 import { ProfileNameField } from "./ProfileNameField";
 
 /** Menu desktop (lg ke atas) — hamburger di kiri-atas membuka panel melayang di atas konten.
@@ -50,7 +50,7 @@ export function Sidebar() {
           }}
         >
           <nav className="space-y-1.5">
-            {NAV_ITEMS.map((it) => {
+            {navItemsFor(role).map((it) => {
               const active = pathname === it.to;
               const Icon = it.icon;
               return (

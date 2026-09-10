@@ -2,13 +2,29 @@
 
 // Absen sengaja gak masuk sini — dipindah ke Menu Profil (ProfileMenu) karena
 // sifatnya aksi harian sekali klik, bukan halaman yang dibuka berulang.
-export const NAV_ITEMS = [
+type NavItem = { to: string; label: string; icon: (p: { active?: boolean }) => JSX.Element };
+
+const GURU_NAV: NavItem[] = [
   { to: "/home", label: "Home", icon: HomeIcon },
   { to: "/instrumen", label: "Instrumen", icon: BookIcon },
   { to: "/rpb", label: "Rencana", icon: DocIcon },
   { to: "/capaian", label: "Capaian", icon: GridIcon },
   { to: "/jurnal", label: "Jurnal", icon: NotebookIcon },
 ];
+
+const OLAHRAGA_NAV: NavItem[] = [
+  { to: "/home", label: "Home", icon: HomeIcon },
+  { to: "/olahraga", label: "Olahraga", icon: WhistleIcon },
+];
+
+/** Menu navigasi sesuai role. Guru olahraga hanya lihat Home + Olahraga. */
+export function navItemsFor(role: "management" | "guru" | "olahraga" | null): NavItem[] {
+  if (role === "olahraga") return OLAHRAGA_NAV;
+  return GURU_NAV;
+}
+
+// dipertahankan utk kompatibilitas kalau masih ada yang import
+export const NAV_ITEMS = GURU_NAV;
 
 export function HomeIcon({ active }: { active?: boolean }) {
   return (
@@ -80,6 +96,21 @@ export function NotebookIcon({ active }: { active?: boolean }) {
       <rect x="4.5" y="3.5" width="15" height="17" rx="2" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
       <path d="M8 3.5v17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
       <path d="M11.5 9h5M11.5 12.5h5M11.5 16h3.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function WhistleIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M13 8h7a1 1 0 0 1 1 1v1a6 6 0 1 1-8.5-5.4L13 8Z"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.6}
+        strokeLinejoin="round"
+      />
+      <circle cx="8.5" cy="13" r="2.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
+      <path d="M13 3.5h4" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
     </svg>
   );
 }

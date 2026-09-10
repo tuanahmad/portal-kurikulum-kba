@@ -33,7 +33,7 @@ function GuruCapaian({ kelasName }: { kelasName: string | null }) {
         </header>
 
         {kelas ? (
-          <CapaianLinks kelas={kelas} />
+          <CapaianLinks kelas={kelas} kelasName={kelas.name} guru />
         ) : (
           <p className="text-sm text-center mt-8" style={{ color: C.muted }}>
             Kelas belum diset untuk akun ini — hubungi koordinator kurikulum.
@@ -86,7 +86,7 @@ function ManagementCapaian() {
           })}
         </main>
 
-        {kelas && <CapaianLinks kelas={kelas} />}
+        {kelas && <CapaianLinks kelas={kelas} kelasName={kelas.name} />}
       </div>
     </div>
   );
@@ -94,24 +94,51 @@ function ManagementCapaian() {
 
 /* ————————————————————— Dipakai bareng ————————————————————— */
 
-function CapaianLinks({ kelas }: { kelas: { ilmuId: string; quranId: string } }) {
+function CapaianLinks({
+  kelas,
+  kelasName,
+  guru,
+}: {
+  kelas: { ilmuId: string; quranId: string };
+  kelasName: string;
+  guru?: boolean;
+}) {
+  const diagramTo = guru
+    ? "/capaian/quran/diagram"
+    : `/capaian/quran/diagram?kelas=${encodeURIComponent(kelasName)}`;
   return (
     <main className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
       <AccentCard
         title="Capaian Ilmu"
-        desc="Sifatnya deskriptif · Diisi tiap tanggal 30"
+        desc={guru ? "Isi langsung di app · per santri tiap bulan" : "Sifatnya deskriptif · Diisi tiap tanggal 30"}
         icon={<BookIcon />}
         gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`}
-        href={sheetUrl(kelas.ilmuId)}
+        {...(guru ? { to: "/capaian/ilmu" } : { href: sheetUrl(kelas.ilmuId) })}
       />
       <AccentCard
         title="Capaian Al-Qur'an"
-        desc="Sifatnya angka · Diisi tiap Jum'at"
+        desc={guru ? "Isi langsung di app · per pertemuan" : "Sifatnya angka · Diisi tiap Jum'at"}
         icon={<ChartIcon />}
         gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
-        href={sheetUrl(kelas.quranId)}
+        {...(guru ? { to: "/capaian/quran" } : { href: sheetUrl(kelas.quranId) })}
+      />
+      <AccentCard
+        title="Diagram Perkembangan"
+        desc="Grafik capaian Al-Qur'an tiap anak per pekan"
+        icon={<TrendIcon />}
+        gradient={`linear-gradient(135deg, #3B6EA5 0%, #274C74 100%)`}
+        to={diagramTo}
       />
     </main>
+  );
+}
+
+function TrendIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M4 17l5-6 4 3 6-8" stroke="#FFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 6h5v5" stroke="#FFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

@@ -15,3 +15,6 @@ dist-ssr/
 .vscode/*
 !.vscode/extensions.json
 .DS_Store
+
+# Claude Code local tooling (dev-server config, local settings)
+.claude/

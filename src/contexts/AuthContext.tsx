@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "../lib/supabaseClient";
 import type { Session } from "@supabase/supabase-js";
 
-type Role = "management" | "guru";
+type Role = "management" | "guru" | "olahraga";
 
 // Login pakai username + PIN, bukan email asli. Username dipetakan jadi email
 // sintetis di domain ini (RFC 2606 — dijamin gak pernah nyata/bisa dikirimi email)
@@ -17,6 +17,7 @@ interface AuthContextValue {
   session: Session | null;
   role: Role | null;
   kelas: string | null;
+  kelompok: string | null;
   fullName: string | null;
   loading: boolean;
   signIn: (username: string, pin: string) => Promise<{ error: string | null }>;
@@ -30,22 +31,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<Role | null>(null);
   const [kelas, setKelas] = useState<string | null>(null);
+  const [kelompok, setKelompok] = useState<string | null>(null);
   const [fullName, setFullName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function loadProfile(userId: string) {
     const { data, error } = await supabase
       .from("profiles")
-      .select("role, kelas, full_name")
+      .select("role, kelas, kelompok, full_name")
       .eq("id", userId)
       .single();
     if (!error && data) {
       setRole(data.role as Role);
       setKelas(data.kelas);
+      setKelompok(data.kelompok);
       setFullName(data.full_name);
     } else {
       setRole(null);
       setKelas(null);
+      setKelompok(null);
       setFullName(null);
     }
   }
@@ -64,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setRole(null);
         setKelas(null);
+        setKelompok(null);
         setFullName(null);
       }
     });
@@ -89,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, role, kelas, fullName, loading, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ session, role, kelas, kelompok, fullName, loading, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
