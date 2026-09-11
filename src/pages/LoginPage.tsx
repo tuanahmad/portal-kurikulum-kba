@@ -38,7 +38,7 @@ export default function LoginPage() {
             className="text-lg font-semibold mt-3"
             style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
           >
-            Portal Kurikulum
+            Portal Guru
           </h1>
         </div>
 

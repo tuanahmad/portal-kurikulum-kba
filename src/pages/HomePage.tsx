@@ -23,7 +23,7 @@ export default function HomePage() {
             className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white max-w-xl"
             style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
           >
-            Portal Kurikulum
+            Portal Guru
             <span className="block text-lg sm:text-xl md:text-2xl mt-1" style={{ color: C.gold }}>
               Kuttab Budi Ashari
             </span>

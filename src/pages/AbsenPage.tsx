@@ -10,9 +10,13 @@ import {
   saveAbsenDay,
   emptyAbsen,
   isAbsenFilled,
+  isAbsenLengkap,
+  isSesiFilled,
   ringkasAbsen,
   nowHM,
   STATUS_LABEL,
+  SESI_LIST,
+  SESI_LABEL,
   mondayOf,
   weekdaysFrom,
   ymd,
@@ -20,15 +24,17 @@ import {
   labelTanggal,
   labelRentangPekan,
   type AbsenEntry,
+  type SesiEntry,
+  type SesiKey,
   type AbsenStatus,
 } from "../lib/absen";
 
 const STATUSES: AbsenStatus[] = ["hadir", "izin", "sakit", "cuti"];
 
 const PERATURAN = [
-  "Absen setiap hari kerja (Senin–Jumat) pada jam kedatangan dan kepulangan.",
+  "Absen 2 sesi tiap hari kerja (Senin–Jumat): kelas pagi & kelas siang — masing-masing punya jam datang & jam pulang sendiri.",
   "Ketuk tombol untuk mencatat jam otomatis; jam bisa dikoreksi manual bila perlu.",
-  "Kalau berhalangan hadir, pilih Izin / Sakit / Cuti dan tulis keterangannya.",
+  "Kalau berhalangan di salah satu sesi, pilih Izin / Sakit / Cuti untuk sesi itu dan tulis keterangannya.",
   "Hari yang terlewat masih bisa dikoreksi; tanggal yang belum tiba belum bisa diisi.",
 ];
 
@@ -164,25 +170,30 @@ function AbsenDayCard({
   useEffect(() => {
     setForm({
       tanggal: entry.tanggal,
-      status: entry.status,
-      jam_datang: entry.jam_datang,
-      jam_pulang: entry.jam_pulang,
-      keterangan: entry.keterangan,
+      pagi: { ...entry.pagi },
+      siang: { ...entry.siang },
     });
     setMsg(null);
     setErr(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entry.tanggal, entry.status, entry.jam_datang, entry.jam_pulang, entry.keterangan]);
+  }, [
+    entry.tanggal,
+    entry.pagi.status, entry.pagi.jam_datang, entry.pagi.jam_pulang, entry.pagi.keterangan,
+    entry.siang.status, entry.siang.jam_datang, entry.siang.jam_pulang, entry.siang.keterangan,
+  ]);
 
   const filled = isAbsenFilled(entry);
+  const lengkap = isAbsenLengkap(entry);
   const dirty =
-    form.status !== entry.status ||
-    form.jam_datang !== entry.jam_datang ||
-    form.jam_pulang !== entry.jam_pulang ||
-    form.keterangan !== entry.keterangan;
+    JSON.stringify(form.pagi) !== JSON.stringify(entry.pagi) ||
+    JSON.stringify(form.siang) !== JSON.stringify(entry.siang);
 
-  const set = <K extends keyof AbsenEntry>(k: K, v: AbsenEntry[K]) =>
-    setForm((p) => ({ ...p, [k]: v }));
+  const setSesi = (sesi: SesiKey, next: SesiEntry) =>
+    setForm((p) => ({ ...p, [sesi]: next }));
+
+  function cleanSesi(s: SesiEntry): SesiEntry {
+    return s.status === "hadir" ? { ...s, keterangan: "" } : { ...s, jam_datang: null, jam_pulang: null };
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -192,15 +203,14 @@ function AbsenDayCard({
       await saveAbsenDay({
         kelas,
         tanggal: ymd(date),
-        status: form.status,
-        jam_datang: form.jam_datang,
-        jam_pulang: form.jam_pulang,
-        keterangan: form.keterangan,
+        pagi: form.pagi,
+        siang: form.siang,
       });
-      const saved: AbsenEntry =
-        form.status === "hadir"
-          ? { ...form, keterangan: "", tanggal: ymd(date) }
-          : { ...form, jam_datang: null, jam_pulang: null, tanggal: ymd(date) };
+      const saved: AbsenEntry = {
+        tanggal: ymd(date),
+        pagi: cleanSesi(form.pagi),
+        siang: cleanSesi(form.siang),
+      };
       onSaved(saved);
       setForm(saved);
       setMsg("Tersimpan.");
@@ -224,7 +234,7 @@ function AbsenDayCard({
       >
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
-          style={{ background: filled ? C.green : C.leaf, color: filled ? "#FFF" : C.green }}
+          style={{ background: lengkap ? C.green : filled ? C.gold : C.leaf, color: lengkap || filled ? "#FFF" : C.green }}
         >
           <span className="text-[9px] font-semibold uppercase">{labelHari(date).slice(0, 3)}</span>
           <span className="text-sm font-bold">{date.getDate()}</span>
@@ -242,7 +252,7 @@ function AbsenDayCard({
             {editable ? ringkasAbsen(entry) : "Belum waktunya diisi"}
           </span>
         </span>
-        {filled && (
+        {lengkap && (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0" style={{ color: C.green }}>
             <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -266,58 +276,18 @@ function AbsenDayCard({
             </p>
           ) : (
             <>
-              {/* status */}
-              <div className="flex flex-wrap gap-2">
-                {STATUSES.map((s) => {
-                  const on = form.status === s;
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => set("status", s)}
-                      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
-                      style={{
-                        background: on ? C.green : "#FFF",
-                        color: on ? "#FFF" : C.ink,
-                        border: `1px solid ${on ? C.green : C.line}`,
-                      }}
-                    >
-                      {STATUS_LABEL[s]}
-                    </button>
-                  );
-                })}
+              <div className="space-y-4">
+                {SESI_LIST.map((sesi, i) => (
+                  <div key={sesi}>
+                    {i > 0 && <div className="h-px mb-4" style={{ background: C.line }} />}
+                    <SesiBlock
+                      label={SESI_LABEL[sesi]}
+                      value={form[sesi]}
+                      onChange={(v) => setSesi(sesi, v)}
+                    />
+                  </div>
+                ))}
               </div>
-
-              {form.status === "hadir" ? (
-                <div className="mt-3 space-y-2.5">
-                  <TimeField
-                    label="Jam datang"
-                    value={form.jam_datang}
-                    onNow={() => set("jam_datang", nowHM())}
-                    onManual={(v) => set("jam_datang", v)}
-                  />
-                  <TimeField
-                    label="Jam pulang"
-                    value={form.jam_pulang}
-                    onNow={() => set("jam_pulang", nowHM())}
-                    onManual={(v) => set("jam_pulang", v)}
-                  />
-                </div>
-              ) : (
-                <label className="block mt-3">
-                  <span className="block text-xs font-semibold mb-1" style={{ color: C.green }}>
-                    Keterangan {STATUS_LABEL[form.status].toLowerCase()}
-                  </span>
-                  <textarea
-                    value={form.keterangan}
-                    onChange={(e) => set("keterangan", e.target.value)}
-                    rows={2}
-                    placeholder="Contoh: ada keperluan keluarga, sudah izin ke kepala kuttab."
-                    className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
-                    style={{ border: `1px solid ${C.line}` }}
-                  />
-                </label>
-              )}
 
               {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
               {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
@@ -333,6 +303,77 @@ function AbsenDayCard({
             </>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+function SesiBlock({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: SesiEntry;
+  onChange: (v: SesiEntry) => void;
+}) {
+  const set = <K extends keyof SesiEntry>(k: K, v: SesiEntry[K]) => onChange({ ...value, [k]: v });
+
+  return (
+    <div>
+      <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>
+        {label}
+      </span>
+      <div className="flex flex-wrap gap-2">
+        {STATUSES.map((s) => {
+          const on = value.status === s;
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => set("status", s)}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+              style={{
+                background: on ? C.green : "#FFF",
+                color: on ? "#FFF" : C.ink,
+                border: `1px solid ${on ? C.green : C.line}`,
+              }}
+            >
+              {STATUS_LABEL[s]}
+            </button>
+          );
+        })}
+      </div>
+
+      {value.status === "hadir" ? (
+        <div className="mt-3 space-y-2.5">
+          <TimeField
+            label="Jam datang"
+            value={value.jam_datang}
+            onNow={() => set("jam_datang", nowHM())}
+            onManual={(v) => set("jam_datang", v)}
+          />
+          <TimeField
+            label="Jam pulang"
+            value={value.jam_pulang}
+            onNow={() => set("jam_pulang", nowHM())}
+            onManual={(v) => set("jam_pulang", v)}
+          />
+        </div>
+      ) : (
+        <label className="block mt-3">
+          <span className="block text-xs font-semibold mb-1" style={{ color: C.green }}>
+            Keterangan {STATUS_LABEL[value.status].toLowerCase()}
+          </span>
+          <textarea
+            value={value.keterangan}
+            onChange={(e) => set("keterangan", e.target.value)}
+            rows={2}
+            placeholder="Contoh: ada keperluan keluarga, sudah izin ke kepala kuttab."
+            className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
+            style={{ border: `1px solid ${C.line}` }}
+          />
+        </label>
       )}
     </div>
   );
@@ -483,12 +524,13 @@ function ManagementAbsen() {
 
 function ReadOnlyAbsenDay({ date, entry }: { date: Date; entry: AbsenEntry | undefined }) {
   const filled = isAbsenFilled(entry);
+  const lengkap = isAbsenLengkap(entry);
   return (
     <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
       <div className="flex items-center gap-3">
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
-          style={{ background: filled ? C.green : C.leaf, color: filled ? "#FFF" : C.green }}
+          style={{ background: lengkap ? C.green : filled ? C.gold : C.leaf, color: lengkap || filled ? "#FFF" : C.green }}
         >
           <span className="text-[9px] font-semibold uppercase">{labelHari(date).slice(0, 3)}</span>
           <span className="text-sm font-bold">{date.getDate()}</span>
@@ -501,33 +543,46 @@ function ReadOnlyAbsenDay({ date, entry }: { date: Date; entry: AbsenEntry | und
 
       {!filled ? (
         <p className="mt-2 text-xs" style={{ color: C.muted }}>Belum absen.</p>
-      ) : (entry as AbsenEntry).status === "hadir" ? (
-        <div className="mt-3 flex gap-6">
+      ) : (
+        <div className="mt-3 space-y-3">
+          {SESI_LIST.map((sesi) => (
+            <ReadOnlySesi key={sesi} label={SESI_LABEL[sesi]} value={(entry as AbsenEntry)[sesi]} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReadOnlySesi({ label, value }: { label: string; value: SesiEntry }) {
+  const filled = isSesiFilled(value);
+  return (
+    <div>
+      <div className="text-[11px] font-semibold" style={{ color: C.green }}>{label}</div>
+      {!filled ? (
+        <div className="text-xs mt-0.5" style={{ color: C.muted }}>Belum absen</div>
+      ) : value.status === "hadir" ? (
+        <div className="mt-1 flex gap-6">
           <div>
-            <div className="text-[11px] font-semibold" style={{ color: C.green }}>Datang</div>
+            <div className="text-[10px]" style={{ color: C.muted }}>Datang</div>
             <div className="text-base font-bold tabular-nums" style={{ color: C.ink }}>
-              {(entry as AbsenEntry).jam_datang?.replace(":", ".") ?? "–"}
+              {value.jam_datang?.replace(":", ".") ?? "–"}
             </div>
           </div>
           <div>
-            <div className="text-[11px] font-semibold" style={{ color: C.green }}>Pulang</div>
+            <div className="text-[10px]" style={{ color: C.muted }}>Pulang</div>
             <div className="text-base font-bold tabular-nums" style={{ color: C.ink }}>
-              {(entry as AbsenEntry).jam_pulang?.replace(":", ".") ?? "–"}
+              {value.jam_pulang?.replace(":", ".") ?? "–"}
             </div>
           </div>
         </div>
       ) : (
-        <div className="mt-3">
-          <span
-            className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold"
-            style={{ background: C.leaf, color: C.green }}
-          >
-            {STATUS_LABEL[(entry as AbsenEntry).status]}
+        <div className="mt-1">
+          <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: C.leaf, color: C.green }}>
+            {STATUS_LABEL[value.status]}
           </span>
-          {(entry as AbsenEntry).keterangan.trim() && (
-            <p className="mt-1.5 text-sm whitespace-pre-wrap" style={{ color: C.ink }}>
-              {(entry as AbsenEntry).keterangan.trim()}
-            </p>
+          {value.keterangan.trim() && (
+            <p className="mt-1.5 text-sm whitespace-pre-wrap" style={{ color: C.ink }}>{value.keterangan.trim()}</p>
           )}
         </div>
       )}
