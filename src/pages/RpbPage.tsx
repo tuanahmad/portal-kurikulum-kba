@@ -2,14 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   C,
-  RPB_FILES,
   RPB_FILES_DEV,
   REFLEKSI_FILES_DEV,
   KELAS_LIST,
   fileUrl,
   isMonthOpen,
   getCurrentMonthFile,
-  getGreeting,
 } from "../data";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
@@ -17,30 +15,44 @@ import { useAuth } from "../contexts/AuthContext";
 import { readRpbTab, type RpbTabData } from "../lib/rpbSheet";
 import { readReflectionTab, type ReflectionData } from "../lib/refleksiSheet";
 
+/** Terisi apa nggak — dipakai di status "card bulan" (GuruView) & buat nge-filter tampilan rekap. */
+function isRpbFilled(d: RpbTabData | null | undefined): boolean {
+  return !!d && (d.tableB ?? []).some((row) => row.some((c) => (c ?? "").trim()));
+}
+function isRefleksiFilled(d: ReflectionData | null | undefined): boolean {
+  if (!d) return false;
+  const anyRow = (rows?: string[][]) => (rows ?? []).some((r) => r.some((c) => (c ?? "").trim()));
+  const anyFlat = (vals?: string[]) => (vals ?? []).some((v) => (v ?? "").trim());
+  const anyMurid = (rows?: string[][]) =>
+    (rows ?? []).some((r) => (r[0] ?? "").trim() || r.slice(1).some((c) => (c ?? "").trim()));
+  return (
+    anyRow(d.capaianTarget) ||
+    anyFlat(d.keberhasilan) ||
+    anyRow(d.kendala) ||
+    anyFlat(d.evaluasiDiri) ||
+    anyFlat(d.refleksiGuru) ||
+    anyRow(d.rencanaPerbaikan) ||
+    anyMurid(d.perkembanganMurid)
+  );
+}
+
 export default function RpbPage() {
-  const { role, fullName } = useAuth();
+  const { role, kelas } = useAuth();
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-3xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <header className="text-center">
+      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
+        <header>
           <h1
             className="text-xl sm:text-2xl font-semibold"
             style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
           >
             Rencana & Refleksi
           </h1>
-          {role === "management" && (
-            <p className="text-sm mt-2 max-w-md mx-auto" style={{ color: C.muted }}>
-              Lihat isi RPB & Refleksi tiap guru langsung di sini.
-            </p>
-          )}
-        </header>
-        {role !== "management" && (
-          <p className="text-sm font-medium mt-3" style={{ color: C.green }}>
-            {getGreeting()}{fullName ? `, ${fullName}` : ""}
+          <p className="text-sm mt-1" style={{ color: C.muted }}>
+            {role === "management" ? "Rekap RPB & Refleksi seluruh guru" : kelas}
           </p>
-        )}
+        </header>
 
         <main className="mt-6">
           {role === "management" ? <ManagementView /> : <GuruView />}
@@ -52,46 +64,106 @@ export default function RpbPage() {
 
 /* ═══════════════════════ Tampilan Guru — pilih bulan ═══════════════════════ */
 
-const MONTH_GRADIENTS = [
-  `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`,
-  "linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)",
-  `linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`,
-];
-
 function GuruView() {
+  const { kelas } = useAuth();
+  const [status, setStatus] = useState<Record<string, { rpb: boolean; ref: boolean }>>({});
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!kelas) return;
+    let cancelled = false;
+    setLoaded(false);
+    const openMonths = RPB_FILES_DEV.filter((f) => isMonthOpen(f.name));
+    Promise.all(
+      openMonths.map(async (f) => {
+        const refFile = REFLEKSI_FILES_DEV.find((r) => r.name === f.name);
+        const [rpb, ref] = await Promise.all([
+          readRpbTab(f.id, kelas).catch(() => null),
+          refFile ? readReflectionTab(refFile.id, kelas).catch(() => null) : Promise.resolve(null),
+        ]);
+        return [f.name, { rpb: isRpbFilled(rpb), ref: isRefleksiFilled(ref) }] as const;
+      })
+    ).then((entries) => {
+      if (cancelled) return;
+      setStatus(Object.fromEntries(entries));
+      setLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [kelas]);
+
+  if (!kelas) {
+    return (
+      <p className="text-sm text-center" style={{ color: C.muted }}>
+        Kelas belum diset untuk akun ini.
+      </p>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
-      {RPB_FILES.map((f, i) => {
+    <div className="space-y-3">
+      {RPB_FILES_DEV.map((f) => {
         const open = isMonthOpen(f.name);
-        if (!open) {
-          return (
-            <div
-              key={f.name}
-              className="rounded-2xl p-4 flex flex-col justify-between min-h-[104px]"
-              style={{ background: C.leaf, border: `1px solid ${C.line}`, opacity: 0.65 }}
-            >
-              <LockIcon />
-              <span className="text-sm font-medium mt-3" style={{ color: C.muted }}>{f.name}</span>
-              <span className="text-[10px]" style={{ color: C.muted }}>Belum dibuka</span>
-            </div>
-          );
-        }
-        return (
+        const st = status[f.name];
+        const rpbOk = !!st?.rpb;
+        const refOk = !!st?.ref;
+        const bothOk = rpbOk && refOk;
+        const statusLine = !open
+          ? "Belum dibuka"
+          : !loaded
+            ? "Memuat…"
+            : bothOk
+              ? "RPB ✓ · Refleksi ✓"
+              : rpbOk || refOk
+                ? `RPB ${rpbOk ? "✓" : "–"} · Refleksi ${refOk ? "✓" : "–"}`
+                : "Belum diisi";
+
+        const rowStyle = {
+          background: "#FFF",
+          border: `1px solid ${open && bothOk ? C.green : C.line}`,
+          opacity: open ? 1 : 0.65,
+        };
+        const badgeStyle = {
+          background: open && bothOk ? C.green : C.leaf,
+          color: open && bothOk ? "#FFF" : open ? C.green : C.muted,
+        };
+
+        const inner = (
+          <>
+            <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={badgeStyle}>
+              {open ? <CalendarIcon /> : <LockIcon />}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold" style={{ color: C.ink }}>{f.name}</span>
+              <span className="block text-xs truncate" style={{ color: C.muted }}>{statusLine}</span>
+            </span>
+            {bothOk && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0" style={{ color: C.green }}>
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+            {open && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0" style={{ color: C.muted }}>
+                <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </>
+        );
+
+        return open ? (
           <Link
             key={f.name}
             to={`/rpb/${f.name}`}
-            className="group relative overflow-hidden rounded-2xl p-4 flex flex-col justify-between min-h-[104px] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-            style={{ background: MONTH_GRADIENTS[i % MONTH_GRADIENTS.length], boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}
+            className="rounded-2xl flex items-center gap-3 px-3.5 py-3 transition-shadow hover:shadow-md"
+            style={rowStyle}
           >
-            <span
-              className="absolute -right-5 -top-5 w-20 h-20 rounded-full transition-transform duration-500 group-hover:scale-125"
-              style={{ background: "rgba(255,255,255,0.08)" }}
-              aria-hidden="true"
-            />
-            <CalendarIcon />
-            <span className="relative text-white font-semibold mt-3">{f.name}</span>
-            <span className="relative text-[10px]" style={{ color: "rgba(255,255,255,0.75)" }}>RPB & Refleksi</span>
+            {inner}
           </Link>
+        ) : (
+          <div key={f.name} className="rounded-2xl flex items-center gap-3 px-3.5 py-3" style={rowStyle}>
+            {inner}
+          </div>
         );
       })}
     </div>
@@ -624,10 +696,10 @@ function EmptyNote({ children }: { children: React.ReactNode }) {
 
 function CalendarIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="relative">
-      <rect x="3.5" y="5" width="17" height="15" rx="2" stroke="#FFF" strokeWidth="1.7" />
-      <path d="M3.5 9.5h17" stroke="#FFF" strokeWidth="1.7" />
-      <path d="M8 3v3.5M16 3v3.5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <rect x="3.5" y="5" width="17" height="15" rx="2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M3.5 9.5h17" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8 3v3.5M16 3v3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
