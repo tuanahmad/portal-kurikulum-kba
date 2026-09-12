@@ -152,9 +152,9 @@ function ManagementMenu() {
         icon={<NotebookIcon />}
       />
       <HomeCard
-        to="/olahraga"
+        to="/olahraga/rencana"
         title="Rekap Olahraga"
-        desc="Rencana & evaluasi olahraga Kuttab Awwal 1–3 (ikhwan & akhwat)."
+        desc="Rencana, evaluasi & absen olahraga Kuttab Awwal 1–3 (ikhwan & akhwat)."
         gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`}
         icon={<ChartIcon />}
       />
@@ -162,16 +162,30 @@ function ManagementMenu() {
   );
 }
 
-/** Menu guru olahraga — cuma satu halaman. */
+/** Menu guru olahraga — 3 kartu terpisah (rencana, evaluasi, absen). */
 function OlahragaMenu() {
   return (
     <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
       <HomeCard
-        to="/olahraga"
-        title="Rencana & Evaluasi Olahraga"
-        desc="Isi rencana kegiatan dan evaluasi olahraga Kuttab Awwal 1–3 tiap bulan."
+        to="/olahraga/rencana"
+        title="Rencana Kegiatan Olahraga"
+        desc="Isi rencana kegiatan olahraga Kuttab Awwal 1–3, per pekan tiap bulan."
         gradient={`linear-gradient(135deg, ${C.greenDeep} 0%, ${C.gold} 100%)`}
         icon={<CalendarCheckIcon />}
+      />
+      <HomeCard
+        to="/olahraga/evaluasi"
+        title="Evaluasi Kegiatan Olahraga"
+        desc="Isi evaluasi kegiatan olahraga tiap bulan."
+        gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`}
+        icon={<ChartIcon />}
+      />
+      <HomeCard
+        to="/olahraga/absen"
+        title="Absen"
+        desc="Absen kedatangan Senin, Selasa & Rabu."
+        gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
+        icon={<NotebookIcon />}
       />
     </main>
   );

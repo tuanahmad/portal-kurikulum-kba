@@ -121,6 +121,18 @@ export function capaianRoster(kelas: string): string[] {
   return SANTRI_LIST[kelas] || [];
 }
 
+// ————— Roster olahraga per tingkat (KA 1/2/3) + kelompok (ikhwan/akhwat) —————
+// KA 1 & KA 2 kelasnya masih gabung (belum dipisah ikhwan/akhwat secara fisik), jadi rosternya
+// sama buat guru olahraga ikhwan maupun akhwat. KA 3 kelasnya udah kepisah per kelompok, jadi
+// tinggal ambil roster kelas yang sesuai.
+export function olahragaRoster(tingkat: "KA 1" | "KA 2" | "KA 3", kelompok: "ikhwan" | "akhwat"): string[] {
+  if (tingkat === "KA 1") {
+    return [...capaianRoster("Kuttab Awwal 1A"), ...capaianRoster("Kuttab Awwal 1B")];
+  }
+  if (tingkat === "KA 2") return capaianRoster("Kuttab Awwal 2");
+  return capaianRoster(`Kuttab Awwal 3 ${kelompok === "ikhwan" ? "Ikhwan" : "Akhwat"}`);
+}
+
 // ————— Capaian Ilmu (deskriptif, diisi bulanan) —————
 // Salinan uji coba (folder "CAPAIAN-ILMU-DEV COPY" di Drive). Struktur sheet beda per level:
 //   - Kuttab Awwal : baris = anak, kolom = 7 bidang ilmu (datar). Tiap sel = kalimat deskriptif.

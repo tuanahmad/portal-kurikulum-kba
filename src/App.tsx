@@ -39,8 +39,9 @@ export default function App() {
             <Route path="/capaian" element={<CapaianPage />} />
             <Route path="/absen" element={<AbsenPage />} />
             <Route path="/jurnal" element={<JurnalPage />} />
+            <Route path="/olahraga" element={<Navigate to="/olahraga/rencana" replace />} />
             <Route
-              path="/olahraga"
+              path="/olahraga/:mode"
               element={
                 <ProtectedRoute allowedRoles={["olahraga", "management"]}>
                   <OlahragaPage />

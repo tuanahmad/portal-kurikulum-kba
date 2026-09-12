@@ -14,10 +14,13 @@ const GURU_NAV: NavItem[] = [
 
 const OLAHRAGA_NAV: NavItem[] = [
   { to: "/home", label: "Home", icon: HomeIcon },
-  { to: "/olahraga", label: "Olahraga", icon: WhistleIcon },
+  { to: "/olahraga/rencana", label: "Rencana", icon: DocIcon },
+  { to: "/olahraga/evaluasi", label: "Evaluasi", icon: GridIcon },
+  { to: "/olahraga/absen", label: "Absen", icon: CalendarCheckIcon },
 ];
 
-/** Menu navigasi sesuai role. Guru olahraga hanya lihat Home + Olahraga. */
+/** Menu navigasi sesuai role. Guru olahraga lihat Home + Rencana + Evaluasi + Absen
+ *  (gantinya tab Rencana/Evaluasi/Absen yang tadinya ada di dalam halaman Olahraga). */
 export function navItemsFor(role: "management" | "guru" | "olahraga" | null): NavItem[] {
   if (role === "olahraga") return OLAHRAGA_NAV;
   return GURU_NAV;

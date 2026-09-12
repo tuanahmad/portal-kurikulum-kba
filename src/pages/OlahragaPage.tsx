@@ -1,13 +1,34 @@
-import { useEffect, useState } from "react";
-import { C } from "../data";
+import { useEffect, useMemo, useState } from "react";
+import { Link, Navigate, useParams } from "react-router-dom";
+import { C, isMonthOpen, olahragaRoster } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { PageLoadingSkeleton } from "../components/Skeleton";
+import { RuleCard } from "../components/RuleCard";
+import { MonthGrid } from "../components/MonthGrid";
+import { WhistleIcon } from "../components/navIcons";
+import {
+  STATUS_LABEL,
+  mondayOf,
+  weekdaysFrom,
+  ymd,
+  labelHari,
+  labelTanggal,
+  labelRentangPekan,
+  type AbsenStatus,
+} from "../lib/absen";
 import {
   readOlahragaBulan,
   saveOlahraga,
   emptyOlahraga,
   isRencanaFilled,
-  isEvalFilled,
+  readEvaluasiAnak,
+  saveEvaluasiAnakBatch,
+  emptyEvalAnak,
+  isEvalAnakFilled,
+  readAbsenOlahragaRange,
+  saveAbsenOlahraga,
+  emptyAbsenOlahraga,
+  isAbsenOlahragaFilled,
   TINGKAT_LIST,
   BULAN_OLAHRAGA,
   TARGET_PRESET,
@@ -17,9 +38,18 @@ import {
   type OlahragaEntry,
   type OlahragaTingkat,
   type OlahragaKelompok,
+  type EvalAnakEntry,
+  type AbsenOlahragaEntry,
 } from "../lib/olahraga";
 
-type Mode = "rencana" | "evaluasi";
+type Mode = "rencana" | "evaluasi" | "absen";
+const MODES: Mode[] = ["rencana", "evaluasi", "absen"];
+const MODE_LABEL: Record<Mode, string> = { rencana: "Rencana Kegiatan", evaluasi: "Evaluasi", absen: "Absen" };
+const MODE_TITLE: Record<Mode, string> = {
+  rencana: "Rencana Kegiatan Olahraga",
+  evaluasi: "Evaluasi Kegiatan Olahraga",
+  absen: "Absen Olahraga",
+};
 
 const MONTH_NUM: Record<string, number> = {
   Juli: 7, Agustus: 8, September: 9, Oktober: 10, November: 11, Desember: 12,
@@ -30,15 +60,55 @@ function defaultBulan(): string {
 }
 
 export default function OlahragaPage() {
+  const { mode: modeParam } = useParams<{ mode: string }>();
   const { role } = useAuth();
-  return role === "management" ? <ManagementOlahraga /> : <GuruOlahraga />;
+  const mode = (MODES as string[]).includes(modeParam ?? "") ? (modeParam as Mode) : null;
+
+  if (!mode) return <Navigate to="/olahraga/rencana" replace />;
+
+  return role === "management" ? <ManagementOlahraga mode={mode} /> : <GuruOlahraga mode={mode} />;
 }
 
 /* ═══════════════════════ Guru olahraga ═══════════════════════ */
 
-function GuruOlahraga() {
+function GuruOlahraga({ mode }: { mode: Mode }) {
   const { kelompok, fullName } = useAuth();
-  const [mode, setMode] = useState<Mode>("rencana");
+
+  if (kelompok !== "ikhwan" && kelompok !== "akhwat") {
+    return (
+      <div className="min-h-dvh flex items-center justify-center px-6" style={{ background: C.mist }}>
+        <p className="text-sm text-center" style={{ color: C.muted }}>
+          Akun ini belum ditandai sebagai guru olahraga ikhwan / akhwat. Hubungi admin.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
+      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
+        <HeaderCard
+          title={MODE_TITLE[mode]}
+          name={fullName || `Guru Olahraga ${KELOMPOK_LABEL[kelompok]}`}
+          sub="Kuttab Awwal 1–3"
+        />
+
+        {/* Pindah mode Rencana/Evaluasi/Absen sekarang lewat menu bawah (BottomNav/Sidebar),
+            bukan tab di dalam halaman — biar gak dobel sama menunya. */}
+
+        {mode === "absen" ? (
+          <GuruAbsenOlahraga kelompok={kelompok} />
+        ) : mode === "rencana" ? (
+          <GuruRencana kelompok={kelompok} />
+        ) : (
+          <GuruEvaluasi kelompok={kelompok} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GuruRencana({ kelompok }: { kelompok: OlahragaKelompok }) {
   const [bulan, setBulan] = useState<string>(defaultBulan);
   const [entries, setEntries] = useState<Record<string, OlahragaEntry>>({});
   const [loading, setLoading] = useState(true);
@@ -58,69 +128,237 @@ function GuruOlahraga() {
     };
   }, [bulan]);
 
-  if (kelompok !== "ikhwan" && kelompok !== "akhwat") {
-    return (
-      <div className="min-h-dvh flex items-center justify-center px-6" style={{ background: C.mist }}>
-        <p className="text-sm text-center" style={{ color: C.muted }}>
-          Akun ini belum ditandai sebagai guru olahraga ikhwan / akhwat. Hubungi admin.
-        </p>
+  return (
+    <>
+      <div className="mt-4">
+        <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
+        <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
       </div>
-    );
+
+      {error && (
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="mt-5">
+          <PageLoadingSkeleton />
+        </div>
+      ) : (
+        <div className="mt-5 space-y-3">
+          {TINGKAT_LIST.map((t) => (
+            <TingkatCard
+              key={t}
+              tingkat={t}
+              bulan={bulan}
+              kelompok={kelompok}
+              entry={entries[t] ?? emptyOlahraga(t, bulan)}
+              open={openTingkat === t}
+              onToggle={() => setOpenTingkat((o) => (o === t ? null : t))}
+              onSaved={(saved) => setEntries((prev) => ({ ...prev, [t]: saved }))}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ───────── Evaluasi (guru) — per anak, dikelompokkan per tingkat ───────── */
+
+function GuruEvaluasi({ kelompok }: { kelompok: OlahragaKelompok }) {
+  const [bulan, setBulan] = useState<string>(defaultBulan);
+  const [openTingkat, setOpenTingkat] = useState<string | null>("KA 1");
+
+  return (
+    <>
+      <div className="mt-4">
+        <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
+        <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
+      </div>
+
+      <div className="mt-5 space-y-3">
+        {TINGKAT_LIST.map((t) => (
+          <EvaluasiTingkatCard
+            key={t}
+            tingkat={t}
+            bulan={bulan}
+            kelompok={kelompok}
+            open={openTingkat === t}
+            onToggle={() => setOpenTingkat((o) => (o === t ? null : t))}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function EvaluasiTingkatCard({
+  tingkat,
+  bulan,
+  kelompok,
+  open,
+  onToggle,
+}: {
+  tingkat: OlahragaTingkat;
+  bulan: string;
+  kelompok: OlahragaKelompok;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const roster = useMemo(() => olahragaRoster(tingkat, kelompok), [tingkat, kelompok]);
+  const [data, setData] = useState<Record<string, EvalAnakEntry>>({});
+  const [form, setForm] = useState<Record<string, EvalAnakEntry>>({});
+  const [loading, setLoading] = useState(true);
+  const [openAnak, setOpenAnak] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setLoading(true);
+    setErr(null);
+    setMsg(null);
+    readEvaluasiAnak(tingkat, bulan, {})
+      .then((d) => {
+        if (cancelled) return;
+        setData(d);
+        setForm(d);
+      })
+      .catch((e) => !cancelled && setErr(e instanceof Error ? e.message : String(e)))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, tingkat, bulan]);
+
+  const anyFilled = Object.values(data).some((e) => isEvalAnakFilled(e));
+  const dirty = JSON.stringify(form) !== JSON.stringify(data);
+
+  const setAnak = (nama: string, k: keyof EvalAnakEntry, v: string) =>
+    setForm((p) => ({ ...p, [nama]: { ...(p[nama] ?? emptyEvalAnak()), [k]: v } }));
+
+  async function handleSave() {
+    setSaving(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      await saveEvaluasiAnakBatch({ kelompok, tingkat, bulan, entries: form });
+      setData(form);
+      setMsg("Tersimpan.");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <header>
-          <h1
-            className="text-xl sm:text-2xl font-semibold"
-            style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            {mode === "rencana" ? "Rencana Kegiatan Olahraga" : "Evaluasi Kegiatan Olahraga"}
-          </h1>
-          <p className="text-sm mt-1" style={{ color: C.muted }}>
-            {fullName || `Guru Olahraga ${KELOMPOK_LABEL[kelompok]}`} · Kuttab Awwal 1–3
-          </p>
-        </header>
-
-        <ModeToggle mode={mode} onChange={setMode} />
-
-        <MonthChips value={bulan} onChange={setBulan} />
-
-        {error && (
-          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-            {error}
-          </div>
+    <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 px-3.5 py-3 text-left transition-colors"
+        style={{ background: open ? C.leaf : "#FFF" }}
+      >
+        <span
+          className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
+          style={{ background: anyFilled ? C.green : C.leaf, color: anyFilled ? "#FFF" : C.green }}
+        >
+          <span className="text-[9px] font-semibold uppercase">KA</span>
+          <span className="text-sm font-bold">{tingkat.replace("KA ", "")}</span>
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-semibold" style={{ color: C.ink }}>Kuttab Awwal {tingkat.replace("KA ", "")}</span>
+          <span className="block text-xs truncate" style={{ color: C.muted }}>
+            {roster.length === 0 ? "Belum ada roster santri" : anyFilled ? "Evaluasi sudah diisi — ketuk untuk lihat / edit" : "Evaluasi belum diisi"}
+          </span>
+        </span>
+        {anyFilled && (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0" style={{ color: C.green }}>
+            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         )}
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none"
+          className="shrink-0 transition-transform"
+          style={{ color: C.muted, transform: open ? "rotate(180deg)" : "none" }}
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
 
-        {loading ? (
-          <div className="mt-5">
+      {open && (
+        <div className="px-3.5 pb-4 pt-3" style={{ borderTop: `1px solid ${C.line}` }}>
+          {roster.length === 0 ? (
+            <p className="text-sm" style={{ color: C.muted }}>Belum ada daftar santri buat tingkat ini — hubungi koordinator kurikulum.</p>
+          ) : loading ? (
             <PageLoadingSkeleton />
-          </div>
-        ) : (
-          <div className="mt-5 space-y-3">
-            {TINGKAT_LIST.map((t) => (
-              <TingkatCard
-                key={t}
-                mode={mode}
-                tingkat={t}
-                bulan={bulan}
-                kelompok={kelompok}
-                entry={entries[t] ?? emptyOlahraga(t, bulan)}
-                open={openTingkat === t}
-                onToggle={() => setOpenTingkat((o) => (o === t ? null : t))}
-                onSaved={(saved) => setEntries((prev) => ({ ...prev, [t]: saved }))}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {roster.map((nama) => {
+                  const entry = form[nama] ?? emptyEvalAnak();
+                  const filled = isEvalAnakFilled(data[nama]);
+                  const anakOpen = openAnak === nama;
+                  return (
+                    <div key={nama} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${anakOpen ? C.green : C.line}` }}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenAnak((o) => (o === nama ? null : nama))}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left"
+                      >
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: filled ? C.green : C.line }} aria-hidden="true" />
+                        <span className="flex-1 text-sm font-medium truncate" style={{ color: C.ink }}>{nama}</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" style={{ transform: anakOpen ? "rotate(180deg)" : "none", transition: "transform .2s", color: C.muted }}>
+                          <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                      {anakOpen && (
+                        <div className="px-3 pb-3 space-y-2.5" style={{ borderTop: `1px solid ${C.line}` }}>
+                          {EVAL_FIELDS.map((f) => (
+                            <Field key={f.key} label={f.label}>
+                              <textarea
+                                value={entry[f.key]}
+                                onChange={(e) => setAnak(nama, f.key, e.target.value)}
+                                rows={2}
+                                placeholder="Tulis di sini…"
+                                className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y mt-2"
+                                style={{ border: `1px solid ${C.line}` }}
+                              />
+                            </Field>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
+              {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
+
+              <button
+                onClick={handleSave}
+                disabled={saving || !dirty}
+                className="mt-3 w-full py-2.5 rounded-xl text-sm font-bold transition-opacity"
+                style={{ background: C.green, color: "#FFF", opacity: saving || !dirty ? 0.5 : 1 }}
+              >
+                {saving ? "Menyimpan…" : anyFilled ? "Simpan perubahan" : "Simpan"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 function TingkatCard({
-  mode,
   tingkat,
   bulan,
   kelompok,
@@ -129,7 +367,6 @@ function TingkatCard({
   onToggle,
   onSaved,
 }: {
-  mode: Mode;
   tingkat: OlahragaTingkat;
   bulan: string;
   kelompok: OlahragaKelompok;
@@ -154,11 +391,6 @@ function TingkatCard({
       pekan4: entry.pekan4,
       target: [...entry.target],
       alat: entry.alat,
-      eval_ketercapaian: entry.eval_ketercapaian,
-      eval_partisipasi: entry.eval_partisipasi,
-      eval_kendala: entry.eval_kendala,
-      eval_perkembangan: entry.eval_perkembangan,
-      eval_tindak_lanjut: entry.eval_tindak_lanjut,
     });
     setMsg(null);
     setErr(null);
@@ -166,25 +398,14 @@ function TingkatCard({
   }, [
     entry.tingkat, entry.bulan, targetKey, entry.alat,
     entry.pekan1, entry.pekan2, entry.pekan3, entry.pekan4,
-    entry.eval_ketercapaian, entry.eval_partisipasi, entry.eval_kendala,
-    entry.eval_perkembangan, entry.eval_tindak_lanjut,
   ]);
 
-  // ganti mode => tutup pesan lama
-  useEffect(() => {
-    setMsg(null);
-    setErr(null);
-  }, [mode]);
-
   const rencanaOk = isRencanaFilled(entry);
-  const evalOk = isEvalFilled(entry);
 
-  const dirtyRencana =
+  const dirty =
     form.alat !== entry.alat ||
     form.target.join("") !== targetKey ||
     PEKAN_FIELDS.some((f) => form[f.key] !== entry[f.key]);
-  const dirtyEval = EVAL_FIELDS.some((f) => form[f.key] !== entry[f.key]);
-  const dirty = mode === "rencana" ? dirtyRencana : dirtyEval;
 
   const set = <K extends keyof OlahragaEntry>(k: K, v: OlahragaEntry[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
@@ -204,11 +425,6 @@ function TingkatCard({
         pekan4: form.pekan4,
         target: form.target,
         alat: form.alat,
-        eval_ketercapaian: form.eval_ketercapaian,
-        eval_partisipasi: form.eval_partisipasi,
-        eval_kendala: form.eval_kendala,
-        eval_perkembangan: form.eval_perkembangan,
-        eval_tindak_lanjut: form.eval_tindak_lanjut,
       });
       const saved: OlahragaEntry = { ...form, tingkat, bulan };
       onSaved(saved);
@@ -221,15 +437,8 @@ function TingkatCard({
     }
   }
 
-  const done = mode === "rencana" ? rencanaOk : evalOk;
-  const statusLine =
-    mode === "rencana"
-      ? rencanaOk
-        ? "Rencana sudah diisi — ketuk untuk lihat / edit"
-        : "Rencana belum diisi"
-      : evalOk
-        ? "Evaluasi sudah diisi — ketuk untuk lihat / edit"
-        : "Evaluasi belum diisi";
+  const done = rencanaOk;
+  const statusLine = rencanaOk ? "Rencana sudah diisi — ketuk untuk lihat / edit" : "Rencana belum diisi";
 
   return (
     <div
@@ -243,10 +452,11 @@ function TingkatCard({
         style={{ background: open ? C.leaf : "#FFF" }}
       >
         <span
-          className="px-2.5 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold"
+          className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
           style={{ background: done ? C.green : C.leaf, color: done ? "#FFF" : C.green }}
         >
-          {tingkat}
+          <span className="text-[9px] font-semibold uppercase">KA</span>
+          <span className="text-sm font-bold">{tingkat.replace("KA ", "")}</span>
         </span>
         <span className="flex-1 min-w-0">
           <span className="block text-sm font-semibold" style={{ color: C.ink }}>Kuttab Awwal {tingkat.replace("KA ", "")}</span>
@@ -268,52 +478,35 @@ function TingkatCard({
 
       {open && (
         <div className="px-3.5 pb-4 pt-3" style={{ borderTop: `1px solid ${C.line}` }}>
-          {mode === "rencana" ? (
-            <div className="space-y-3">
-              {PEKAN_FIELDS.map((f) => (
-                <Field key={f.key} label={f.label}>
-                  <textarea
-                    value={form[f.key] as string}
-                    onChange={(e) => set(f.key, e.target.value as OlahragaEntry[typeof f.key])}
-                    rows={2}
-                    placeholder="Kegiatan olahraga pekan ini…"
-                    className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
-                    style={{ border: `1px solid ${C.line}` }}
-                  />
-                </Field>
-              ))}
-
-              <Field label="Target olahraga">
-                <TargetPicker value={form.target} onChange={(v) => set("target", v)} />
-              </Field>
-
-              <Field label="Alat yang digunakan">
+          <div className="space-y-3">
+            {PEKAN_FIELDS.map((f) => (
+              <Field key={f.key} label={f.label}>
                 <textarea
-                  value={form.alat}
-                  onChange={(e) => set("alat", e.target.value)}
+                  value={form[f.key] as string}
+                  onChange={(e) => set(f.key, e.target.value as OlahragaEntry[typeof f.key])}
                   rows={2}
-                  placeholder="Bola, cone, tali, matras…"
+                  placeholder="Kegiatan olahraga pekan ini…"
                   className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
                   style={{ border: `1px solid ${C.line}` }}
                 />
               </Field>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {EVAL_FIELDS.map((f) => (
-                <Field key={f.key} label={f.label}>
-                  <textarea
-                    value={form[f.key] as string}
-                    onChange={(e) => set(f.key, e.target.value as OlahragaEntry[typeof f.key])}
-                    rows={2}
-                    placeholder="Tulis di sini…"
-                    className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
-                    style={{ border: `1px solid ${C.line}` }}
-                  />
-                </Field>
-              ))}
-            </div>
-          )}
+            ))}
+
+            <Field label="Target olahraga">
+              <TargetPicker value={form.target} onChange={(v) => set("target", v)} />
+            </Field>
+
+            <Field label="Alat yang digunakan">
+              <textarea
+                value={form.alat}
+                onChange={(e) => set("alat", e.target.value)}
+                rows={2}
+                placeholder="Bola, cone, tali, matras…"
+                className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
+                style={{ border: `1px solid ${C.line}` }}
+              />
+            </Field>
+          </div>
 
           {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
           {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
@@ -405,10 +598,276 @@ function TargetPicker({ value, onChange }: { value: string[]; onChange: (v: stri
   );
 }
 
+/* ───────── Absen olahraga (guru) — 1x/hari, Senin–Rabu saja, gak ada jam ───────── */
+
+const ABSEN_OLAHRAGA_RULES = [
+  "Absen olahraga cuma 3 hari: Senin, Selasa, Rabu.",
+  "Cukup tandai kedatangan — gak perlu jam datang/pulang.",
+  "Kalau berhalangan, pilih Izin / Sakit / Cuti dan tulis keterangannya.",
+  "Cuma bisa diisi pada hari itu juga — begitu lewat, dianggap sudah disetor ke manajemen dan gak bisa diubah lagi.",
+];
+
+function GuruAbsenOlahraga({ kelompok }: { kelompok: OlahragaKelompok }) {
+  const thisMonday = useMemo(() => mondayOf(new Date()), []);
+  const [monday, setMonday] = useState(thisMonday);
+  const days = useMemo(() => weekdaysFrom(monday).slice(0, 3), [monday]); // Senin, Selasa, Rabu
+  const todayYmd = ymd(new Date());
+
+  const [entries, setEntries] = useState<Record<string, AbsenOlahragaEntry>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [openDay, setOpenDay] = useState<string | null>(null);
+
+  const atThisWeek = ymd(monday) >= ymd(thisMonday);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    readAbsenOlahragaRange(ymd(days[0]), ymd(days[2]), {})
+      .then((m) => {
+        if (cancelled) return;
+        setEntries(m);
+        const t = days.find((d) => ymd(d) === todayYmd);
+        setOpenDay(t ? todayYmd : null);
+      })
+      .catch((e) => !cancelled && setError(e.message))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monday]);
+
+  return (
+    <>
+      <RuleCard title="Peraturan absen olahraga" rules={ABSEN_OLAHRAGA_RULES} icon={<AbsenRuleIcon />} />
+
+      <WeekNav
+        label={labelRentangPekan(days)}
+        sub={atThisWeek ? "Pekan ini" : undefined}
+        onPrev={() => setMonday(shiftWeek(monday, -1))}
+        onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
+      />
+
+      {error && (
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          {error}
+        </div>
+      )}
+      {loading ? (
+        <div className="mt-5">
+          <PageLoadingSkeleton />
+        </div>
+      ) : (
+        <div className="mt-5 space-y-3">
+          {days.map((d) => {
+            const key = ymd(d);
+            return (
+              <AbsenOlahragaDayCard
+                key={key}
+                date={d}
+                isToday={key === todayYmd}
+                editable={key === todayYmd}
+                isPast={key < todayYmd}
+                filled={isAbsenOlahragaFilled(entries[key])}
+                entry={entries[key] ?? emptyAbsenOlahraga(key)}
+                open={openDay === key}
+                onToggle={() => setOpenDay((o) => (o === key ? null : key))}
+                onSaved={(saved) => setEntries((prev) => ({ ...prev, [key]: saved }))}
+                kelompok={kelompok}
+              />
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+function AbsenOlahragaDayCard({
+  date,
+  isToday,
+  editable,
+  isPast,
+  filled,
+  entry,
+  open,
+  onToggle,
+  onSaved,
+  kelompok,
+}: {
+  date: Date;
+  isToday: boolean;
+  editable: boolean;
+  isPast: boolean;
+  filled: boolean;
+  entry: AbsenOlahragaEntry;
+  open: boolean;
+  onToggle: () => void;
+  onSaved: (e: AbsenOlahragaEntry) => void;
+  kelompok: OlahragaKelompok;
+}) {
+  const [form, setForm] = useState<AbsenOlahragaEntry>(entry);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    setForm({ tanggal: entry.tanggal, status: entry.status, keterangan: entry.keterangan });
+    setMsg(null);
+    setErr(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry.tanggal, entry.status, entry.keterangan]);
+
+  // Belum pernah disimpan => tetap "dirty" walau status masih default "Hadir" (gak ada field jam
+  // yang bisa dipakai buat mancing perubahan nilai kayak absen guru biasa — cuma status doang).
+  const dirty = !filled || form.status !== entry.status || form.keterangan !== entry.keterangan;
+  const set = <K extends keyof AbsenOlahragaEntry>(k: K, v: AbsenOlahragaEntry[K]) =>
+    setForm((p) => ({ ...p, [k]: v }));
+
+  async function handleSave() {
+    setSaving(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      await saveAbsenOlahraga({ kelompok, tanggal: ymd(date), status: form.status, keterangan: form.keterangan });
+      const saved: AbsenOlahragaEntry = {
+        tanggal: ymd(date),
+        status: form.status,
+        keterangan: form.status === "hadir" ? "" : form.keterangan,
+        updated_at: new Date().toISOString(),
+      };
+      onSaved(saved);
+      setForm(saved);
+      setMsg("Tersimpan.");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{ background: "#FFF", border: `1px solid ${isToday && !open ? C.green : C.line}` }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 px-3.5 py-3 text-left transition-colors"
+        style={{ background: open ? C.leaf : "#FFF" }}
+      >
+        <span
+          className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
+          style={{ background: filled ? C.green : C.leaf, color: filled ? "#FFF" : C.green }}
+        >
+          <span className="text-[9px] font-semibold uppercase">{labelHari(date).slice(0, 3)}</span>
+          <span className="text-sm font-bold">{date.getDate()}</span>
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-semibold" style={{ color: C.ink }}>
+            {labelHari(date)}
+            {isToday && (
+              <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle" style={{ background: C.leaf, color: C.green }}>
+                HARI INI
+              </span>
+            )}
+          </span>
+          <span className="block text-xs truncate" style={{ color: C.muted }}>
+            {!editable
+              ? isPast
+                ? filled ? STATUS_LABEL[entry.status] : "Terlewat — tidak diisi"
+                : "Belum waktunya diisi"
+              : filled ? STATUS_LABEL[entry.status] : "Belum absen"}
+          </span>
+        </span>
+        {filled && (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0" style={{ color: C.green }}>
+            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none"
+          className="shrink-0 transition-transform"
+          style={{ color: C.muted, transform: open ? "rotate(180deg)" : "none" }}
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="px-3.5 pb-4 pt-1" style={{ borderTop: `1px solid ${C.line}` }}>
+          <p className="text-xs mt-2 mb-3" style={{ color: C.muted }}>{labelTanggal(date)}</p>
+
+          {!editable ? (
+            <p className="text-sm" style={{ color: C.muted }}>
+              {isPast
+                ? "Tanggal ini sudah lewat — dianggap sudah disetor ke manajemen, gak bisa diedit lagi."
+                : "Tanggal ini belum tiba. Absen bisa diisi paling awal pada hari-H."}
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {(["hadir", "izin", "sakit", "cuti"] as AbsenStatus[]).map((s) => {
+                  const on = form.status === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => set("status", s)}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+                      style={{
+                        background: on ? C.green : "#FFF",
+                        color: on ? "#FFF" : C.ink,
+                        border: `1px solid ${on ? C.green : C.line}`,
+                      }}
+                    >
+                      {STATUS_LABEL[s]}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {form.status !== "hadir" && (
+                <label className="block mt-3">
+                  <span className="block text-xs font-semibold mb-1" style={{ color: C.green }}>
+                    Keterangan {STATUS_LABEL[form.status].toLowerCase()}
+                  </span>
+                  <textarea
+                    value={form.keterangan}
+                    onChange={(e) => set("keterangan", e.target.value)}
+                    rows={2}
+                    placeholder="Contoh: ada keperluan keluarga."
+                    className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
+                    style={{ border: `1px solid ${C.line}` }}
+                  />
+                </label>
+              )}
+
+              {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
+              {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
+
+              <button
+                onClick={handleSave}
+                disabled={saving || !dirty}
+                className="mt-3 w-full py-2.5 rounded-xl text-sm font-bold transition-opacity"
+                style={{ background: C.green, color: "#FFF", opacity: saving || !dirty ? 0.5 : 1 }}
+              >
+                {saving ? "Menyimpan…" : filled ? "Simpan perubahan" : "Simpan"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════════ Management ═══════════════════════ */
 
-function ManagementOlahraga() {
-  const [mode, setMode] = useState<Mode>("rencana");
+function ManagementOlahraga({ mode }: { mode: Mode }) {
   const [kelompok, setKelompok] = useState<OlahragaKelompok>("ikhwan");
   const [bulan, setBulan] = useState<string>(defaultBulan);
   const [entries, setEntries] = useState<Record<string, OlahragaEntry>>({});
@@ -416,6 +875,7 @@ function ManagementOlahraga() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (mode !== "rencana") return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -426,7 +886,7 @@ function ManagementOlahraga() {
     return () => {
       cancelled = true;
     };
-  }, [bulan, kelompok]);
+  }, [bulan, kelompok, mode]);
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
@@ -439,13 +899,13 @@ function ManagementOlahraga() {
             Rekap Olahraga
           </h1>
           <p className="text-sm mt-1" style={{ color: C.muted }}>
-            {mode === "rencana" ? "Rencana kegiatan" : "Evaluasi kegiatan"} olahraga Kuttab Awwal 1–3
+            {MODE_LABEL[mode]} · Kuttab Awwal 1–3
           </p>
         </header>
 
-        <ModeToggle mode={mode} onChange={setMode} />
+        <ModeTabs mode={mode} />
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           {(["ikhwan", "akhwat"] as OlahragaKelompok[]).map((k) => {
             const active = k === kelompok;
             return (
@@ -465,24 +925,41 @@ function ManagementOlahraga() {
           })}
         </div>
 
-        <MonthChips value={bulan} onChange={setBulan} />
-
-        {error && (
-          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-            {error}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="mt-5">
-            <PageLoadingSkeleton />
-          </div>
+        {mode === "absen" ? (
+          <ManagementAbsenOlahraga kelompok={kelompok} />
         ) : (
-          <div className="mt-5 space-y-3">
-            {TINGKAT_LIST.map((t) => (
-              <ReadOnlyTingkat key={t} mode={mode} tingkat={t} entry={entries[t]} />
-            ))}
-          </div>
+          <>
+            <div className="mt-4">
+              <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
+              <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
+            </div>
+
+            {mode === "rencana" && error && (
+              <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+                {error}
+              </div>
+            )}
+
+            {mode === "rencana" ? (
+              loading ? (
+                <div className="mt-5">
+                  <PageLoadingSkeleton />
+                </div>
+              ) : (
+                <div className="mt-5 space-y-3">
+                  {TINGKAT_LIST.map((t) => (
+                    <ReadOnlyTingkat key={t} tingkat={t} entry={entries[t]} />
+                  ))}
+                </div>
+              )
+            ) : (
+              <div className="mt-5 space-y-3">
+                {TINGKAT_LIST.map((t) => (
+                  <ReadOnlyEvaluasiTingkat key={t} tingkat={t} bulan={bulan} kelompok={kelompok} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -490,24 +967,23 @@ function ManagementOlahraga() {
 }
 
 function ReadOnlyTingkat({
-  mode,
   tingkat,
   entry,
 }: {
-  mode: Mode;
   tingkat: OlahragaTingkat;
   entry: OlahragaEntry | undefined;
 }) {
-  const filled = mode === "rencana" ? isRencanaFilled(entry) : isEvalFilled(entry);
+  const filled = isRencanaFilled(entry);
 
   return (
     <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
       <div className="flex items-center gap-3">
         <span
-          className="px-2.5 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold"
+          className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
           style={{ background: filled ? C.green : C.leaf, color: filled ? "#FFF" : C.green }}
         >
-          {tingkat}
+          <span className="text-[9px] font-semibold uppercase">KA</span>
+          <span className="text-sm font-bold">{tingkat.replace("KA ", "")}</span>
         </span>
         <div className="text-sm font-semibold" style={{ color: C.ink }}>
           Kuttab Awwal {tingkat.replace("KA ", "")}
@@ -515,10 +991,8 @@ function ReadOnlyTingkat({
       </div>
 
       {!filled ? (
-        <p className="mt-2 text-xs" style={{ color: C.muted }}>
-          {mode === "rencana" ? "Rencana belum diisi." : "Evaluasi belum diisi."}
-        </p>
-      ) : mode === "rencana" ? (
+        <p className="mt-2 text-xs" style={{ color: C.muted }}>Rencana belum diisi.</p>
+      ) : (
         <div className="mt-3 space-y-3">
           {PEKAN_FIELDS.map((f) => (
             <ReadRow key={f.key} label={f.label} value={entry![f.key] as string} />
@@ -539,11 +1013,213 @@ function ReadOnlyTingkat({
           </div>
           <ReadRow label="Alat yang digunakan" value={entry!.alat} />
         </div>
+      )}
+    </div>
+  );
+}
+
+/** Rekap evaluasi per anak (manajemen, read-only) — 1 kartu tingkat, tiap anak jadi baris
+ *  accordion sendiri. Self-fetch pas dibuka biar gak nge-load semua tingkat sekaligus. */
+function ReadOnlyEvaluasiTingkat({
+  tingkat,
+  bulan,
+  kelompok,
+}: {
+  tingkat: OlahragaTingkat;
+  bulan: string;
+  kelompok: OlahragaKelompok;
+}) {
+  const roster = useMemo(() => olahragaRoster(tingkat, kelompok), [tingkat, kelompok]);
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState<Record<string, EvalAnakEntry>>({});
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [openAnak, setOpenAnak] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open || loaded) return;
+    let cancelled = false;
+    setLoading(true);
+    readEvaluasiAnak(tingkat, bulan, { kelompok })
+      .then((d) => {
+        if (cancelled) return;
+        setData(d);
+        setLoaded(true);
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [open, loaded, tingkat, bulan, kelompok]);
+
+  // reset cache pas bulan/kelompok ganti
+  useEffect(() => {
+    setLoaded(false);
+    setData({});
+    setOpenAnak(null);
+  }, [tingkat, bulan, kelompok]);
+
+  const anyFilled = Object.values(data).some((e) => isEvalAnakFilled(e));
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-3 px-3.5 py-3 text-left transition-colors"
+        style={{ background: open ? C.leaf : "#FFF" }}
+      >
+        <span
+          className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
+          style={{ background: loaded && anyFilled ? C.green : C.leaf, color: loaded && anyFilled ? "#FFF" : C.green }}
+        >
+          <span className="text-[9px] font-semibold uppercase">KA</span>
+          <span className="text-sm font-bold">{tingkat.replace("KA ", "")}</span>
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-semibold" style={{ color: C.ink }}>Kuttab Awwal {tingkat.replace("KA ", "")}</span>
+          <span className="block text-xs truncate" style={{ color: C.muted }}>
+            {roster.length} santri
+          </span>
+        </span>
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none"
+          className="shrink-0 transition-transform"
+          style={{ color: C.muted, transform: open ? "rotate(180deg)" : "none" }}
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="px-3.5 pb-4 pt-3" style={{ borderTop: `1px solid ${C.line}` }}>
+          {roster.length === 0 ? (
+            <p className="text-sm" style={{ color: C.muted }}>Belum ada daftar santri buat tingkat ini.</p>
+          ) : loading ? (
+            <PageLoadingSkeleton />
+          ) : (
+            <div className="space-y-2">
+              {roster.map((nama) => {
+                const entry = data[nama];
+                const filled = isEvalAnakFilled(entry);
+                const anakOpen = openAnak === nama;
+                return (
+                  <div key={nama} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${anakOpen ? C.green : C.line}` }}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenAnak((o) => (o === nama ? null : nama))}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left"
+                    >
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: filled ? C.green : C.line }} aria-hidden="true" />
+                      <span className="flex-1 text-sm font-medium truncate" style={{ color: C.ink }}>{nama}</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" style={{ transform: anakOpen ? "rotate(180deg)" : "none", transition: "transform .2s", color: C.muted }}>
+                        <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    {anakOpen && (
+                      <div className="px-3 pb-3 space-y-2.5" style={{ borderTop: `1px solid ${C.line}` }}>
+                        {!filled ? (
+                          <p className="text-xs mt-2" style={{ color: C.muted }}>Belum diisi.</p>
+                        ) : (
+                          EVAL_FIELDS.map((f) => (
+                            <ReadRow key={f.key} label={f.label} value={entry![f.key]} />
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ManagementAbsenOlahraga({ kelompok }: { kelompok: OlahragaKelompok }) {
+  const thisMonday = useMemo(() => mondayOf(new Date()), []);
+  const [monday, setMonday] = useState(thisMonday);
+  const days = useMemo(() => weekdaysFrom(monday).slice(0, 3), [monday]);
+  const atThisWeek = ymd(monday) >= ymd(thisMonday);
+
+  const [entries, setEntries] = useState<Record<string, AbsenOlahragaEntry>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    readAbsenOlahragaRange(ymd(days[0]), ymd(days[2]), { kelompok })
+      .then((m) => !cancelled && setEntries(m))
+      .catch((e) => !cancelled && setError(e.message))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [kelompok, monday]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <>
+      <WeekNav
+        label={labelRentangPekan(days)}
+        sub={atThisWeek ? "Pekan ini" : undefined}
+        onPrev={() => setMonday(shiftWeek(monday, -1))}
+        onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
+      />
+
+      {error && (
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          {error}
+        </div>
+      )}
+      {loading ? (
+        <div className="mt-5">
+          <PageLoadingSkeleton />
+        </div>
       ) : (
-        <div className="mt-3 space-y-3">
-          {EVAL_FIELDS.map((f) => (
-            <ReadRow key={f.key} label={f.label} value={entry![f.key] as string} />
+        <div className="mt-5 space-y-3">
+          {days.map((d) => (
+            <ReadOnlyAbsenOlahragaDay key={ymd(d)} date={d} entry={entries[ymd(d)]} />
           ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function ReadOnlyAbsenOlahragaDay({ date, entry }: { date: Date; entry: AbsenOlahragaEntry | undefined }) {
+  const filled = isAbsenOlahragaFilled(entry);
+  return (
+    <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <div className="flex items-center gap-3">
+        <span
+          className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
+          style={{ background: filled ? C.green : C.leaf, color: filled ? "#FFF" : C.green }}
+        >
+          <span className="text-[9px] font-semibold uppercase">{labelHari(date).slice(0, 3)}</span>
+          <span className="text-sm font-bold">{date.getDate()}</span>
+        </span>
+        <div>
+          <div className="text-sm font-semibold" style={{ color: C.ink }}>{labelHari(date)}</div>
+          <div className="text-xs" style={{ color: C.muted }}>{labelTanggal(date)}</div>
+        </div>
+      </div>
+
+      {!filled ? (
+        <p className="mt-2 text-xs" style={{ color: C.muted }}>Belum absen.</p>
+      ) : (
+        <div className="mt-3">
+          <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: C.leaf, color: C.green }}>
+            {STATUS_LABEL[(entry as AbsenOlahragaEntry).status]}
+          </span>
+          {(entry as AbsenOlahragaEntry).keterangan.trim() && (
+            <p className="mt-1.5 text-sm whitespace-pre-wrap" style={{ color: C.ink }}>
+              {(entry as AbsenOlahragaEntry).keterangan.trim()}
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -552,54 +1228,49 @@ function ReadOnlyTingkat({
 
 /* ═══════════════════════ shared bits ═══════════════════════ */
 
-function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
+function HeaderCard({ title, name, sub }: { title: string; name: string; sub: string }) {
   return (
     <div
-      className="mt-5 grid grid-cols-2 gap-1 p-1 rounded-xl"
-      style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+      className="relative rounded-2xl p-4 sm:p-5 overflow-hidden"
+      style={{ background: `linear-gradient(135deg, ${C.greenDeep} 0%, ${C.green} 100%)`, boxShadow: "0 4px 14px rgba(28,74,51,0.16)" }}
     >
-      {(["rencana", "evaluasi"] as Mode[]).map((m) => {
-        const active = m === mode;
-        return (
-          <button
-            key={m}
-            onClick={() => onChange(m)}
-            className="py-2 rounded-lg text-sm font-semibold transition-colors"
-            style={{ background: active ? C.green : "transparent", color: active ? "#FFF" : C.muted }}
-          >
-            {m === "rencana" ? "Rencana Kegiatan" : "Evaluasi"}
-          </button>
-        );
-      })}
+      <span
+        className="absolute -right-6 -top-6 w-28 h-28 rounded-full"
+        style={{ background: "rgba(255,255,255,0.08)" }}
+        aria-hidden="true"
+      />
+      <div className="relative flex items-center gap-3">
+        <span
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: "rgba(255,255,255,0.16)", color: "#FFF" }}
+        >
+          <WhistleIcon />
+        </span>
+        <div className="min-w-0">
+          <div className="text-base font-semibold text-white truncate" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>{title}</div>
+          <div className="text-xs mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.8)" }}>{name} · {sub}</div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function MonthChips({ value, onChange }: { value: string; onChange: (b: string) => void }) {
+function ModeTabs({ mode }: { mode: Mode }) {
   return (
-    <div className="mt-3">
-      <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>
-        Bulan
-      </span>
-      <div className="flex flex-wrap gap-2">
-        {BULAN_OLAHRAGA.map((b) => {
-          const active = b === value;
-          return (
-            <button
-              key={b}
-              onClick={() => onChange(b)}
-              className="text-sm font-medium px-3.5 py-2 rounded-xl transition-colors"
-              style={{
-                background: active ? C.green : "#FFF",
-                color: active ? "#FFF" : C.ink,
-                border: `1px solid ${active ? C.green : C.line}`,
-              }}
-            >
-              {b}
-            </button>
-          );
-        })}
-      </div>
+    <div className="mt-4 grid grid-cols-3 gap-1 p-1 rounded-xl" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      {MODES.map((m) => {
+        const active = m === mode;
+        return (
+          <Link
+            key={m}
+            to={`/olahraga/${m}`}
+            className="py-2 rounded-lg text-xs sm:text-sm font-semibold text-center transition-colors"
+            style={{ background: active ? C.green : "transparent", color: active ? "#FFF" : C.muted }}
+          >
+            {MODE_LABEL[m]}
+          </Link>
+        );
+      })}
     </div>
   );
 }
@@ -621,4 +1292,68 @@ function ReadRow({ label, value }: { label: string; value: string }) {
       <div className="text-sm whitespace-pre-wrap" style={{ color: v ? C.ink : C.muted }}>{v || "—"}</div>
     </div>
   );
+}
+
+function AbsenRuleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function WeekNav({
+  label,
+  sub,
+  onPrev,
+  onNext,
+}: {
+  label: string;
+  sub?: string;
+  onPrev?: () => void;
+  onNext?: () => void;
+}) {
+  return (
+    <div className="mt-5 flex items-center gap-2">
+      <ArrowBtn dir="prev" disabled={!onPrev} onClick={onPrev} />
+      <div
+        className="flex-1 text-center rounded-xl px-3 py-2"
+        style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+      >
+        <div className="text-sm font-semibold" style={{ color: C.ink }}>{label}</div>
+        {sub && <div className="text-[11px]" style={{ color: C.green }}>{sub}</div>}
+      </div>
+      <ArrowBtn dir="next" disabled={!onNext} onClick={onNext} />
+    </div>
+  );
+}
+
+function ArrowBtn({ dir, disabled, onClick }: { dir: "prev" | "next"; disabled?: boolean; onClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={dir === "prev" ? "Pekan sebelumnya" : "Pekan berikutnya"}
+      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+      style={{
+        background: "#FFF",
+        border: `1px solid ${C.line}`,
+        color: C.green,
+        opacity: disabled ? 0.35 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
+      }}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ transform: dir === "next" ? "rotate(180deg)" : "none" }}>
+        <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
+function shiftWeek(monday: Date, weeks: number): Date {
+  const x = new Date(monday);
+  x.setDate(x.getDate() + weeks * 7);
+  return x;
 }

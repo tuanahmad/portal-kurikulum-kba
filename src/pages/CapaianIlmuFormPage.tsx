@@ -12,6 +12,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { readCapaianIlmu, writeCapaianIlmu, type CapaianIlmuData } from "../lib/capaianIlmuSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
+import { MonthGrid } from "../components/MonthGrid";
 
 const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const GREEN_GRAD = `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`;
@@ -191,29 +192,12 @@ export default function CapaianIlmuFormPage() {
         <div className="mt-6 space-y-6">
           {/* Langkah 1 — Bulan */}
           <Step n={1} label="Pilih bulan">
-            <div className="flex flex-wrap gap-2">
-              {BULAN_LIST.map((b) => {
-                const open = isMonthOpen(b);
-                const active = b === bulan;
-                return (
-                  <button
-                    key={b}
-                    disabled={!open}
-                    onClick={() => setBulan(active ? null : b)}
-                    className="text-sm font-medium px-3.5 py-2 rounded-xl transition-colors"
-                    style={{
-                      background: active ? C.green : open ? "#FFF" : C.leaf,
-                      color: active ? "#FFF" : open ? C.ink : C.muted,
-                      border: `1px solid ${active ? C.green : C.line}`,
-                      opacity: open ? 1 : 0.6,
-                      cursor: open ? "pointer" : "not-allowed",
-                    }}
-                  >
-                    {b}
-                  </button>
-                );
-              })}
-            </div>
+            <MonthGrid
+              months={BULAN_LIST}
+              value={bulan}
+              onSelect={(b) => setBulan(b === bulan ? null : b)}
+              isOpen={isMonthOpen}
+            />
           </Step>
 
           {error && (
