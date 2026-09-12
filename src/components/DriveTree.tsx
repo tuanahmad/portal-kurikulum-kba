@@ -1,11 +1,11 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { C } from "../data";
 import type { DriveNode } from "../lib/drive";
 
-/** Render daftar file & folder Drive — folder tetap baris expand/collapse, file jadi kartu
- *  gradient (senada dengan kartu di halaman level 2 lain), tanpa tombol terpisah — seluruh
- *  kartu jadi area klik. `section` dilewatkan ke halaman preview biar keliatan asalnya. */
+/** Render daftar file & folder Drive — folder cuma jadi label bagian (isinya langsung kebuka,
+ *  gak ada tombol expand/collapse lagi), file jadi kartu gradient (senada dengan kartu di
+ *  halaman level 2 lain) yang langsung buka filenya. `section` dilewatkan ke halaman preview
+ *  biar keliatan asalnya. */
 export function DriveTree({ nodes, section, gradient }: { nodes: DriveNode[]; section?: string; gradient: string }) {
   if (!nodes.length) {
     return (
@@ -18,10 +18,7 @@ export function DriveTree({ nodes, section, gradient }: { nodes: DriveNode[]; se
   const files = nodes.filter((n): n is DriveNode & { type: "file" } => n.type === "file");
 
   return (
-    <div className="space-y-3">
-      {folders.map((n) => (
-        <DriveFolder key={n.id} node={n} section={section} gradient={gradient} />
-      ))}
+    <div className="space-y-4">
       {files.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {files.map((n) => (
@@ -29,11 +26,16 @@ export function DriveTree({ nodes, section, gradient }: { nodes: DriveNode[]; se
           ))}
         </div>
       )}
+      {folders.map((n) => (
+        <DriveFolderSection key={n.id} node={n} section={section} gradient={gradient} />
+      ))}
     </div>
   );
 }
 
-function DriveFolder({
+/** Sub-folder = label bagian doang, isinya (file & sub-sub-folder) langsung dirender di
+ *  bawahnya — gak perlu diklik buat dibuka. */
+function DriveFolderSection({
   node,
   section,
   gradient,
@@ -42,37 +44,13 @@ function DriveFolder({
   section?: string;
   gradient: string;
 }) {
-  const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.line}` }}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-black/[0.02]"
-        style={{ background: "#FFF" }}
-        aria-expanded={open}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <FolderIcon />
-          <span className="text-sm font-medium truncate" style={{ color: C.ink }}>{node.name}</span>
-          <span className="text-xs shrink-0" style={{ color: C.muted }}>
-            ({node.children.length})
-          </span>
-        </div>
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          className="shrink-0"
-          style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }}
-        >
-          <path d="M6 9l6 6 6-6" fill="none" stroke={C.muted} strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      </button>
-      {open && (
-        <div className="p-2.5" style={{ background: C.mist }}>
-          <DriveTree nodes={node.children} section={section} gradient={gradient} />
-        </div>
-      )}
+    <div>
+      <div className="flex items-center gap-2 mb-2.5 px-1">
+        <FolderIcon />
+        <span className="text-xs font-bold uppercase tracking-wide" style={{ color: C.muted }}>{node.name}</span>
+      </div>
+      <DriveTree nodes={node.children} section={section} gradient={gradient} />
     </div>
   );
 }
