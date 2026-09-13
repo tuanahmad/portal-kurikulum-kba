@@ -18,7 +18,9 @@ export function BackButton({ to = "/home", label = "Home" }: { to?: string; labe
   );
 }
 
-/** Kartu gradient — pola yang sama dipakai di kartu menu Home, dipakai ulang di halaman level 2. */
+/** Kartu gradient — pola yang sama dipakai di kartu menu Home, dipakai ulang di halaman level 2.
+ *  `to`/`href` buat navigasi URL, `onClick` buat kartu yang cuma ganti state lokal (mis. langkah
+ *  drill-down di Instrumen Ilmu) — tetap 1 komponen visual biar konsisten di seluruh app. */
 export function AccentCard({
   title,
   desc,
@@ -26,6 +28,7 @@ export function AccentCard({
   gradient,
   to,
   href,
+  onClick,
 }: {
   title: string;
   desc?: string;
@@ -33,9 +36,10 @@ export function AccentCard({
   gradient: string;
   to?: string;
   href?: string;
+  onClick?: () => void;
 }) {
   const className =
-    "group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between min-h-[152px] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2";
+    "group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between min-h-[152px] text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2";
   const style = { background: gradient, boxShadow: "0 4px 14px rgba(28,74,51,0.14)", "--tw-ring-color": C.gold } as any;
 
   const inner = (
@@ -59,6 +63,13 @@ export function AccentCard({
     </>
   );
 
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className} style={style}>
+        {inner}
+      </button>
+    );
+  }
   if (to) {
     return (
       <Link to={to} className={className} style={style}>
