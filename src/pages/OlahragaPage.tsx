@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { C, isMonthOpen, olahragaRoster } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { RuleCard } from "../components/RuleCard";
 import { MonthGrid } from "../components/MonthGrid";
+import { PickerCard } from "../components/PickerCard";
+import { AccentCard, BackButton } from "../components/PortalComponents";
 import { WhistleIcon } from "../components/navIcons";
 import {
   STATUS_LABEL,
@@ -44,12 +46,17 @@ import {
 
 type Mode = "rencana" | "evaluasi" | "absen";
 const MODES: Mode[] = ["rencana", "evaluasi", "absen"];
-const MODE_LABEL: Record<Mode, string> = { rencana: "Rencana Kegiatan", evaluasi: "Evaluasi", absen: "Absen" };
 const MODE_TITLE: Record<Mode, string> = {
   rencana: "Rencana Kegiatan Olahraga",
   evaluasi: "Evaluasi Kegiatan Olahraga",
   absen: "Absen Olahraga",
 };
+
+const GRADIENTS = [
+  `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`,
+  "linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)",
+  `linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`,
+];
 
 const MONTH_NUM: Record<string, number> = {
   Juli: 7, Agustus: 8, September: 9, Oktober: 10, November: 11, Desember: 12,
@@ -64,7 +71,12 @@ export default function OlahragaPage() {
   const { role } = useAuth();
   const mode = (MODES as string[]).includes(modeParam ?? "") ? (modeParam as Mode) : null;
 
-  if (!mode) return <Navigate to="/olahraga/rencana" replace />;
+  if (!mode) {
+    // Management punya home tersendiri (3 kartu Rencana/Evaluasi/Absen) di route bare
+    // `/olahraga`; guru/olahraga-guru langsung diarahkan ke Rencana seperti sebelumnya.
+    if (role === "management") return <OlahragaModePicker />;
+    return <Navigate to="/olahraga/rencana" replace />;
+  }
 
   return role === "management" ? <ManagementOlahraga mode={mode} /> : <GuruOlahraga mode={mode} />;
 }
@@ -601,7 +613,6 @@ function TargetPicker({ value, onChange }: { value: string[]; onChange: (v: stri
 /* ───────── Absen olahraga (guru) — 1x/hari, Senin–Rabu saja, gak ada jam ───────── */
 
 const ABSEN_OLAHRAGA_RULES = [
-  "Absen olahraga cuma 3 hari: Senin, Selasa, Rabu.",
   "Cukup tandai kedatangan — gak perlu jam datang/pulang.",
   "Kalau berhalangan, pilih Izin / Sakit / Cuti dan tulis keterangannya.",
   "Cuma bisa diisi pada hari itu juga — begitu lewat, dianggap sudah disetor ke manajemen dan gak bisa diubah lagi.",
@@ -867,27 +878,9 @@ function AbsenOlahragaDayCard({
 
 /* ═══════════════════════ Management ═══════════════════════ */
 
-function ManagementOlahraga({ mode }: { mode: Mode }) {
-  const [kelompok, setKelompok] = useState<OlahragaKelompok>("ikhwan");
-  const [bulan, setBulan] = useState<string>(defaultBulan);
-  const [entries, setEntries] = useState<Record<string, OlahragaEntry>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (mode !== "rencana") return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    readOlahragaBulan(bulan, { kelompok })
-      .then((m) => !cancelled && setEntries(m))
-      .catch((e) => !cancelled && setError(e.message))
-      .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [bulan, kelompok, mode]);
-
+/** Home-nya management buat Olahraga — 3 kartu terpisah (Rencana/Evaluasi/Absen), diakses
+ *  dari route bare `/olahraga`. Ganti mode sekarang lewat sini, bukan tab di dalam halaman. */
+export function OlahragaModePicker() {
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
@@ -898,71 +891,291 @@ function ManagementOlahraga({ mode }: { mode: Mode }) {
           >
             Rekap Olahraga
           </h1>
-          <p className="text-sm mt-1" style={{ color: C.muted }}>
-            {MODE_LABEL[mode]} · Kuttab Awwal 1–3
-          </p>
+          <p className="text-sm mt-1" style={{ color: C.muted }}>Kuttab Awwal 1–3 · Ikhwan & Akhwat</p>
         </header>
 
-        <ModeTabs mode={mode} />
+        <main className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <AccentCard
+            title="Rencana Kegiatan"
+            desc="Rencana bulanan tiap kelas"
+            icon={<RencanaIcon />}
+            gradient={GRADIENTS[0]}
+            to="/olahraga/rencana"
+          />
+          <AccentCard
+            title="Evaluasi"
+            desc="Evaluasi tiap anak per bulan"
+            icon={<EvaluasiIcon />}
+            gradient={GRADIENTS[1]}
+            to="/olahraga/evaluasi"
+          />
+          <AccentCard
+            title="Absen"
+            desc="Kehadiran guru olahraga"
+            icon={<AbsenIcon />}
+            gradient={GRADIENTS[2]}
+            to="/olahraga/absen"
+          />
+        </main>
+      </div>
+    </div>
+  );
+}
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {(["ikhwan", "akhwat"] as OlahragaKelompok[]).map((k) => {
-            const active = k === kelompok;
-            return (
-              <button
-                key={k}
-                onClick={() => setKelompok(k)}
-                className="text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
-                style={{
-                  background: active ? C.green : "#FFF",
-                  color: active ? "#FFF" : C.ink,
-                  border: `1px solid ${active ? C.green : C.line}`,
-                }}
-              >
-                {KELOMPOK_LABEL[k]}
-              </button>
-            );
-          })}
-        </div>
+function ManagementOlahraga({ mode }: { mode: Mode }) {
+  if (mode === "rencana") return <ManagementRencana />;
+  if (mode === "evaluasi") return <ManagementEvaluasi />;
+  return <ManagementAbsenWrapper />;
+}
 
-        {mode === "absen" ? (
-          <ManagementAbsenOlahraga kelompok={kelompok} />
-        ) : (
-          <>
-            <div className="mt-4">
-              <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
-              <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
+/** Bungkus header + tombol back dipakai bareng ke-3 halaman management di bawah. */
+function ManagementShell({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
+      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
+        <BackButton to="/olahraga" label="Rekap Olahraga" />
+        <header className="mt-4">
+          <h1
+            className="text-xl sm:text-2xl font-semibold"
+            style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
+          >
+            {title}
+          </h1>
+        </header>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function StepBackPill({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors hover:opacity-80"
+      style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
+    >
+      <BackArrowIcon />
+      {label}
+    </button>
+  );
+}
+
+function KelompokPicker({ onChange }: { onChange: (k: OlahragaKelompok) => void }) {
+  return (
+    <div className="mt-6">
+      <span className="block text-xs font-bold uppercase tracking-wider mb-2.5 px-1" style={{ color: C.green }}>
+        Pilih Kelompok
+      </span>
+      <div className="grid grid-cols-2 gap-4">
+        <AccentCard title={KELOMPOK_LABEL.ikhwan} icon={<KelompokIcon />} gradient={GRADIENTS[0]} onClick={() => onChange("ikhwan")} />
+        <AccentCard title={KELOMPOK_LABEL.akhwat} icon={<KelompokIcon />} gradient={GRADIENTS[1]} onClick={() => onChange("akhwat")} />
+      </div>
+    </div>
+  );
+}
+
+function TingkatPicker({ value, onChange }: { value: number | null; onChange: (i: number | null) => void }) {
+  return (
+    <div className="mt-4">
+      <PickerCard
+        items={TINGKAT_LIST.map((t) => ({ label: `Kuttab Awwal ${t.replace("KA ", "")}` }))}
+        value={value}
+        onChange={onChange}
+        placeholderLabel="Pilih kelas"
+        selectedLabel="Kelas"
+        countText={`${TINGKAT_LIST.length} kelas`}
+        numbered={false}
+      />
+    </div>
+  );
+}
+
+/* ───────── Rekap Rencana (management): Kelompok -> Bulan -> Kelas -> isi ───────── */
+
+function ManagementRencana() {
+  const [kelompok, setKelompok] = useState<OlahragaKelompok | null>(null);
+  const [bulan, setBulan] = useState<string | null>(null);
+  const [tingkatI, setTingkatI] = useState<number | null>(null);
+  const [entries, setEntries] = useState<Record<string, OlahragaEntry>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const tingkat = tingkatI != null ? TINGKAT_LIST[tingkatI] : null;
+
+  useEffect(() => {
+    if (!kelompok || !bulan) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    readOlahragaBulan(bulan, { kelompok })
+      .then((m) => !cancelled && setEntries(m))
+      .catch((e) => !cancelled && setError(e.message))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [bulan, kelompok]);
+
+  return (
+    <ManagementShell title="Rencana Kegiatan Olahraga">
+      {!kelompok ? (
+        <KelompokPicker onChange={setKelompok} />
+      ) : !bulan ? (
+        <>
+          <StepBackPill label={KELOMPOK_LABEL[kelompok]} onClick={() => setKelompok(null)} />
+          <div className="mt-4">
+            <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
+            <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
+          </div>
+        </>
+      ) : !tingkat ? (
+        <>
+          <StepBackPill label={`${KELOMPOK_LABEL[kelompok]} · ${bulan}`} onClick={() => setBulan(null)} />
+          <TingkatPicker value={tingkatI} onChange={setTingkatI} />
+        </>
+      ) : (
+        <>
+          <StepBackPill
+            label={`${KELOMPOK_LABEL[kelompok]} · ${bulan} · Kuttab Awwal ${tingkat.replace("KA ", "")}`}
+            onClick={() => setTingkatI(null)}
+          />
+          {error && (
+            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+              {error}
             </div>
+          )}
+          {loading ? (
+            <div className="mt-5">
+              <PageLoadingSkeleton />
+            </div>
+          ) : (
+            <div className="mt-5">
+              <ReadOnlyTingkat tingkat={tingkat} entry={entries[tingkat]} />
+            </div>
+          )}
+        </>
+      )}
+    </ManagementShell>
+  );
+}
 
-            {mode === "rencana" && error && (
-              <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-                {error}
-              </div>
-            )}
+/* ───────── Rekap Evaluasi (management): Kelompok -> Bulan -> Kelas -> Anak -> isi ───────── */
 
-            {mode === "rencana" ? (
-              loading ? (
-                <div className="mt-5">
-                  <PageLoadingSkeleton />
-                </div>
-              ) : (
-                <div className="mt-5 space-y-3">
-                  {TINGKAT_LIST.map((t) => (
-                    <ReadOnlyTingkat key={t} tingkat={t} entry={entries[t]} />
-                  ))}
-                </div>
-              )
+function ManagementEvaluasi() {
+  const [kelompok, setKelompok] = useState<OlahragaKelompok | null>(null);
+  const [bulan, setBulan] = useState<string | null>(null);
+  const [tingkatI, setTingkatI] = useState<number | null>(null);
+  const [anakI, setAnakI] = useState<number | null>(null);
+  const [data, setData] = useState<Record<string, EvalAnakEntry>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const tingkat = tingkatI != null ? TINGKAT_LIST[tingkatI] : null;
+  const roster = useMemo(() => (tingkat && kelompok ? olahragaRoster(tingkat, kelompok) : []), [tingkat, kelompok]);
+  const anakNama = anakI != null ? roster[anakI] : null;
+  const entry = anakNama ? data[anakNama] : undefined;
+
+  useEffect(() => {
+    setAnakI(null);
+    if (!tingkat || !bulan || !kelompok) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    readEvaluasiAnak(tingkat, bulan, { kelompok })
+      .then((d) => !cancelled && setData(d))
+      .catch((e) => !cancelled && setError(e.message))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [tingkat, bulan, kelompok]);
+
+  return (
+    <ManagementShell title="Evaluasi Kegiatan Olahraga">
+      {!kelompok ? (
+        <KelompokPicker onChange={setKelompok} />
+      ) : !bulan ? (
+        <>
+          <StepBackPill label={KELOMPOK_LABEL[kelompok]} onClick={() => setKelompok(null)} />
+          <div className="mt-4">
+            <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
+            <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
+          </div>
+        </>
+      ) : !tingkat ? (
+        <>
+          <StepBackPill label={`${KELOMPOK_LABEL[kelompok]} · ${bulan}`} onClick={() => setBulan(null)} />
+          <TingkatPicker value={tingkatI} onChange={setTingkatI} />
+        </>
+      ) : anakNama == null ? (
+        <>
+          <StepBackPill
+            label={`${KELOMPOK_LABEL[kelompok]} · ${bulan} · Kuttab Awwal ${tingkat.replace("KA ", "")}`}
+            onClick={() => setTingkatI(null)}
+          />
+          {error && (
+            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+              {error}
+            </div>
+          )}
+          {loading ? (
+            <div className="mt-5">
+              <PageLoadingSkeleton />
+            </div>
+          ) : roster.length === 0 ? (
+            <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Belum ada daftar santri buat kelas ini.</p>
+          ) : (
+            <div className="mt-4">
+              <PickerCard
+                items={roster.map((nama) => ({
+                  label: nama,
+                  sub: isEvalAnakFilled(data[nama]) ? "Sudah diisi" : "Belum diisi",
+                }))}
+                value={anakI}
+                onChange={setAnakI}
+                placeholderLabel="Pilih santri"
+                selectedLabel="Santri"
+                countText={`${roster.length} santri`}
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <StepBackPill label={anakNama} onClick={() => setAnakI(null)} />
+          <div className="mt-5 rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+            {!isEvalAnakFilled(entry) ? (
+              <p className="text-sm" style={{ color: C.muted }}>Belum diisi.</p>
             ) : (
-              <div className="mt-5 space-y-3">
-                {TINGKAT_LIST.map((t) => (
-                  <ReadOnlyEvaluasiTingkat key={t} tingkat={t} bulan={bulan} kelompok={kelompok} />
+              <div className="space-y-3">
+                {EVAL_FIELDS.map((f) => (
+                  <ReadRow key={f.key} label={f.label} value={entry![f.key]} />
                 ))}
               </div>
             )}
-          </>
-        )}
-      </div>
-    </div>
+          </div>
+        </>
+      )}
+    </ManagementShell>
+  );
+}
+
+/* ───────── Rekap Absen (management): Kelompok -> isi (seperti biasa) ───────── */
+
+function ManagementAbsenWrapper() {
+  const [kelompok, setKelompok] = useState<OlahragaKelompok | null>(null);
+  return (
+    <ManagementShell title="Absen Olahraga">
+      {!kelompok ? (
+        <KelompokPicker onChange={setKelompok} />
+      ) : (
+        <>
+          <StepBackPill label={KELOMPOK_LABEL[kelompok]} onClick={() => setKelompok(null)} />
+          <ManagementAbsenOlahraga kelompok={kelompok} />
+        </>
+      )}
+    </ManagementShell>
   );
 }
 
@@ -1012,126 +1225,6 @@ function ReadOnlyTingkat({
             )}
           </div>
           <ReadRow label="Alat yang digunakan" value={entry!.alat} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Rekap evaluasi per anak (manajemen, read-only) — 1 kartu tingkat, tiap anak jadi baris
- *  accordion sendiri. Self-fetch pas dibuka biar gak nge-load semua tingkat sekaligus. */
-function ReadOnlyEvaluasiTingkat({
-  tingkat,
-  bulan,
-  kelompok,
-}: {
-  tingkat: OlahragaTingkat;
-  bulan: string;
-  kelompok: OlahragaKelompok;
-}) {
-  const roster = useMemo(() => olahragaRoster(tingkat, kelompok), [tingkat, kelompok]);
-  const [open, setOpen] = useState(false);
-  const [data, setData] = useState<Record<string, EvalAnakEntry>>({});
-  const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [openAnak, setOpenAnak] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open || loaded) return;
-    let cancelled = false;
-    setLoading(true);
-    readEvaluasiAnak(tingkat, bulan, { kelompok })
-      .then((d) => {
-        if (cancelled) return;
-        setData(d);
-        setLoaded(true);
-      })
-      .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [open, loaded, tingkat, bulan, kelompok]);
-
-  // reset cache pas bulan/kelompok ganti
-  useEffect(() => {
-    setLoaded(false);
-    setData({});
-    setOpenAnak(null);
-  }, [tingkat, bulan, kelompok]);
-
-  const anyFilled = Object.values(data).some((e) => isEvalAnakFilled(e));
-
-  return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-3 px-3.5 py-3 text-left transition-colors"
-        style={{ background: open ? C.leaf : "#FFF" }}
-      >
-        <span
-          className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
-          style={{ background: loaded && anyFilled ? C.green : C.leaf, color: loaded && anyFilled ? "#FFF" : C.green }}
-        >
-          <span className="text-[9px] font-semibold uppercase">KA</span>
-          <span className="text-sm font-bold">{tingkat.replace("KA ", "")}</span>
-        </span>
-        <span className="flex-1 min-w-0">
-          <span className="block text-sm font-semibold" style={{ color: C.ink }}>Kuttab Awwal {tingkat.replace("KA ", "")}</span>
-          <span className="block text-xs truncate" style={{ color: C.muted }}>
-            {roster.length} santri
-          </span>
-        </span>
-        <svg
-          width="16" height="16" viewBox="0 0 24 24" fill="none"
-          className="shrink-0 transition-transform"
-          style={{ color: C.muted, transform: open ? "rotate(180deg)" : "none" }}
-        >
-          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="px-3.5 pb-4 pt-3" style={{ borderTop: `1px solid ${C.line}` }}>
-          {roster.length === 0 ? (
-            <p className="text-sm" style={{ color: C.muted }}>Belum ada daftar santri buat tingkat ini.</p>
-          ) : loading ? (
-            <PageLoadingSkeleton />
-          ) : (
-            <div className="space-y-2">
-              {roster.map((nama) => {
-                const entry = data[nama];
-                const filled = isEvalAnakFilled(entry);
-                const anakOpen = openAnak === nama;
-                return (
-                  <div key={nama} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${anakOpen ? C.green : C.line}` }}>
-                    <button
-                      type="button"
-                      onClick={() => setOpenAnak((o) => (o === nama ? null : nama))}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left"
-                    >
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: filled ? C.green : C.line }} aria-hidden="true" />
-                      <span className="flex-1 text-sm font-medium truncate" style={{ color: C.ink }}>{nama}</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" style={{ transform: anakOpen ? "rotate(180deg)" : "none", transition: "transform .2s", color: C.muted }}>
-                        <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    {anakOpen && (
-                      <div className="px-3 pb-3 space-y-2.5" style={{ borderTop: `1px solid ${C.line}` }}>
-                        {!filled ? (
-                          <p className="text-xs mt-2" style={{ color: C.muted }}>Belum diisi.</p>
-                        ) : (
-                          EVAL_FIELDS.map((f) => (
-                            <ReadRow key={f.key} label={f.label} value={entry![f.key]} />
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -1255,26 +1348,6 @@ function HeaderCard({ title, name, sub }: { title: string; name: string; sub: st
   );
 }
 
-function ModeTabs({ mode }: { mode: Mode }) {
-  return (
-    <div className="mt-4 grid grid-cols-3 gap-1 p-1 rounded-xl" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-      {MODES.map((m) => {
-        const active = m === mode;
-        return (
-          <Link
-            key={m}
-            to={`/olahraga/${m}`}
-            className="py-2 rounded-lg text-xs sm:text-sm font-semibold text-center transition-colors"
-            style={{ background: active ? C.green : "transparent", color: active ? "#FFF" : C.muted }}
-          >
-            {MODE_LABEL[m]}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
@@ -1299,6 +1372,54 @@ function AbsenRuleIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.7" />
       <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function BackArrowIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function KelompokIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="9" cy="8" r="3" stroke="#FFF" strokeWidth="1.7" />
+      <path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="17" cy="8.5" r="2.3" stroke="#FFF" strokeWidth="1.5" />
+      <path d="M15.5 13.3c2.3.4 4 2.1 4 4.7" stroke="#FFF" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function RencanaIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M6 3.5h9l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" stroke="#FFF" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M8.5 11.5h7M8.5 15h5" stroke="#FFF" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function EvaluasiIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M4 20V10M11 20V4M18 20v-7" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M3 20h18" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function AbsenIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="3.5" y="5" width="17" height="15" rx="2" stroke="#FFF" strokeWidth="1.7" />
+      <path d="M3.5 9.5h17" stroke="#FFF" strokeWidth="1.7" />
+      <path d="M8 3v3.5M16 3v3.5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M8.5 14.5l2 2 4.5-4.5" stroke="#FFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

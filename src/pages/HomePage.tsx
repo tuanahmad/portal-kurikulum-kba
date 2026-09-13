@@ -152,7 +152,7 @@ function ManagementMenu() {
         icon={<NotebookIcon />}
       />
       <HomeCard
-        to="/olahraga/rencana"
+        to="/olahraga"
         title="Rekap Olahraga"
         desc="Rencana, evaluasi & absen olahraga Kuttab Awwal 1–3 (ikhwan & akhwat)."
         gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`}
