@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
-import { C, capaianQuranFileId, capaianRoster, isMonthOpen } from "../data";
+import { C, capaianQuranFileId, capaianRoster, isMonthOpen, pekanCountForBulan } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { readCapaianQuran, type CapaianQuranData } from "../lib/capaianQuranSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
@@ -56,8 +56,6 @@ type Series = {
   color: string;
   type: "pertemuan" | "pekan";
   weeks: number[];
-  /** cuma plot pekan 1..weekCount (biar garis berhenti di data terakhir, bukan jatuh ke 0). */
-  weekCount: number;
   hasData: boolean;
 };
 
@@ -66,37 +64,33 @@ function isFilled(v: string | undefined): boolean {
   return t !== "" && t !== "-";
 }
 
-/** Hitung total per pekan tiap section buat 1 anak (berdasarkan posisi di roster).
- *  - section "pertemuan": pekan k = jumlah pertemuan (5k-4 .. 5k), 5 pekan.
- *  - section "pekan" (Wirid): pekan k = nilai slot ke-k langsung, 4 pekan. */
-function seriesForStudent(data: CapaianQuranData, studentIndex: number): Series[] {
+/** Hitung total per pekan tiap section buat 1 anak (berdasarkan posisi di roster). Selalu
+ *  `weeksInMonth` pekan (4/5 sesuai kalender asli bulan itu — lihat pekanCountForBulan) —
+ *  pekan yang kosong tetap ditampilkan sebagai 0, bukan dipotong, karena ketiadaan capaian
+ *  di satu pekan itu sendiri adalah sinyal (anak nggak hadir / nggak ada capaian) yang perlu
+ *  keliatan ke management, bukan disembunyikan.
+ *  - section "pertemuan": pekan k = jumlah pertemuan (5k-4 .. 5k).
+ *  - section "pekan" (Wirid): pekan k = nilai slot ke-k langsung. */
+function seriesForStudent(data: CapaianQuranData, studentIndex: number, weeksInMonth: number): Series[] {
   return data.sections.map((sec, i) => {
     const vals = sec.students[studentIndex]?.values ?? [];
     const hasData = vals.some(isFilled);
-    let weeks: number[];
-    let weekCount = 0;
-    if (sec.type === "pekan") {
-      const n = Math.min(sec.slotCount, 5);
-      weeks = Array.from({ length: n }, (_, k) => parseNum(vals[k] ?? ""));
-      for (let k = 0; k < n; k++) if (isFilled(vals[k])) weekCount = k + 1;
-    } else {
-      weeks = Array.from({ length: 5 }, (_, k) => {
-        let sum = 0;
-        for (let p = k * 5; p < k * 5 + 5; p++) sum += parseNum(vals[p] ?? "");
-        return sum;
-      });
-      for (let k = 0; k < 5; k++) {
-        for (let p = k * 5; p < k * 5 + 5; p++) if (isFilled(vals[p])) { weekCount = k + 1; break; }
-      }
-    }
-    return { section: sec.name, color: colorFor(sec.name, i), type: sec.type, weeks, weekCount, hasData };
+    const weeks: number[] =
+      sec.type === "pekan"
+        ? Array.from({ length: weeksInMonth }, (_, k) => parseNum(vals[k] ?? ""))
+        : Array.from({ length: weeksInMonth }, (_, k) => {
+            let sum = 0;
+            for (let p = k * 5; p < k * 5 + 5; p++) sum += parseNum(vals[p] ?? "");
+            return sum;
+          });
+    return { section: sec.name, color: colorFor(sec.name, i), type: sec.type, weeks, hasData };
   });
 }
 
-/** True kalau ada anak/section yang minimal pekan 1-nya udah keisi (buat gating "muncul otomatis
- *  ketika sudah 1 pekan"). */
+/** True kalau ada anak/section yang minimal 1 slot udah keisi (buat gating "muncul otomatis
+ *  ketika sudah ada isian"). */
 function anyWeekFilled(data: CapaianQuranData): boolean {
-  return data.sections.some((s) => s.students.some((st) => (st.values ?? []).slice(0, 5).some((v) => String(v ?? "").trim() !== "" && String(v).trim() !== "-")));
+  return data.sections.some((s) => s.students.some((st) => (st.values ?? []).some(isFilled)));
 }
 
 export default function CapaianQuranDiagramPage() {
@@ -113,6 +107,7 @@ export default function CapaianQuranDiagramPage() {
   const [data, setData] = useState<CapaianQuranData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const weeksInMonth = useMemo(() => (bulan ? pekanCountForBulan(bulan) : 5), [bulan]);
 
   useEffect(() => {
     if (!bulan || !fileId) return;
@@ -214,7 +209,7 @@ export default function CapaianQuranDiagramPage() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {roster.map((nama, i) => {
-                  const series = seriesForStudent(data, i).filter((s) => s.hasData);
+                  const series = seriesForStudent(data, i, weeksInMonth).filter((s) => s.hasData);
                   return (
                     <div key={i} className="rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
                       <div className="text-sm font-semibold mb-3" style={{ color: C.ink }}>
@@ -244,8 +239,8 @@ export default function CapaianQuranDiagramPage() {
 /** Satu baris = satu section, isinya diagram batang nilai per pekan (P1..Pn) + keterangan satuan. */
 function SectionBars({ s }: { s: Series }) {
   const unit = unitFor(s.section);
-  const count = Math.max(1, s.weekCount);
-  const shown = s.weeks.slice(0, count);
+  const count = Math.max(1, s.weeks.length);
+  const shown = s.weeks;
   const maxVal = Math.max(1, ...shown);
 
   const W = 260;

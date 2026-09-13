@@ -320,3 +320,19 @@ export function getCurrentMonthFile(
   return files.find((f) => MONTH_NUM[f.name] === currentNum) || null;
 }
 
+/** Jumlah pekan sekolah (Senin–Jumat) yang overlap sebuah bulan — dipakai buat diagram
+ *  Capaian Al-Qur'an biar jumlah pekan yang ditampilkan selalu sesuai kalender asli bulan
+ *  itu (4 atau 5), bukan berhenti di pekan terakhir yang keisi. Sebuah pekan dihitung milik
+ *  bulan tempat hari Senin-nya jatuh. */
+export function pekanCountForBulan(bulanName: string, year: number = new Date().getFullYear()): number {
+  const monthIdx = MONTH_NUM[bulanName];
+  if (!monthIdx) return 5;
+  let count = 0;
+  const d = new Date(year, monthIdx - 1, 1);
+  while (d.getMonth() === monthIdx - 1) {
+    if (d.getDay() === 1) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
