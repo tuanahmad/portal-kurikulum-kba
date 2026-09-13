@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { C, KELAS_LIST, sheetUrl } from "../data";
 import { AccentCard } from "../components/PortalComponents";
+import { PickerCard } from "../components/PickerCard";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function CapaianPage() {
@@ -19,7 +20,7 @@ function GuruCapaian({ kelasName }: { kelasName: string | null }) {
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-3xl mx-auto px-4 py-7 sm:py-10 pb-28">
+      <div className="max-w-3xl mx-auto px-4 pt-7 sm:pt-10 pb-28">
         <header className="text-center">
           <h1
             className="text-xl sm:text-2xl font-semibold"
@@ -47,12 +48,12 @@ function GuruCapaian({ kelasName }: { kelasName: string | null }) {
 /* ————————————————————— Management: pilih dari 12 kelas ————————————————————— */
 
 function ManagementCapaian() {
-  const [selected, setSelected] = useState<string | null>(null);
-  const kelas = KELAS_LIST.find((k) => k.name === selected) || null;
+  const [selectedI, setSelectedI] = useState<number | null>(null);
+  const kelas = selectedI != null ? KELAS_LIST[selectedI] : null;
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-3xl mx-auto px-4 py-7 sm:py-10 pb-28">
+      <div className="max-w-3xl mx-auto px-4 pt-7 sm:pt-10 pb-28">
         <header className="text-center">
           <h1
             className="text-xl sm:text-2xl font-semibold"
@@ -65,26 +66,17 @@ function ManagementCapaian() {
           </p>
         </header>
 
-        {/* Grid 12 kelas */}
-        <main className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-          {KELAS_LIST.map((k) => {
-            const active = k.name === selected;
-            return (
-              <button
-                key={k.name}
-                onClick={() => setSelected(active ? null : k.name)}
-                className="text-sm font-medium px-3 py-3 rounded-xl text-center transition-colors"
-                style={{
-                  background: active ? C.green : "#FFF",
-                  color: active ? "#FFF" : C.ink,
-                  border: `1px solid ${active ? C.green : C.line}`,
-                }}
-              >
-                {k.name}
-              </button>
-            );
-          })}
-        </main>
+        <div className="mt-6">
+          <PickerCard
+            items={KELAS_LIST.map((k) => ({ label: k.name }))}
+            value={selectedI}
+            onChange={setSelectedI}
+            placeholderLabel="Pilih kelas"
+            selectedLabel="Kelas"
+            countText={`${KELAS_LIST.length} kelas`}
+            numbered={false}
+          />
+        </div>
 
         {kelas && <CapaianLinks kelas={kelas} kelasName={kelas.name} />}
       </div>

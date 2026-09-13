@@ -95,27 +95,6 @@ export const REFLEKSI_FILES = [
   { id: "1xrtYH55ze3a4WTBfwqHhHbyB9jmoH18q", name: "Desember" },
 ];
 
-// Salinan uji coba Capaian Al-Qur'an (folder "CAPAIAN-QURAN-DEV COPY" di Drive) — dipakai
-// SEMENTARA oleh CapaianQuranFormPage (form isi-langsung-di-app) selama fitur nulis-ke-Sheets
-// masih tahap coba-coba. Dokumen asli (KELAS_LIST[].quranId) TIDAK disentuh sampai fiturnya
-// matang & dipindah ke sini secara sadar. Key = nama kelas persis (sama kayak KELAS_LIST).
-export const CAPAIAN_QURAN_FILES_DEV: Record<string, string> = {
-  // Kuttab Awwal 1A & 1B dipisah — kelas & guru beda, masing-masing punya file sendiri.
-  "Kuttab Awwal 1A": "1hnMaQdC4D4XNzzFFbTu4W9AA_je2MguKXzDTc3OvCPU",
-  "Kuttab Awwal 1B": "1L2HmzE23WkmcitwfCBnbE7gdMH6E4gIIROUt3DoY718",
-  "Kuttab Awwal 2": "1nsgVMarNxCYcSXEv63BW3__ENMnip9Z8nuZUaGNo8YQ",
-  "Kuttab Awwal 3 Ikhwan": "1_ds5oHtTlcOtnerXHXbI6W2ZksaONFKQlL8kpPwmDWw",
-  "Kuttab Awwal 3 Akhwat": "12emV4XAg2N-W55SUuOHjbALuDuPpjhMwbRPPEajQgL8",
-  "Qonuni 1 Ikhwan": "1tOXdAxmSyFrnC98jmUQE5OenEh_zf-COovC9BtUzj9Q",
-  "Qonuni 1 Akhwat": "1TCKOkbhWBsFqUaaAa1G_NJSCidKk47YZvCQFWrmTw1w",
-  "Qonuni 2 Ikhwan": "1fIw6Kp5vSXfwTU1yFGRvt3A_FhUiCvYtpwsi9NlOzgQ",
-  "Qonuni 2 Akhwat": "1VfJp_xmFidrKQFmi4x3KaRlUMSJUWpgWncqDTwGT7-8",
-  "Qonuni 3 Ikhwan": "1pQSvUVuAGW1I3aE25YJGdaS_PZIoR9bfZjYOaPhsY30",
-  "Qonuni 3 Akhwat": "1l4M4k3n3_E-MlVrh-9kg5Qr-i0vgoiL-LDU93ZbpAqM",
-  "Qonuni 4 Ikhwan": "1FNOpsbo1Aa-dGXhAjA30zBVnFGsynI93lGocYn6_eaM",
-  "Qonuni 4 Akhwat": "1vxQjCzmecCJjyxcMDUB7n1aOLEYbH_UQ-OXUi5H8k_c",
-};
-
 /** Roster buat Capaian Al-Qur'an — per kelas (1A & 1B dipisah, guru & sheet-nya beda). */
 export function capaianRoster(kelas: string): string[] {
   return SANTRI_LIST[kelas] || [];
@@ -134,26 +113,10 @@ export function olahragaRoster(tingkat: "KA 1" | "KA 2" | "KA 3", kelompok: "ikh
 }
 
 // ————— Capaian Ilmu (deskriptif, diisi bulanan) —————
-// Salinan uji coba (folder "CAPAIAN-ILMU-DEV COPY" di Drive). Struktur sheet beda per level:
+// Struktur sheet beda per level:
 //   - Kuttab Awwal : baris = anak, kolom = 7 bidang ilmu (datar). Tiap sel = kalimat deskriptif.
 //   - Qonuni       : baris = bidang ilmu (grup + sub), kolom = anak. Transposed dari KA.
 // Tab = bulan (1 tab per bulan). Daftar bidang di-hardcode di bawah (sudah dicek konsisten antar kelas).
-export const CAPAIAN_ILMU_FILES_DEV: Record<string, string> = {
-  "Kuttab Awwal 1A": "1gMIrPBqoxLAghuBVNtOf_s3N9qokjvacXTwmevEVyQk",
-  "Kuttab Awwal 1B": "1Xo3HrVzCvJyRnKdFNRUNtu7kvLxj8aYlDUvru6KbVAc",
-  "Kuttab Awwal 2": "18AVETT1WC8JF9w-taf5CZj6g3smF8JFAoZsR4LRfEZU",
-  "Kuttab Awwal 3 Ikhwan": "1LbWxFB5CJV3iTyvLf9x8S8PavYcVqX9BH54BN2OlNuY",
-  "Kuttab Awwal 3 Akhwat": "1ySL5BYfpB72bosW-HDPDGeJJG5iqyDAS-mRsE4uztwI",
-  "Qonuni 1 Ikhwan": "1Yc-FzJ6mI2Vgpt14uck3XQTfToJoEhKqnVKhgzzt_lo",
-  "Qonuni 1 Akhwat": "1h3AFLfiy6J28aLwYhlW0Tvyj-NDSM83nuXVKPLNujzI",
-  "Qonuni 2 Ikhwan": "1DXaZYCwydqe60RomSv-q01k_zuq117SDhOk_ygfHelM",
-  "Qonuni 2 Akhwat": "1gvhVLmb_Nat3hrcN_AXVcQGWx9V7L_uaPhvc0qQ1JJM",
-  "Qonuni 3 Ikhwan": "11h4OHnY7jYaaeeR2quXyalIsd1h8wkuPEnuDEdW7wvA",
-  "Qonuni 3 Akhwat": "1xn08DgT7JAhjWCCNQQu2zAthOfNCEF2-VvwdUOiHP40",
-  "Qonuni 4 Ikhwan": "1mSFcfoWWaHgzc4P90wgKpx3B3n-jQVk7NhkFTJCnCOo",
-  "Qonuni 4 Akhwat": "18R4gwkM5iVs5Ye1jCyhiS2aq67x73llBp-K3tj9DQH0",
-};
-
 export type IlmuBidang = { key: string; label: string };
 export type IlmuGroup = { grup: string | null; items: IlmuBidang[] };
 
@@ -213,9 +176,8 @@ export function capaianIlmuBidangFlat(kelas: string): IlmuBidang[] {
 
 // ————— Section 3: Capaian Santri — 12 kelas, tiap kelas punya 2 dokumen —————
 export const KELAS_LIST = [
-  // Kuttab Awwal 1A & 1B masih pakai 1 sheet yang sama (belum dipisah fisik, cuma akun login-nya yang dipecah)
   { name: "Kuttab Awwal 1A", ilmuId: "10NLBd_qUjG44UhhUg5vMNZFbCLWdXuXmGpnXxGhlBv0", quranId: "1-7dSky9nQJZOlaf2ffvosn7j4qaKemxhUYvaIBQ3SqQ" },
-  { name: "Kuttab Awwal 1B", ilmuId: "10NLBd_qUjG44UhhUg5vMNZFbCLWdXuXmGpnXxGhlBv0", quranId: "1-7dSky9nQJZOlaf2ffvosn7j4qaKemxhUYvaIBQ3SqQ" },
+  { name: "Kuttab Awwal 1B", ilmuId: "1Ixs3_6sOOQNuk7F68OjXm0-YMeWRgqZxGLJw_i92l5c", quranId: "1aJckOrDLgYrevRSKh38fOGo8--TFqqoWOpdGWBUwuA4" },
   { name: "Kuttab Awwal 2", ilmuId: "19wKQTp_vfBHbXMDgkkv47dQa-waHtuTOjNGHA3JJi4o", quranId: "1LuiI1Czpt3H6ZQMa8RQwDYz6pinKpyffxj0qkWZS6tc" },
   { name: "Kuttab Awwal 3 Ikhwan", ilmuId: "1pmFMwloUNV4yULS-gk-rasvzKUXY_ua-u1jp63RhyPM", quranId: "1mYqAeBNYLYFQg--OY8I7jRx2SCk_8ZTagE-DRSmgx70" },
   { name: "Kuttab Awwal 3 Akhwat", ilmuId: "1ve99i_8UUeHdm1ejUYifQqnwIgaFZ8bZWMkWM3PAcKM", quranId: "1yIvXYqQv_SZpKdzcEpOJ9jj0RaEiBfGsfb7GDYDg7uw" },
@@ -228,6 +190,13 @@ export const KELAS_LIST = [
   { name: "Qonuni 4 Ikhwan", ilmuId: "1lZPyKmAzApXL6CvmDe1httVUnGQXm210SCSWklS4j6s", quranId: "1nRNc9EN3OlQytq2KX1ylTaU-63XbH4DCclLt_2szlb4" },
   { name: "Qonuni 4 Akhwat", ilmuId: "1Zj2BB381u0leQNExQKWFxZAWrg_BfqT8RUGGNVpBmpU", quranId: "1ddeOUbrYYVSLxxjKKag7fApVz0-cOSlJ2zDkZe5MLXI" },
 ];
+
+export function capaianIlmuFileId(kelas: string): string | undefined {
+  return KELAS_LIST.find((k) => k.name === kelas)?.ilmuId;
+}
+export function capaianQuranFileId(kelas: string): string | undefined {
+  return KELAS_LIST.find((k) => k.name === kelas)?.quranId;
+}
 
 // ————— Roster santri per kelas — dikasih langsung sama koordinator kurikulum, dipakai di
 // Refleksi (Section G "Refleksi Perkembangan Murid") biar guru gak perlu ketik nama manual tiap bulan. —————

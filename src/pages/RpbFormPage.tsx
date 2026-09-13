@@ -154,7 +154,7 @@ export default function RpbFormPage() {
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-2xl mx-auto px-4 py-6 sm:py-9 pb-28">
+      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-28">
         {/* Header */}
         <div className="flex items-center gap-3">
           <button

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
-import { C, CAPAIAN_QURAN_FILES_DEV, capaianRoster, isMonthOpen } from "../data";
+import { C, capaianQuranFileId, capaianRoster, isMonthOpen } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { readCapaianQuran, type CapaianQuranData } from "../lib/capaianQuranSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
@@ -106,7 +106,7 @@ export default function CapaianQuranDiagramPage() {
 
   // guru -> kelasnya sendiri; management -> dari query ?kelas=
   const kelas = role === "guru" ? authKelas : sp.get("kelas");
-  const fileId = kelas ? CAPAIAN_QURAN_FILES_DEV[kelas] : undefined;
+  const fileId = kelas ? capaianQuranFileId(kelas) : undefined;
   const roster = useMemo(() => (kelas ? capaianRoster(kelas) : []), [kelas]);
 
   const [bulan, setBulan] = useState<string | null>(null);
@@ -140,7 +140,7 @@ export default function CapaianQuranDiagramPage() {
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-3xl mx-auto px-4 py-6 sm:py-9 pb-28">
+      <div className="max-w-3xl mx-auto px-4 pt-6 sm:pt-9 pb-28">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(role === "guru" ? "/capaian/quran" : "/capaian")}

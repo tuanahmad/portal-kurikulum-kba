@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
-import { C, CAPAIAN_QURAN_FILES_DEV, capaianRoster, isMonthOpen } from "../data";
+import { C, capaianQuranFileId, capaianRoster, isMonthOpen } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import {
   readCapaianQuran,
@@ -17,8 +17,8 @@ const QUICK = ["0", "0,5", "1", "2", "3", "4", "5"]; // tombol cepat; guru tetap
 
 const GOLD = "linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)";
 
-/** Halaman isi Capaian Al-Qur'an — nulis ke salinan uji coba (CAPAIAN_QURAN_FILES_DEV) selama
- *  dokumen asli belum dimigrasikan. Alur: pilih Bulan -> pilih Section (Talaqqi/Ziyadah/...) ->
+/** Halaman isi Capaian Al-Qur'an — nulis langsung ke dokumen produksi (KELAS_LIST[].quranId).
+ *  Alur: pilih Bulan -> pilih Section (Talaqqi/Ziyadah/...) ->
  *  pilih Pertemuan/Pekan ke-N -> isi angka tiap santri -> Simpan.
  *
  *  Struktur sheet dibaca dinamis oleh edge function sheet-capaian-quran (section + tipe +
@@ -27,7 +27,7 @@ export default function CapaianQuranFormPage() {
   const navigate = useNavigate();
   const { kelas } = useAuth();
 
-  const fileId = kelas ? CAPAIAN_QURAN_FILES_DEV[kelas] : undefined;
+  const fileId = kelas ? capaianQuranFileId(kelas) : undefined;
   const roster = useMemo(() => (kelas ? capaianRoster(kelas) : []), [kelas]);
 
   const [bulan, setBulan] = useState<string | null>(null);
@@ -100,7 +100,7 @@ export default function CapaianQuranFormPage() {
         roster,
         values,
       });
-      setSaveMsg("Tersimpan ke sheet (salinan uji coba).");
+      setSaveMsg("Tersimpan ke sheet.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -112,7 +112,7 @@ export default function CapaianQuranFormPage() {
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-2xl mx-auto px-4 py-6 sm:py-9 pb-28">
+      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-28">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/capaian")}

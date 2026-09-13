@@ -71,6 +71,8 @@ Deno.serve(async (req: Request) => {
     const meta = await metaRes.json();
     const titles: string[] = (meta.sheets ?? []).map((s: any) => s.properties.title);
 
+    if (url.searchParams.get("titlesOnly")) return json({ titles });
+
     const sheets: { title: string; values: string[][] }[] = [];
     for (const title of titles) {
       const r = await fetch(

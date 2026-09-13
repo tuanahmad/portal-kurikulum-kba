@@ -41,7 +41,7 @@ export default function InstrumenPage() {
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-3xl mx-auto px-4 py-7 sm:py-10 pb-28">
+      <div className="max-w-3xl mx-auto px-4 pt-7 sm:pt-10 pb-28">
         <header className="text-center">
           <h1
             className="text-xl sm:text-2xl font-semibold"

@@ -11,6 +11,7 @@ import {
 } from "../data";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
+import { MonthGrid } from "../components/MonthGrid";
 import { useAuth } from "../contexts/AuthContext";
 import { readRpbTab, type RpbTabData } from "../lib/rpbSheet";
 import { readReflectionTab, type ReflectionData } from "../lib/refleksiSheet";
@@ -233,7 +234,10 @@ function ManagementView() {
         />
       </div>
 
-      <MonthChips value={bulan} onChange={setBulan} />
+      <div className="mt-4">
+        <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
+        <MonthGrid months={RPB_FILES_DEV.map((f) => f.name)} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
+      </div>
 
       {kelas && !monthOpen && (
         <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>
@@ -533,36 +537,6 @@ function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => voi
   );
 }
 
-function MonthChips({ value, onChange }: { value: string; onChange: (b: string) => void }) {
-  return (
-    <div className="mt-4">
-      <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
-      <div className="flex flex-wrap gap-2">
-        {RPB_FILES_DEV.map((f) => {
-          const active = f.name === value;
-          const open = isMonthOpen(f.name);
-          return (
-            <button
-              key={f.name}
-              onClick={() => onChange(f.name)}
-              disabled={!open}
-              className="text-sm font-medium px-3.5 py-2 rounded-xl transition-colors"
-              style={{
-                background: active ? C.green : open ? "#FFF" : C.leaf,
-                color: active ? "#FFF" : open ? C.ink : C.muted,
-                border: `1px solid ${active ? C.green : C.line}`,
-                opacity: open ? 1 : 0.6,
-                cursor: open ? "pointer" : "not-allowed",
-              }}
-            >
-              {f.name}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function InfoCard({
   title,

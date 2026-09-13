@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import {
   C,
-  CAPAIAN_ILMU_FILES_DEV,
+  capaianIlmuFileId,
   capaianRoster,
   capaianIlmuBidang,
   capaianIlmuBidangFlat,
@@ -46,7 +46,7 @@ export default function CapaianIlmuFormPage() {
   const navigate = useNavigate();
   const { kelas } = useAuth();
 
-  const fileId = kelas ? CAPAIAN_ILMU_FILES_DEV[kelas] : undefined;
+  const fileId = kelas ? capaianIlmuFileId(kelas) : undefined;
   const roster = useMemo(() => (kelas ? capaianRoster(kelas) : []), [kelas]);
   const groups = useMemo(() => (kelas ? capaianIlmuBidang(kelas) : []), [kelas]);
   const bidangFlat = useMemo(() => (kelas ? capaianIlmuBidangFlat(kelas) : []), [kelas]);
@@ -117,7 +117,7 @@ export default function CapaianIlmuFormPage() {
         cells: bidangFlat.map((b) => ({ bidangKey: b.key, anakIdx: slot, value: form[b.key] ?? "" })),
         names: [{ anakIdx: slot, nama: roster[anakI] }],
       });
-      setSaveMsg("Tersimpan ke sheet (salinan uji coba).");
+      setSaveMsg("Tersimpan ke sheet.");
       // update cache lokal biar pindah anak tetep keliatan
       setData((prev) => {
         if (!prev) return prev;
@@ -166,7 +166,7 @@ export default function CapaianIlmuFormPage() {
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-2xl mx-auto px-4 py-6 sm:py-9 pb-28">
+      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-28">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/capaian")}

@@ -48,7 +48,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-7 sm:py-10 pb-28">
+      <div className="max-w-3xl mx-auto px-4 pt-7 sm:pt-10 pb-28">
         <p className="text-sm text-center max-w-md mx-auto" style={{ color: C.muted }}>
           {getGreeting()}{displayName ? `, ${displayName}` : ""}. Pilih menu di bawah untuk melanjutkan.
         </p>
