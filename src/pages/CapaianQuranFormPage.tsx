@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
-import { C, capaianQuranFileId, capaianRoster, isMonthOpen } from "../data";
+import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
+import { C, capaianQuranFileId, capaianRoster, isMonthOpen, sheetUrl } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import {
   readCapaianQuran,
@@ -25,8 +25,12 @@ const GOLD = "linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)";
  *  jumlah slot dideteksi otomatis), jadi halaman ini nggak hardcode daftar section. */
 export default function CapaianQuranFormPage() {
   const navigate = useNavigate();
-  const { kelas } = useAuth();
+  const [sp] = useSearchParams();
+  const { role, kelas: authKelas } = useAuth();
+  const isGuru = role === "guru";
 
+  // guru -> kelasnya sendiri; management -> dari query ?kelas= (lihat read-only)
+  const kelas = isGuru ? authKelas : sp.get("kelas");
   const fileId = kelas ? capaianQuranFileId(kelas) : undefined;
   const roster = useMemo(() => (kelas ? capaianRoster(kelas) : []), [kelas]);
 
@@ -75,14 +79,14 @@ export default function CapaianQuranFormPage() {
     setSaveMsg(null);
   }, [section, slot, roster]);
 
-  if (!kelas) {
+  if (isGuru && !kelas) {
     return (
       <div className="min-h-dvh flex items-center justify-center" style={{ background: C.mist }}>
         <p className="text-sm" style={{ color: C.muted }}>Kelas belum diset untuk akun ini.</p>
       </div>
     );
   }
-  if (!fileId) {
+  if (!kelas || !fileId) {
     return <Navigate to="/capaian" replace />;
   }
 
@@ -224,7 +228,9 @@ export default function CapaianQuranFormPage() {
                   {section.name} · {slotLabel} {slot}
                 </div>
                 <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.8)" }}>
-                  Angka = baris yang dibaca. Kosongkan kalau nggak baca. Isi 0 kalau ngulang baris yang sama.
+                  {isGuru
+                    ? "Angka = baris yang dibaca. Kosongkan kalau nggak baca. Isi 0 kalau ngulang baris yang sama."
+                    : "Angka = baris yang dibaca guru."}
                 </p>
 
                 <div className="mt-4 space-y-2.5">
@@ -233,61 +239,87 @@ export default function CapaianQuranFormPage() {
                       Belum ada daftar santri buat kelas ini — hubungi koordinator kurikulum.
                     </p>
                   )}
-                  {roster.map((nama, i) => (
-                    <div key={i} className="rounded-xl p-3" style={{ background: "#FFF" }}>
-                      <div className="flex items-center justify-between gap-3">
+                  {roster.map((nama, i) =>
+                    isGuru ? (
+                      <div key={i} className="rounded-xl p-3" style={{ background: "#FFF" }}>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold truncate" style={{ color: C.ink }}>
+                            {i + 1}. {nama}
+                          </span>
+                          <input
+                            value={values[i] ?? ""}
+                            onChange={(e) =>
+                              setValues((prev) => prev.map((v, vi) => (vi === i ? e.target.value : v)))
+                            }
+                            inputMode="decimal"
+                            placeholder="—"
+                            className="w-16 text-sm text-center outline-none px-2 py-1.5 rounded-lg shrink-0"
+                            style={{ border: `1px solid ${C.line}` }}
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {QUICK.map((q) => {
+                            const on = (values[i] ?? "") === q;
+                            return (
+                              <button
+                                key={q}
+                                onClick={() =>
+                                  setValues((prev) => prev.map((v, vi) => (vi === i ? (on ? "" : q) : v)))
+                                }
+                                className="px-2 py-1 rounded-md text-xs font-medium transition-colors"
+                                style={{
+                                  background: on ? C.green : C.leaf,
+                                  color: on ? "#FFF" : C.green,
+                                }}
+                              >
+                                {q === "0,5" ? "½" : q}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={i} className="rounded-xl p-3 flex items-center justify-between gap-3" style={{ background: "#FFF" }}>
                         <span className="text-sm font-semibold truncate" style={{ color: C.ink }}>
                           {i + 1}. {nama}
                         </span>
-                        <input
-                          value={values[i] ?? ""}
-                          onChange={(e) =>
-                            setValues((prev) => prev.map((v, vi) => (vi === i ? e.target.value : v)))
-                          }
-                          inputMode="decimal"
-                          placeholder="—"
-                          className="w-16 text-sm text-center outline-none px-2 py-1.5 rounded-lg shrink-0"
-                          style={{ border: `1px solid ${C.line}` }}
-                        />
+                        <span className="text-sm font-semibold shrink-0" style={{ color: values[i] ? C.green : C.muted }}>
+                          {values[i] || "—"}
+                        </span>
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {QUICK.map((q) => {
-                          const on = (values[i] ?? "") === q;
-                          return (
-                            <button
-                              key={q}
-                              onClick={() =>
-                                setValues((prev) => prev.map((v, vi) => (vi === i ? (on ? "" : q) : v)))
-                              }
-                              className="px-2 py-1 rounded-md text-xs font-medium transition-colors"
-                              style={{
-                                background: on ? C.green : C.leaf,
-                                color: on ? "#FFF" : C.green,
-                              }}
-                            >
-                              {q === "0,5" ? "½" : q}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
 
-                {saveMsg && (
+                {isGuru && saveMsg && (
                   <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "rgba(255,255,255,0.9)", color: C.green }}>
                     {saveMsg}
                   </div>
                 )}
 
-                <button
-                  onClick={handleSave}
-                  disabled={saving || roster.length === 0}
-                  className="mt-4 w-full py-3 rounded-xl text-sm font-bold transition-opacity"
-                  style={{ background: C.green, color: "#FFF", opacity: saving ? 0.6 : 1 }}
-                >
-                  {saving ? "Menyimpan…" : "Simpan"}
-                </button>
+                {isGuru ? (
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || roster.length === 0}
+                    className="mt-4 w-full py-3 rounded-xl text-sm font-bold transition-opacity"
+                    style={{ background: C.green, color: "#FFF", opacity: saving ? 0.6 : 1 }}
+                  >
+                    {saving ? "Menyimpan…" : "Simpan"}
+                  </button>
+                ) : (
+                  <a
+                    href={sheetUrl(fileId)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold"
+                    style={{ color: "rgba(255,255,255,0.85)" }}
+                  >
+                    Buka versi Google Sheets
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                      <path d="M14 4h6v6M20 4l-9 9M9 5H5v14h14v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </a>
+                )}
               </div>
             </div>
           )}

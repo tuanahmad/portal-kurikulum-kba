@@ -63,7 +63,7 @@ export function ProfileNameField({ variant = "light" }: { variant?: "light" | "d
           {role === "management" ? "Management" : role === "olahraga" ? "Guru Olahraga" : "Guru"}
         </div>
       </div>
-      {(role === "guru" || role === "olahraga") && (
+      {(role === "guru" || role === "olahraga" || role === "management") && (
         <button
           onClick={() => {
             setDraft(fullName || "");

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { C, KELAS_LIST, sheetUrl } from "../data";
+import { C, KELAS_LIST } from "../data";
 import { AccentCard } from "../components/PortalComponents";
 import { PickerCard } from "../components/PickerCard";
 import { useAuth } from "../contexts/AuthContext";
@@ -98,6 +98,8 @@ function CapaianLinks({
   const diagramTo = guru
     ? "/capaian/quran/diagram"
     : `/capaian/quran/diagram?kelas=${encodeURIComponent(kelasName)}`;
+  const ilmuTo = guru ? "/capaian/ilmu" : `/capaian/ilmu?kelas=${encodeURIComponent(kelasName)}`;
+  const quranTo = guru ? "/capaian/quran" : `/capaian/quran?kelas=${encodeURIComponent(kelasName)}`;
   return (
     <main className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
       <AccentCard
@@ -105,14 +107,14 @@ function CapaianLinks({
         desc={guru ? "Isi langsung di app · per santri tiap bulan" : "Sifatnya deskriptif · Diisi tiap tanggal 30"}
         icon={<BookIcon />}
         gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`}
-        {...(guru ? { to: "/capaian/ilmu" } : { href: sheetUrl(kelas.ilmuId) })}
+        to={ilmuTo}
       />
       <AccentCard
         title="Capaian Al-Qur'an"
         desc={guru ? "Isi langsung di app · per pertemuan" : "Sifatnya angka · Diisi tiap Jum'at"}
         icon={<ChartIcon />}
         gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
-        {...(guru ? { to: "/capaian/quran" } : { href: sheetUrl(kelas.quranId) })}
+        to={quranTo}
       />
       <AccentCard
         title="Diagram Perkembangan"

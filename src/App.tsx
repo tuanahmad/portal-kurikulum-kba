@@ -76,7 +76,7 @@ export default function App() {
           <Route
             path="/capaian/quran"
             element={
-              <ProtectedRoute allowedRoles={["guru"]}>
+              <ProtectedRoute allowedRoles={["guru", "management"]}>
                 <CapaianQuranFormPage />
               </ProtectedRoute>
             }
@@ -92,7 +92,7 @@ export default function App() {
           <Route
             path="/capaian/ilmu"
             element={
-              <ProtectedRoute allowedRoles={["guru"]}>
+              <ProtectedRoute allowedRoles={["guru", "management"]}>
                 <CapaianIlmuFormPage />
               </ProtectedRoute>
             }

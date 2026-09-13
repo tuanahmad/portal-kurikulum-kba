@@ -56,21 +56,23 @@ export default function InstrumenPage() {
         </header>
 
         {role === "management" && (
-          <div className="mt-5 flex items-center justify-center gap-2">
-            {(["Kuttab Awwal", "Qonuni"] as Jenjang[]).map((j) => (
-              <button
-                key={j}
-                onClick={() => setJenjang(j)}
-                className="text-sm font-medium px-4 py-1.5 rounded-full transition-colors"
-                style={{
-                  background: jenjang === j ? C.green : "#FFF",
-                  color: jenjang === j ? "#FFF" : C.ink,
-                  border: `1px solid ${jenjang === j ? C.green : C.line}`,
-                }}
-              >
-                {j}
-              </button>
-            ))}
+          <div
+            className="mt-5 grid grid-cols-2 gap-1 p-1 rounded-xl max-w-xs mx-auto"
+            style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+          >
+            {(["Kuttab Awwal", "Qonuni"] as Jenjang[]).map((j) => {
+              const active = jenjang === j;
+              return (
+                <button
+                  key={j}
+                  onClick={() => setJenjang(j)}
+                  className="py-2 rounded-lg text-sm font-semibold transition-colors"
+                  style={{ background: active ? C.green : "transparent", color: active ? "#FFF" : C.muted }}
+                >
+                  {j}
+                </button>
+              );
+            })}
           </div>
         )}
 
