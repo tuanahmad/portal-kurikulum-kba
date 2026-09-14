@@ -228,9 +228,13 @@ export default function CapaianQuranFormPage() {
                   {section.name} · {slotLabel} {slot}
                 </div>
                 <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.8)" }}>
-                  {isGuru
-                    ? "Angka = baris yang dibaca. Kosongkan kalau nggak baca. Isi 0 kalau ngulang baris yang sama."
-                    : "Angka = baris yang dibaca santri pada pertemuan ini."}
+                  {section.type === "pekan"
+                    ? isGuru
+                      ? "Angka = putaran mengulang hafalan. Kosongkan kalau nggak ada. Isi 0 kalau nggak ngulang."
+                      : "Angka = putaran mengulang hafalan santri pada pekan ini."
+                    : isGuru
+                      ? "Angka = baris yang dibaca. Kosongkan kalau nggak baca. Isi 0 kalau ngulang baris yang sama."
+                      : "Angka = baris yang dibaca santri pada pertemuan ini."}
                 </p>
 
                 <div className="mt-4 space-y-2.5">

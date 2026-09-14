@@ -142,6 +142,29 @@ export async function readAbsenRange(
   return out;
 }
 
+/** Baca absen SEMUA guru buat 1 tanggal — dipakai rekap harian management (lintas kelas,
+ *  bukan per kelas). Balikin map kelas -> entry. */
+export async function readAbsenDayAll(tanggalYmd: string): Promise<Record<string, AbsenEntry>> {
+  const { data, error } = await supabase
+    .from("absen_guru")
+    .select(
+      "kelas, tanggal, status_pagi, jam_datang_pagi, jam_pulang_pagi, keterangan_pagi, status_siang, jam_datang_siang, jam_pulang_siang, keterangan_siang, updated_at"
+    )
+    .eq("tanggal", tanggalYmd);
+  if (error) throw new Error(error.message);
+
+  const out: Record<string, AbsenEntry> = {};
+  for (const row of data ?? []) {
+    out[row.kelas as string] = {
+      tanggal: row.tanggal,
+      pagi: rowToSesi(row.status_pagi, row.jam_datang_pagi, row.jam_pulang_pagi, row.keterangan_pagi),
+      siang: rowToSesi(row.status_siang, row.jam_datang_siang, row.jam_pulang_siang, row.keterangan_siang),
+      updated_at: row.updated_at,
+    };
+  }
+  return out;
+}
+
 /** Simpan 1 hari — SELALU kirim kedua sesi (pagi & siang) sekaligus, biar nyimpen 1 sesi
  *  gak nimpa/nghapus sesi yang lain (upsert nulis 1 baris penuh). */
 export async function saveAbsenDay(params: {

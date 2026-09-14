@@ -7,6 +7,7 @@ import { PickerCard } from "../components/PickerCard";
 import { RuleCard } from "../components/RuleCard";
 import {
   readAbsenRange,
+  readAbsenDayAll,
   saveAbsenDay,
   emptyAbsen,
   isAbsenFilled,
@@ -427,15 +428,8 @@ function TimeField({
 /* ═══════════════════════ Management ═══════════════════════ */
 
 function ManagementAbsen() {
+  const [tab, setTab] = useState<"kelas" | "hari">("kelas");
   const [kelasList, setKelasList] = useState<string[]>([]);
-  const [kelasI, setKelasI] = useState<number | null>(null);
-  const [monday, setMonday] = useState(() => mondayOf(new Date()));
-  const days = useMemo(() => weekdaysFrom(monday), [monday]);
-  const thisMonday = useMemo(() => mondayOf(new Date()), []);
-  const atThisWeek = ymd(monday) >= ymd(thisMonday);
-
-  const [entries, setEntries] = useState<Record<string, AbsenEntry>>({});
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -448,6 +442,58 @@ function ManagementAbsen() {
         setKelasList((data ?? []).map((r) => r.kelas as string).filter(Boolean).sort());
       });
   }, []);
+
+  return (
+    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
+      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
+        <header>
+          <h1
+            className="text-xl sm:text-2xl font-semibold"
+            style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
+          >
+            Absen Guru
+          </h1>
+          <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap kehadiran harian guru</p>
+        </header>
+
+        <div className="mt-5 grid grid-cols-2 gap-1 p-1 rounded-xl" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+          {(["kelas", "hari"] as const).map((t) => {
+            const active = tab === t;
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className="py-2 rounded-lg text-sm font-semibold transition-colors"
+                style={{ background: active ? C.green : "transparent", color: active ? "#FFF" : C.muted }}
+              >
+                {t === "kelas" ? "Per Kelas" : "Per Hari"}
+              </button>
+            );
+          })}
+        </div>
+
+        {error && (
+          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+            {error}
+          </div>
+        )}
+
+        {tab === "kelas" ? <ManagementAbsenPerKelas kelasList={kelasList} /> : <ManagementAbsenPerHari kelasList={kelasList} />}
+      </div>
+    </div>
+  );
+}
+
+function ManagementAbsenPerKelas({ kelasList }: { kelasList: string[] }) {
+  const [kelasI, setKelasI] = useState<number | null>(null);
+  const [monday, setMonday] = useState(() => mondayOf(new Date()));
+  const days = useMemo(() => weekdaysFrom(monday), [monday]);
+  const thisMonday = useMemo(() => mondayOf(new Date()), []);
+  const atThisWeek = ymd(monday) >= ymd(thisMonday);
+
+  const [entries, setEntries] = useState<Record<string, AbsenEntry>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const kelas = kelasI != null ? kelasList[kelasI] : null;
 
@@ -466,60 +512,134 @@ function ManagementAbsen() {
   }, [kelas, monday]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <header>
-          <h1
-            className="text-xl sm:text-2xl font-semibold"
-            style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Absen Guru
-          </h1>
-          <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap kehadiran harian guru</p>
-        </header>
+    <>
+      <div className="mt-4">
+        <PickerCard
+          items={kelasList.map((k) => ({ label: k }))}
+          value={kelasI}
+          onChange={setKelasI}
+          placeholderLabel="Pilih kelas"
+          selectedLabel="Kelas"
+          countText={`${kelasList.length} kelas`}
+          numbered={false}
+        />
+      </div>
 
-        <div className="mt-5">
-          <PickerCard
-            items={kelasList.map((k) => ({ label: k }))}
-            value={kelasI}
-            onChange={setKelasI}
-            placeholderLabel="Pilih kelas"
-            selectedLabel="Kelas"
-            countText={`${kelasList.length} kelas`}
-            numbered={false}
+      {kelas && (
+        <>
+          <WeekNav
+            label={labelRentangPekan(days)}
+            sub={atThisWeek ? "Pekan ini" : undefined}
+            onPrev={() => setMonday(shiftWeek(monday, -1))}
+            onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
           />
+
+          {error && (
+            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+              {error}
+            </div>
+          )}
+          {loading ? (
+            <div className="mt-5">
+              <PageLoadingSkeleton />
+            </div>
+          ) : (
+            <div className="mt-5 space-y-3">
+              {days.map((d) => (
+                <ReadOnlyAbsenDay key={ymd(d)} date={d} entry={entries[ymd(d)]} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+/** Rekap 1 hari, lintas SEMUA kelas sekaligus — kebalikan dari tab "Per Kelas" (1 kelas,
+ *  banyak hari). Dipakai buat management ngecek siapa aja yang belum absen hari ini. */
+function ManagementAbsenPerHari({ kelasList }: { kelasList: string[] }) {
+  const todayYmd = ymd(new Date());
+  const [date, setDate] = useState(() => new Date());
+  const dateYmd = ymd(date);
+
+  const [entries, setEntries] = useState<Record<string, AbsenEntry>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    readAbsenDayAll(dateYmd)
+      .then((m) => !cancelled && setEntries(m))
+      .catch((e) => !cancelled && setError(e.message))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [dateYmd]);
+
+  const isFuture = dateYmd > todayYmd;
+  const lengkapCount = kelasList.filter((k) => isAbsenLengkap(entries[k])).length;
+  const sebagianCount = kelasList.filter((k) => isAbsenFilled(entries[k]) && !isAbsenLengkap(entries[k])).length;
+  const belumCount = kelasList.length - lengkapCount - sebagianCount;
+
+  return (
+    <>
+      <WeekNav
+        label={`${labelHari(date)}, ${labelTanggal(date)}`}
+        sub={dateYmd === todayYmd ? "Hari ini" : undefined}
+        onPrev={() => setDate(addDays(date, -1))}
+        onNext={isFuture ? undefined : () => setDate(addDays(date, 1))}
+      />
+
+      {kelasList.length > 0 && (
+        <p className="mt-3 text-xs px-1" style={{ color: C.muted }}>
+          <b style={{ color: C.green }}>{lengkapCount}</b> lengkap ·{" "}
+          <b style={{ color: C.gold }}>{sebagianCount}</b> sebagian ·{" "}
+          <b style={{ color: C.muted }}>{belumCount}</b> belum absen dari {kelasList.length} kelas
+        </p>
+      )}
+
+      {error && (
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          {error}
         </div>
+      )}
+      {loading ? (
+        <div className="mt-5">
+          <PageLoadingSkeleton />
+        </div>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {kelasList.map((k) => (
+            <ReadOnlyAbsenKelasRow key={k} kelas={k} entry={entries[k]} />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
 
-        {kelas && (
-          <>
-            <WeekNav
-              label={labelRentangPekan(days)}
-              sub={atThisWeek ? "Pekan ini" : undefined}
-              onPrev={() => setMonday(shiftWeek(monday, -1))}
-              onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
-            />
-
-            {error && (
-              <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-                {error}
-              </div>
-            )}
-            {loading ? (
-              <div className="mt-5">
-                <PageLoadingSkeleton />
-              </div>
-            ) : (
-              <div className="mt-5 space-y-3">
-                {days.map((d) => (
-                  <ReadOnlyAbsenDay key={ymd(d)} date={d} entry={entries[ymd(d)]} />
-                ))}
-              </div>
-            )}
-          </>
-        )}
+function ReadOnlyAbsenKelasRow({ kelas, entry }: { kelas: string; entry: AbsenEntry | undefined }) {
+  const filled = isAbsenFilled(entry);
+  const lengkap = isAbsenLengkap(entry);
+  return (
+    <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: lengkap ? C.green : filled ? C.gold : C.line }} aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold truncate" style={{ color: C.ink }}>{kelas}</div>
+        <div className="text-xs truncate" style={{ color: C.muted }}>{ringkasAbsen(entry)}</div>
       </div>
     </div>
   );
+}
+
+function addDays(d: Date, n: number): Date {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
 }
 
 function ReadOnlyAbsenDay({ date, entry }: { date: Date; entry: AbsenEntry | undefined }) {
