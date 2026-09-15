@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { C, RPB_FILES, jenjangOf, isMonthOpen } from "../data";
 import { useAuth } from "../contexts/AuthContext";
-import { readRpbTab, writeRpbTab, type RpbTabData } from "../lib/rpbSheet";
+import {
+  readRpbTab,
+  writeRpbTab,
+  parseTableCByBidang,
+  lookupPekanEntry,
+  buildTableCPekanMajor,
+  type RpbTabData,
+} from "../lib/rpbSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 
 const TABLE_B_ROWS_DEFAULT = 5; // muncul dari awal
@@ -69,7 +76,24 @@ export default function RpbFormPage() {
         setJumlahPertemuan(data.jumlahPertemuan || "");
         const paddedB = padRows(data.tableB, TABLE_B_ROWS_MAX, 3);
         setTableB(paddedB);
-        setTableC(padRows(data.tableC, TABLE_C_ROWS, 4));
+        // Tabel C di sheet asli disusun per-pekan (5 bidang berurutan per pekan), bukan per-bidang
+        // kayak state internal di sini — cocokin ulang per baris berdasarkan NAMA bidang ilmu
+        // (bukan posisi) biar isi tiap pekan gak ketuker sama bidang ilmu lain. Cuma buat Kuttab
+        // Awwal; struktur kolom Qonuni beda (lihat catatan di rpbSheet.ts), belum ditangani di sini.
+        if (jenjangOf(kelas) === "Qonuni") {
+          setTableC(padRows(data.tableC, TABLE_C_ROWS, 4));
+        } else {
+          const parsed = parseTableCByBidang(data.tableC);
+          const rebuilt: string[][] = [];
+          for (let bi = 0; bi < TABLE_B_ROWS_MAX; bi++) {
+            const bidangName = paddedB[bi]?.[0] ?? "";
+            for (let w = 1; w <= PEKAN_PER_BIDANG; w++) {
+              const entry = lookupPekanEntry(parsed, bidangName, w);
+              rebuilt.push([String(w), bidangName, entry.subIlmu, entry.metode]);
+            }
+          }
+          setTableC(rebuilt);
+        }
         // Kalau slot Bidang Ilmu ke-6/7/8 udah ada isinya (dari sheet), langsung tampilin —
         // jangan sampai data yang udah diisi guru ke-sembunyi di belakang tombol "Tambah".
         let lastFilled = TABLE_B_ROWS_DEFAULT - 1;
@@ -92,13 +116,26 @@ export default function RpbFormPage() {
     setError(null);
     setSaveMsg(null);
     // Kolom Pekan & Bidang Ilmu di tableC gak pernah diketik manual lagi (slotnya udah tetap per
-    // posisi), jadi diisi otomatis di sini pas mau nulis ke sheet — 4 baris pertama = Bidang Ilmu
-    // #1 Pekan 1-4, 4 baris berikutnya = Bidang Ilmu #2, dst.
-    const tableCForSave = tableC.map((r, idx) => {
-      const bidangIndex = Math.floor(idx / PEKAN_PER_BIDANG);
-      const pekanNum = (idx % PEKAN_PER_BIDANG) + 1;
-      return [String(pekanNum), tableB[bidangIndex]?.[0] ?? "", r[2], r[3]];
-    });
+    // posisi), jadi diisi otomatis di sini pas mau nulis ke sheet. Kuttab Awwal ditulis PER PEKAN
+    // (samain sama format sheet asli — lihat catatan di rpbSheet.ts); Qonuni masih per-bidang
+    // (belum ikut dibenerin, struktur kolomnya beda, lihat catatan yang sama).
+    const tableCForSave =
+      jenjangOf(kelas) === "Qonuni"
+        ? tableC.map((r, idx) => {
+            const bidangIndex = Math.floor(idx / PEKAN_PER_BIDANG);
+            const pekanNum = (idx % PEKAN_PER_BIDANG) + 1;
+            return [String(pekanNum), tableB[bidangIndex]?.[0] ?? "", r[2], r[3]];
+          })
+        : buildTableCPekanMajor(
+            tableB,
+            TABLE_B_ROWS_MAX,
+            (bi, w) => ({
+              subIlmu: tableC[bi * PEKAN_PER_BIDANG + (w - 1)]?.[2] ?? "",
+              metode: tableC[bi * PEKAN_PER_BIDANG + (w - 1)]?.[3] ?? "",
+            }),
+            TABLE_C_ROWS,
+            PEKAN_PER_BIDANG
+          );
     const payload: RpbTabData = {
       namaGuru,
       kelas: kelasField,

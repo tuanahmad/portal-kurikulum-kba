@@ -7,13 +7,14 @@ import {
   KELAS_LIST,
   fileUrl,
   isMonthOpen,
+  jenjangOf,
   getCurrentMonthFile,
 } from "../data";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { MonthGrid } from "../components/MonthGrid";
 import { useAuth } from "../contexts/AuthContext";
-import { readRpbTab, type RpbTabData } from "../lib/rpbSheet";
+import { readRpbTab, parseTableCByBidang, lookupPekanEntry, type RpbTabData } from "../lib/rpbSheet";
 import { readReflectionTab, type ReflectionData } from "../lib/refleksiSheet";
 
 /** Terisi apa nggak — dipakai di status "card bulan" (GuruView) & buat nge-filter tampilan rekap. */
@@ -256,7 +257,7 @@ function ManagementView() {
           <div className="mt-5"><PageLoadingSkeleton /></div>
         ) : (
           <div className="mt-5">
-            {mode === "rpb" && rpb && <RpbRekap data={rpb} />}
+            {mode === "rpb" && rpb && <RpbRekap data={rpb} kelas={kelas!} />}
             {mode === "refleksi" && refleksi && <RefleksiRekap data={refleksi} />}
             {sheetHref && (
               <a
@@ -287,11 +288,17 @@ function ManagementView() {
 
 /* ───────── RPB read-only ───────── */
 
-function RpbRekap({ data }: { data: RpbTabData }) {
+function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
   const bidangIdx: number[] = [];
   data.tableB.forEach((row, i) => {
     if (row.some((c) => (c ?? "").trim())) bidangIdx.push(i);
   });
+  // Tabel C di sheet asli disusun per-pekan, bukan per-bidang — cocokin ulang per baris
+  // berdasarkan NAMA bidang ilmu (bukan posisi) biar isi tiap pekan gak ketuker sama bidang
+  // ilmu lain. Cuma buat Kuttab Awwal (lihat catatan di rpbSheet.ts); Qonuni masih pakai posisi
+  // apa adanya karena struktur kolomnya beda dan belum ditangani.
+  const isQonuni = jenjangOf(kelas) === "Qonuni";
+  const parsedC = isQonuni ? null : parseTableCByBidang(data.tableC);
 
   return (
     <div className="space-y-6">
@@ -320,7 +327,13 @@ function RpbRekap({ data }: { data: RpbTabData }) {
           <div className="mt-3 space-y-3">
             {bidangIdx.map((bi, n) => {
               const [nama, target, indikator] = data.tableB[bi];
-              const pekan = Array.from({ length: 5 }, (_, w) => data.tableC[bi * 5 + w] ?? []);
+              const pekan = Array.from({ length: 5 }, (_, w) => {
+                if (isQonuni) {
+                  const row = data.tableC[bi * 5 + w] ?? [];
+                  return { subIlmu: row[2] ?? "", metode: row[3] ?? "" };
+                }
+                return lookupPekanEntry(parsedC!, nama, w + 1);
+              });
               return (
                 <RekapAccordion key={bi} badge={String(n + 1)} title={nama || `Bidang ${n + 1}`}>
                   <ReadField label="Target Capaian" value={target} />
@@ -329,8 +342,8 @@ function RpbRekap({ data }: { data: RpbTabData }) {
                     <FieldLabel>Rincian per Pekan</FieldLabel>
                     <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {pekan.map((p, w) => {
-                        const sub = (p[2] ?? "").trim();
-                        const metode = (p[3] ?? "").trim();
+                        const sub = p.subIlmu.trim();
+                        const metode = p.metode.trim();
                         return (
                           <div key={w} className="rounded-xl p-2.5" style={{ background: C.leaf, border: `1px solid ${C.line}` }}>
                             <span className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md mb-1.5" style={{ background: C.green, color: "#FFF" }}>
