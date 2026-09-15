@@ -51,32 +51,24 @@ export const INSTRUMEN_FOLDERS = [
 ];
 
 // ————— Section 2: Rencana Pembelajaran Guru (RPB + Refleksi, guru checklist manual) —————
+// Juli & Agustus masih pakai id salinan dev (RPB-DEV COPY) — 2 bulan itu udah "tutup buku"
+// (sudah dilaporkan, gak ada yang ngedit lagi) dan isinya di sana sudah final; file produksi
+// asli Juli/Agustus masih .xlsx (belum dikonversi user ke Google Sheets native) jadi gak bisa
+// dibaca Sheets API. September dst sudah dikonversi user jadi Google Sheets native — id di bawah
+// sudah nunjuk ke situ (bukan .xlsx lama), jadi RPB September+ sekarang baca/tulis langsung ke
+// dokumen yang beneran dipakai guru, bukan dev-copy lagi.
 export const RPB_FILES = [
-  { id: "1rfdzYgbgmK7tQuSTXBXTqM2PC0EY_pbY", name: "Juli" },
-  { id: "19jw2Dk8bGBrzBLyrwKZvnJ7jdTRjuQqN", name: "Agustus" },
-  { id: "1ThsWWAYvWgFAaTdCAwhrxj9oPC5lv2Of", name: "September" },
-  { id: "1YhzzfZ-_lusgw6AHEFm3DcMAs-BVnf1Q", name: "Oktober" },
-  { id: "1M2upQX7hfM6VmMoLOrDZxZ3BOVtrwKAl", name: "November" },
-  { id: "1pVqSJgIieu3ThDqG_RVss1157TFR6o2l", name: "Desember" },
-];
-
-// Salinan uji coba (folder "RPB-DEV COPY" di Drive) — dipakai SEMENTARA oleh form isi-langsung-di-app
-// (RpbFormPage) selama fitur nulis-ke-Sheets masih tahap coba-coba. File RPB_FILES asli di atas
-// TIDAK disentuh sampai fiturnya matang dan dipindah ke sini secara sadar.
-export const RPB_FILES_DEV = [
   { id: "1XgwTSiC5wU0-QNEsC8uFlnrYXH5NFiJFOjtRD4ld6PA", name: "Juli" },
   { id: "1cVTNYPEZryOvw3NDhNZ3paiSfoIENepcNEC4ov5mZT4", name: "Agustus" },
-  { id: "1viFhbS30LlQOQchA_1Bd_Ch6kp8hQe-l66Hm72u4zAk", name: "September" },
-  { id: "1ogU_qhVW4uqoh_59SoXKPMgxM4882PAmcl9pAmBGEys", name: "Oktober" },
-  { id: "1vcLCE7w3QmtzQUXSKNJkl-3fSOmlugs4ubX9CkOEe9I", name: "November" },
-  { id: "1c2QWO_n7ZyNXdSHquJoubwR6No0NUC0YKpCU6PDHSCc", name: "Desember" },
+  { id: "14TI4RiUQZoD0fSZlqmPSfsxKgjIDgm9E1FX8x7utKSc", name: "September" },
+  { id: "1_hXCdGZcnqz7OlV7egvpXZuO0VNU0w908r0senMbaus", name: "Oktober" },
+  { id: "1__E6lEwrxZFIKrnDvGqWWthvUGGO4mleW1S_MjP1Hf4", name: "November" },
+  { id: "1-LOGnWYGRyyak1PZDoLMtdPQawWpkd9Cy4yACY4hj6A", name: "Desember" },
 ];
 
-// Salinan uji coba buat form isi-langsung-di-app Refleksi (RefleksiFormPage) — sama alasannya
-// kayak RPB_FILES_DEV: biar gak nyentuh sheet asli yang masih aktif dipakai guru. ID di bawah
-// masih placeholder kosong, nunggu link folder salinan Refleksi dari koordinator kurikulum —
-// selama kosong, halaman Refleksi akan gagal-baca dengan pesan error yang jelas, BUKAN diam-diam
-// nulis ke sheet asli.
+// Salinan uji coba buat form isi-langsung-di-app Refleksi (RefleksiFormPage) — file produksi
+// asli Refleksi masih .xlsx (belum dikonversi ke Google Sheets native, beda dari RPB di atas
+// yang sudah), jadi Sheets API masih belum bisa baca — tetap pakai dev-copy sampai dikonversi.
 export const REFLEKSI_FILES_DEV: { id: string; name: string }[] = [
   { id: "13HeNSGYrBlOXQyhiUNLjVxrTZGZF52uRlTXlHjwsvig", name: "Juli" },
   { id: "1lw1t1A_bO7O0BaZo-DgtKIjTYF1CmVsxup24dZxo2lw", name: "Agustus" },

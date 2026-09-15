@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   C,
-  RPB_FILES_DEV,
+  RPB_FILES,
   REFLEKSI_FILES_DEV,
   KELAS_LIST,
   fileUrl,
@@ -74,7 +74,7 @@ function GuruView() {
     if (!kelas) return;
     let cancelled = false;
     setLoaded(false);
-    const openMonths = RPB_FILES_DEV.filter((f) => isMonthOpen(f.name));
+    const openMonths = RPB_FILES.filter((f) => isMonthOpen(f.name));
     Promise.all(
       openMonths.map(async (f) => {
         const refFile = REFLEKSI_FILES_DEV.find((r) => r.name === f.name);
@@ -104,7 +104,7 @@ function GuruView() {
 
   return (
     <div className="space-y-3">
-      {RPB_FILES_DEV.map((f) => {
+      {RPB_FILES.map((f) => {
         const open = isMonthOpen(f.name);
         const st = status[f.name];
         const rpbOk = !!st?.rpb;
@@ -176,7 +176,7 @@ function GuruView() {
 type Mode = "rpb" | "refleksi";
 
 function defaultBulan(): string {
-  return getCurrentMonthFile(RPB_FILES_DEV)?.name ?? RPB_FILES_DEV[0].name;
+  return getCurrentMonthFile(RPB_FILES)?.name ?? RPB_FILES[0].name;
 }
 
 function ManagementView() {
@@ -192,7 +192,7 @@ function ManagementView() {
   const kelas = kelasI != null ? KELAS_LIST[kelasI].name : null;
   const monthOpen = isMonthOpen(bulan);
 
-  const rpbFile = RPB_FILES_DEV.find((f) => f.name === bulan);
+  const rpbFile = RPB_FILES.find((f) => f.name === bulan);
   const refFile = REFLEKSI_FILES_DEV.find((f) => f.name === bulan);
   const sheetHref = mode === "rpb" ? rpbFile && fileUrl(rpbFile.id) : refFile && fileUrl(refFile.id);
 
@@ -236,7 +236,7 @@ function ManagementView() {
 
       <div className="mt-4">
         <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
-        <MonthGrid months={RPB_FILES_DEV.map((f) => f.name)} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
+        <MonthGrid months={RPB_FILES.map((f) => f.name)} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
       </div>
 
       {kelas && !monthOpen && (

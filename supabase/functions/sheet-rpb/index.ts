@@ -6,6 +6,12 @@
 //               Google Cloud) karena Sheets API TIDAK bisa nulis cuma pakai API key. Kalau secret ini
 //               belum di-set, endpoint tulis akan balas error yang jelas (bukan diam-diam gagal).
 //
+// Nama tab dicocokkan LONGGAR (buang semua spasi + case-insensitive) terhadap judul tab asli
+// di spreadsheet sebelum dipakai buat baca/tulis — sheet hasil convert Excel->Sheets kadang punya
+// spasi nyasar di nama tab ("Kuttab Awwal 1 A", " Qonuni 2 Ikhwan") yang bikin lookup exact-match
+// gagal walau sheet-nya sendiri OK. Kalau gak ketemu yang cocok, tetep pakai nama aslinya biar
+// error dari Sheets API jelas (bukan disembunyikan).
+//
 // Layout tab RPB (hasil observasi sheet asli, lihat komentar di RpbFormPage.tsx untuk detail):
 //   C3:C7   -> Nama Guru, Kelas, Level, Bulan, Jumlah Pertemuan
 //   C11:E15 -> Tabel B "Target Pembelajaran" bagian 1 (Bidang Ilmu 1-5) — kolom B ("No") SENGAJA
@@ -40,8 +46,30 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function normTabName(s: string): string {
+  return s.replace(/\s+/g, "").toLowerCase();
+}
+
+/** Cari judul tab ASLI yang paling cocok (longgar) sama `requested`. Kalau gak ketemu,
+ *  balikin `requested` apa adanya biar error selanjutnya jelas nyebut nama yang diminta. */
+async function resolveSheetName(fileId: string, requested: string, auth: { apiKey?: string; token?: string }): Promise<string> {
+  const url = auth.token
+    ? `https://sheets.googleapis.com/v4/spreadsheets/${fileId}?fields=sheets.properties.title`
+    : `https://sheets.googleapis.com/v4/spreadsheets/${fileId}?fields=sheets.properties.title&key=${auth.apiKey}`;
+  const res = await fetch(url, auth.token ? { headers: { Authorization: `Bearer ${auth.token}` } } : undefined);
+  if (!res.ok) return requested; // biarin gagal di request berikutnya dengan pesan yang jelas
+  const data = await res.json();
+  const titles: string[] = (data.sheets ?? []).map((s: { properties: { title: string } }) => s.properties.title);
+  const target = normTabName(requested);
+  const exact = titles.find((t) => t === requested);
+  if (exact) return exact;
+  const loose = titles.find((t) => normTabName(t) === target);
+  return loose ?? requested;
+}
+
 // ————— GET: baca isi tab —————
-async function readTab(fileId: string, sheetName: string) {
+async function readTab(fileId: string, sheetNameRaw: string) {
+  const sheetName = await resolveSheetName(fileId, sheetNameRaw, { apiKey: GOOGLE_API_KEY });
   const ranges = [HEADER_RANGE, TABLE_B_RANGE, TABLE_B_EXTRA_RANGE, TABLE_C_RANGE].map(
     (r) => `${sheetName}!${r}`
   );
@@ -130,7 +158,7 @@ async function getAccessToken(): Promise<string> {
 // ————— POST: tulis isi tab —————
 async function writeTab(
   fileId: string,
-  sheetName: string,
+  sheetNameRaw: string,
   payload: {
     namaGuru: string;
     kelas: string;
@@ -142,6 +170,7 @@ async function writeTab(
   }
 ) {
   const accessToken = await getAccessToken();
+  const sheetName = await resolveSheetName(fileId, sheetNameRaw, { token: accessToken });
   const tableBMain = payload.tableB.slice(0, 5);
   const tableBExtra = payload.tableB.slice(5, 8);
   const data = [

@@ -2,6 +2,10 @@
 // service account, biar bisa lihat struktur sheet manapun yang udah di-share ke service account
 // (bukan cuma yang link-shareable, beda dari GOOGLE_API_KEY-only reads di fungsi lain).
 // GET ?fileId=... -> { sheets: [{ title, values }] }
+// GET ?fileId=...&titlesOnly=1 -> { titles: [...] } (ringan, buat scan cepat banyak file)
+// GET ?fileId=...&testCopy=1 -> coba copy+convert file itu (xlsx->Google Sheets native) ke
+//   file BARU (source file sama sekali gak disentuh) - buat ngetes apakah service account bisa
+//   convert Office file yang selama ini bikin Sheets API nolak baca RPB/Refleksi produksi.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -25,14 +29,14 @@ function base64url(bytes: ArrayBuffer | Uint8Array) {
   return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-async function getAccessToken(): Promise<string> {
+async function getAccessToken(scope: string): Promise<string> {
   if (!SERVICE_ACCOUNT_JSON) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON belum di-set.");
   const sa = JSON.parse(SERVICE_ACCOUNT_JSON);
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const claims = {
     iss: sa.client_email,
-    scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
+    scope,
     aud: "https://oauth2.googleapis.com/token",
     iat: now,
     exp: now + 3600,
@@ -60,7 +64,24 @@ Deno.serve(async (req: Request) => {
     const fileId = url.searchParams.get("fileId");
     if (!fileId) return json({ error: "fileId wajib diisi" }, 400);
 
-    const token = await getAccessToken();
+    if (url.searchParams.get("testCopy")) {
+      const token = await getAccessToken("https://www.googleapis.com/auth/drive");
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}/copy`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "TEST-convert-" + Date.now(),
+            mimeType: "application/vnd.google-apps.spreadsheet",
+          }),
+        }
+      );
+      const body = await res.json();
+      return json({ status: res.status, body });
+    }
+
+    const token = await getAccessToken("https://www.googleapis.com/auth/spreadsheets.readonly");
     const headers = { Authorization: `Bearer ${token}` };
 
     const metaRes = await fetch(

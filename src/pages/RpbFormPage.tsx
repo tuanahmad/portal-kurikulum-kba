@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
-import { C, RPB_FILES_DEV, jenjangOf, isMonthOpen } from "../data";
+import { C, RPB_FILES, jenjangOf, isMonthOpen } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { readRpbTab, writeRpbTab, type RpbTabData } from "../lib/rpbSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
@@ -24,8 +24,7 @@ function padRows(rows: string[][] | undefined, count: number, cols: number): str
   });
 }
 
-/** Halaman isi RPB — form-nya nulis ke file salinan uji coba (RPB_FILES_DEV) selama data
- *  asli belum dimigrasikan (biar aman, gak nyentuh sheet yang lagi aktif dipakai guru).
+/** Halaman isi RPB — nulis langsung ke dokumen produksi (RPB_FILES).
  *  Tiap baris tabel di sheet asli (kolom sempit) di sini dirender sebagai kartu bertumpuk —
  *  field-nya (Target Capaian, Metode Pengajaran, dst) isinya teks panjang, jadi gak muat
  *  dipaksa ke kolom tabel sempit. Layout persis ngikutin range sel di sheet-rpb edge function
@@ -52,7 +51,7 @@ export default function RpbFormPage() {
   const [tableC, setTableC] = useState<string[][]>(emptyTableC());
   const [bidangCount, setBidangCount] = useState(TABLE_B_ROWS_DEFAULT);
 
-  const file = RPB_FILES_DEV.find((f) => f.name === bulan);
+  const file = RPB_FILES.find((f) => f.name === bulan);
 
   useEffect(() => {
     if (!kelas || !file) return;
@@ -111,7 +110,7 @@ export default function RpbFormPage() {
     };
     try {
       await writeRpbTab(file.id, kelas, payload);
-      setSaveMsg("Tersimpan ke sheet (salinan uji coba).");
+      setSaveMsg("Tersimpan ke sheet.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
