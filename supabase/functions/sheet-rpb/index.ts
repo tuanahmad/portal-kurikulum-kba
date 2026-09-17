@@ -1,5 +1,5 @@
 // Baca & tulis form RPB (Rencana Pembelajaran Bulanan) langsung ke tab Google Sheets
-// yang sesuai kelas guru — dipakai oleh RpbFormPage.
+// yang sesuai kelas guru — dipakai oleh RpbFormPage & RpbPage.
 //
 // Baca (GET)  : pakai GOOGLE_API_KEY (read-only, sheet-nya link-shareable jadi API key cukup).
 // Tulis (POST): butuh GOOGLE_SERVICE_ACCOUNT_JSON (secret Supabase, format JSON key service account
@@ -12,18 +12,27 @@
 // gagal walau sheet-nya sendiri OK. Kalau gak ketemu yang cocok, tetep pakai nama aslinya biar
 // error dari Sheets API jelas (bukan disembunyikan).
 //
-// Layout tab RPB (hasil observasi sheet asli, lihat komentar di RpbFormPage.tsx untuk detail):
-//   C3:C7   -> Nama Guru, Kelas, Level, Bulan, Jumlah Pertemuan
-//   C11:E15 -> Tabel B "Target Pembelajaran" bagian 1 (Bidang Ilmu 1-5) — kolom B ("No") SENGAJA
-//              gak disentuh, itu cuma label 1-5 tetap di template, bukan data guru.
-//   C60:E62 -> Tabel B bagian 2 (Bidang Ilmu 6-8) — area TAMBAHAN di baris yang sebelumnya kosong
-//              di sheet asli (dicek manual sampai row 66), dipisah dari bagian 1 karena baris
-//              16-18 udah kepakai duluan sama header "C. Rencana Materi Tiap Pekan". Digabung jadi
-//              1 array 8 baris di sisi app (lihat readTab/writeTab).
-//   B19:E58 -> Tabel C "Rencana Materi Tiap Pekan" (Pekan, Bidang Ilmu, Sub-Ilmu, Metode Pengajaran)
-//              — 40 baris = 8 Bidang Ilmu x 5 Pekan tetap. Diperluas bertahap dari B19:E35 (17) ->
-//              B19:E38 (20, 5x4) -> B19:E58 (40, 8x5). Baris 36-58 di sheet asli kosong (dicek
-//              manual), aman dipakai — murni nambah range, gak ada insert baris di sheet fisiknya.
+// ————— BACA (dinamis, bukan range tetap) —————
+// Awalnya pakai range tetap (C3:C7 / C11:E15+C60:E62 / B19:E58), tapi ternyata beda guru nulis
+// RPB dengan format yang beda-beda (terutama Qonuni):
+//  - Info header kadang "Label" (kolom B) + "Value" (kolom C) terpisah, kadang digabung jadi
+//    1 sel "Label: Value" di kolom B doang — headerValue() cek kolom C dulu, baru fallback ke
+//    kolom B dengan potong di titik dua pertama.
+//  - Jumlah baris Tabel B & Tabel C beda-beda per kelas/guru (Qonuni bisa jauh lebih panjang
+//    dari 5+3 baris yang diasumsikan sebelumnya) — batasnya sekarang dicari dengan nemuin teks
+//    marker-nya ("B. Target Pembelajaran" / "C. Rencana Materi Tiap Pekan"), bukan angka baris
+//    tetap, jadi otomatis nyesuaiin berapa pun panjangnya.
+//  - Sebagian kelas Qonuni punya kolom TAMBAHAN di Tabel B buat sub-topik/nama-santri per
+//    bidang ilmu (mis. "Ziyadah"/"Wirid"/"Tilawah" di bawah "Al-Qur'an"), sebagian lagi nggak
+//    (strukturnya sama kayak Kuttab Awwal). Baca kolom lebar (C..G) apa adanya di sini — nggak
+//    nebak kolom mana artinya apa; itu diinterpretasikan di klien (RpbPage.tsx) berdasarkan
+//    berapa kolom yang keisi di baris itu, bukan asumsi posisi tetap.
+//
+// ————— TULIS (masih range tetap) —————
+// writeTab masih pakai posisi tetap (C3:C7, C11:E15+C60:E62, B19:E58) — CUMA aman buat Kuttab
+// Awwal, yang formatnya udah diverifikasi konsisten. RpbFormPage sengaja gak manggil ini buat
+// kelas Qonuni (ditolak di klien) karena format Tabel B/C-nya beda-beda antar guru — nulis
+// otomatis ke posisi tetap berisiko nimpa data yang strukturnya beda dari yang diasumsikan.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
@@ -34,10 +43,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const HEADER_RANGE = "C3:C7"; // Nama Guru, Kelas, Level, Bulan, Jumlah Pertemuan
-const TABLE_B_RANGE = "C11:E15"; // Bidang Ilmu 1-5
-const TABLE_B_EXTRA_RANGE = "C60:E62"; // Bidang Ilmu 6-8
-const TABLE_C_RANGE = "B19:E58"; // 8 Bidang Ilmu x 5 Pekan
+const HEADER_RANGE = "C3:C7"; // Nama Guru, Kelas, Level, Bulan, Jumlah Pertemuan (buat TULIS)
+const TABLE_B_RANGE = "C11:E15"; // Bidang Ilmu 1-5 (buat TULIS — Kuttab Awwal aja)
+const TABLE_B_EXTRA_RANGE = "C60:E62"; // Bidang Ilmu 6-8 (buat TULIS — Kuttab Awwal aja)
+const TABLE_C_RANGE = "B19:E58"; // 8 Bidang Ilmu x 5 Pekan (buat TULIS — Kuttab Awwal aja)
+const FULL_SCAN_RANGE = "A1:J200"; // buat BACA — cukup lebar/panjang buat nangkep sheet manapun
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -67,34 +77,79 @@ async function resolveSheetName(fileId: string, requested: string, auth: { apiKe
   return loose ?? requested;
 }
 
-// ————— GET: baca isi tab —————
-async function readTab(fileId: string, sheetNameRaw: string) {
-  const sheetName = await resolveSheetName(fileId, sheetNameRaw, { apiKey: GOOGLE_API_KEY });
-  const ranges = [HEADER_RANGE, TABLE_B_RANGE, TABLE_B_EXTRA_RANGE, TABLE_C_RANGE].map(
-    (r) => `${sheetName}!${r}`
-  );
-  const params = ranges.map((r) => `ranges=${encodeURIComponent(r)}`).join("&");
+// ————— GET: baca isi tab (dinamis) —————
+function cellAt(rows: string[][], r: number, c: number): string {
+  return (rows[r]?.[c] ?? "").toString();
+}
+
+function findMarkerRow(rows: string[][], marker: string): number {
+  const m = marker.toLowerCase();
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].some((v) => (v ?? "").toString().toLowerCase().includes(m))) return i;
+  }
+  return -1;
+}
+
+/** Nilai 1 field header — cek kolom C dulu (format lama: Label|Value kepisah), fallback ke
+ *  kolom B dipotong di titik dua pertama (format baru: "Label: Value" digabung 1 sel). */
+function headerValue(rows: string[][], row: number): string {
+  const c = cellAt(rows, row, 2).trim();
+  if (c) return c;
+  const b = cellAt(rows, row, 1).trim();
+  const idx = b.indexOf(":");
+  return idx >= 0 ? b.slice(idx + 1).trim() : "";
+}
+
+async function fetchGrid(fileId: string, sheetName: string): Promise<string[][]> {
   const url =
-    `https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values:batchGet` +
-    `?${params}&key=${GOOGLE_API_KEY}`;
+    `https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values/` +
+    `${encodeURIComponent(`${sheetName}!${FULL_SCAN_RANGE}`)}?key=${GOOGLE_API_KEY}`;
   const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`Sheets API error ${res.status}: ${body}`);
   }
   const data = await res.json();
-  const [header, tableBMain, tableBExtra, tableC] = (data.valueRanges ?? []).map(
-    (vr: { values?: string[][] }) => vr.values ?? []
-  );
-  return {
-    namaGuru: header?.[0]?.[0] ?? "",
-    kelas: header?.[1]?.[0] ?? "",
-    level: header?.[2]?.[0] ?? "",
-    bulan: header?.[3]?.[0] ?? "",
-    jumlahPertemuan: header?.[4]?.[0] ?? "",
-    tableB: [...tableBMain, ...tableBExtra], // digabung jadi 1 array 8 baris di sisi app
-    tableC,
-  };
+  return (data.values ?? []) as string[][];
+}
+
+async function readTab(fileId: string, sheetNameRaw: string) {
+  const sheetName = await resolveSheetName(fileId, sheetNameRaw, { apiKey: GOOGLE_API_KEY });
+  const rows = await fetchGrid(fileId, sheetName);
+
+  const namaGuru = headerValue(rows, 2);
+  const kelas = headerValue(rows, 3);
+  const level = headerValue(rows, 4);
+  const bulan = headerValue(rows, 5);
+  const jumlahPertemuan = headerValue(rows, 6);
+
+  const bMarker = findMarkerRow(rows, "b. target pembelajaran");
+  const cMarker = findMarkerRow(rows, "c. rencana materi");
+
+  // Tabel B: mulai 2 baris setelah marker-nya (lewatin baris header "No/Bidang Ilmu/..."),
+  // sampai marker C (atau abis baris kalau marker C gak ketemu). Kolom C..G (lebar) biar
+  // nangkep kolom tambahan Qonuni juga, gak cuma C..E.
+  const tableB: string[][] = [];
+  if (bMarker >= 0) {
+    const start = bMarker + 2;
+    const end = cMarker >= 0 ? cMarker : rows.length;
+    for (let r = start; r < end; r++) {
+      const row = [2, 3, 4, 5, 6].map((c) => cellAt(rows, r, c));
+      if (row.some((v) => v.trim())) tableB.push(row);
+    }
+  }
+
+  // Tabel C: mulai 2 baris setelah marker-nya (lewatin baris header "Pekan/Bidang Ilmu/...").
+  const tableC: string[][] = [];
+  if (cMarker >= 0) {
+    const start = cMarker + 2;
+    for (let r = start; r < rows.length; r++) {
+      const row = [1, 2, 3, 4].map((c) => cellAt(rows, r, c));
+      if (row.some((v) => v.trim())) tableC.push(row);
+    }
+  }
+
+  return { namaGuru, kelas, level, bulan, jumlahPertemuan, tableB, tableC };
 }
 
 // ————— OAuth service account (buat POST) —————
@@ -155,7 +210,7 @@ async function getAccessToken(): Promise<string> {
   return data.access_token as string;
 }
 
-// ————— POST: tulis isi tab —————
+// ————— POST: tulis isi tab (Kuttab Awwal aja, lihat catatan di atas) —————
 async function writeTab(
   fileId: string,
   sheetNameRaw: string,

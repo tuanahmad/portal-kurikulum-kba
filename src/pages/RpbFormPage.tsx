@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
-import { C, RPB_FILES, jenjangOf, isMonthOpen } from "../data";
+import { C, RPB_FILES, jenjangOf, isMonthOpen, sheetUrl } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import {
   readRpbTab,
@@ -59,6 +59,11 @@ export default function RpbFormPage() {
   const [bidangCount, setBidangCount] = useState(TABLE_B_ROWS_DEFAULT);
 
   const file = RPB_FILES.find((f) => f.name === bulan);
+  // Struktur Tabel B/C Qonuni beda-beda antar guru (jumlah kolom & baris-nya gak konsisten, lihat
+  // catatan di rpbSheet.ts) — form isi-manual di sini (posisi baris/kolom tetap) gak aman dipakai
+  // buat nulis balik ke sheet Qonuni, risikonya nimpa data dengan struktur yang salah. Guru Qonuni
+  // tetap isi langsung di Google Sheets-nya sampai form ini didukung buat struktur yang bervariasi.
+  const isQonuni = jenjangOf(kelas) === "Qonuni";
 
   useEffect(() => {
     if (!kelas || !file) return;
@@ -116,26 +121,19 @@ export default function RpbFormPage() {
     setError(null);
     setSaveMsg(null);
     // Kolom Pekan & Bidang Ilmu di tableC gak pernah diketik manual lagi (slotnya udah tetap per
-    // posisi), jadi diisi otomatis di sini pas mau nulis ke sheet. Kuttab Awwal ditulis PER PEKAN
-    // (samain sama format sheet asli — lihat catatan di rpbSheet.ts); Qonuni masih per-bidang
-    // (belum ikut dibenerin, struktur kolomnya beda, lihat catatan yang sama).
-    const tableCForSave =
-      jenjangOf(kelas) === "Qonuni"
-        ? tableC.map((r, idx) => {
-            const bidangIndex = Math.floor(idx / PEKAN_PER_BIDANG);
-            const pekanNum = (idx % PEKAN_PER_BIDANG) + 1;
-            return [String(pekanNum), tableB[bidangIndex]?.[0] ?? "", r[2], r[3]];
-          })
-        : buildTableCPekanMajor(
-            tableB,
-            TABLE_B_ROWS_MAX,
-            (bi, w) => ({
-              subIlmu: tableC[bi * PEKAN_PER_BIDANG + (w - 1)]?.[2] ?? "",
-              metode: tableC[bi * PEKAN_PER_BIDANG + (w - 1)]?.[3] ?? "",
-            }),
-            TABLE_C_ROWS,
-            PEKAN_PER_BIDANG
-          );
+    // posisi), jadi diisi otomatis di sini pas mau nulis ke sheet, PER PEKAN (samain sama format
+    // sheet asli — lihat catatan di rpbSheet.ts). Simpan cuma dipakai buat Kuttab Awwal — Qonuni
+    // gak render tombol ini sama sekali (lihat isQonuni di atas).
+    const tableCForSave = buildTableCPekanMajor(
+      tableB,
+      TABLE_B_ROWS_MAX,
+      (bi, w) => ({
+        subIlmu: tableC[bi * PEKAN_PER_BIDANG + (w - 1)]?.[2] ?? "",
+        metode: tableC[bi * PEKAN_PER_BIDANG + (w - 1)]?.[3] ?? "",
+      }),
+      TABLE_C_ROWS,
+      PEKAN_PER_BIDANG
+    );
     const payload: RpbTabData = {
       namaGuru,
       kelas: kelasField,
@@ -337,87 +335,115 @@ export default function RpbFormPage() {
               </div>
             )}
 
-            {/* Section B: Target Pembelajaran */}
-            <SectionHeading
-              no="B"
-              title="Target Pembelajaran"
-              subtitle={`${bidangCount} bidang ilmu yang ditargetkan bulan ini`}
-            />
-            <div className="space-y-3">
-              {tableB.slice(0, bidangCount).map((row, i) => (
-                <EntryCard
-                  key={i}
-                  badge={<span>{i + 1}</span>}
-                  onRemove={
-                    i === bidangCount - 1 && bidangCount > TABLE_B_ROWS_DEFAULT
-                      ? () => {
-                          setBRow(i, 0, "");
-                          setBRow(i, 1, "");
-                          setBRow(i, 2, "");
-                          for (let w = 0; w < PEKAN_PER_BIDANG; w++) {
-                            setCRow(i * PEKAN_PER_BIDANG + w, 2, "");
-                            setCRow(i * PEKAN_PER_BIDANG + w, 3, "");
-                          }
-                          setBidangCount((c) => c - 1);
-                        }
-                      : undefined
-                  }
+            {isQonuni ? (
+              <div className="rounded-2xl p-4 sm:p-5" style={{ background: C.leaf, border: `1px solid ${C.line}` }}>
+                <div className="text-sm font-semibold" style={{ color: C.ink }}>
+                  Form isi RPB Qonuni belum tersedia di sini
+                </div>
+                <p className="text-xs mt-1.5 leading-relaxed" style={{ color: C.muted }}>
+                  Format Tabel Target Pembelajaran RPB Qonuni beda-beda antar guru, jadi belum bisa diisi
+                  otomatis lewat form ini tanpa risiko keliru menimpa data. Rekap RPB yang sudah diisi tetap
+                  bisa dilihat manajemen di halaman Rencana &amp; Refleksi — silakan isi/edit langsung di
+                  Google Sheets untuk sementara.
+                </p>
+                <a
+                  href={sheetUrl(file.id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold"
+                  style={{ color: C.green }}
                 >
-                  <Field label="Bidang Ilmu" compact>
-                    <input
-                      value={row[0]}
-                      onChange={(e) => setBRow(i, 0, e.target.value)}
-                      className="w-full text-sm outline-none px-3 py-2 rounded-lg"
-                      style={{ border: `1px solid ${C.line}` }}
-                    />
-                  </Field>
-                  <Field label="Target Capaian" compact>
-                    <textarea
-                      value={row[1]}
-                      onChange={(e) => setBRow(i, 1, e.target.value)}
-                      rows={2}
-                      className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-none"
-                      style={{ border: `1px solid ${C.line}` }}
-                    />
-                  </Field>
-                  <Field label="Indikator Keberhasilan" compact>
-                    <textarea
-                      value={row[2]}
-                      onChange={(e) => setBRow(i, 2, e.target.value)}
-                      rows={2}
-                      className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-none"
-                      style={{ border: `1px solid ${C.line}` }}
-                    />
-                  </Field>
-                  <WeeklyBreakdown items={weeklySlotsFor(i)} onChange={setCRow} />
-                </EntryCard>
-              ))}
-              {bidangCount < TABLE_B_ROWS_MAX && (
-                <button
-                  onClick={() => setBidangCount((c) => Math.min(c + 1, TABLE_B_ROWS_MAX))}
-                  className="w-full flex items-center justify-center gap-2 text-sm font-semibold py-3 rounded-2xl transition-colors"
-                  style={{ background: C.leaf, color: C.green, border: `1.5px dashed ${C.green}` }}
-                >
-                  <PlusIcon />
-                  Tambah Bidang Ilmu
-                </button>
-              )}
-            </div>
-
-            {saveMsg && (
-              <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: C.leaf, border: `1px solid ${C.green}`, color: C.green }}>
-                {saveMsg}
+                  Buka di Google Sheets
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                    <path d="M14 4h6v6M20 4l-9 9M9 5H5v14h14v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Section B: Target Pembelajaran */}
+                <SectionHeading
+                  no="B"
+                  title="Target Pembelajaran"
+                  subtitle={`${bidangCount} bidang ilmu yang ditargetkan bulan ini`}
+                />
+                <div className="space-y-3">
+                  {tableB.slice(0, bidangCount).map((row, i) => (
+                    <EntryCard
+                      key={i}
+                      badge={<span>{i + 1}</span>}
+                      onRemove={
+                        i === bidangCount - 1 && bidangCount > TABLE_B_ROWS_DEFAULT
+                          ? () => {
+                              setBRow(i, 0, "");
+                              setBRow(i, 1, "");
+                              setBRow(i, 2, "");
+                              for (let w = 0; w < PEKAN_PER_BIDANG; w++) {
+                                setCRow(i * PEKAN_PER_BIDANG + w, 2, "");
+                                setCRow(i * PEKAN_PER_BIDANG + w, 3, "");
+                              }
+                              setBidangCount((c) => c - 1);
+                            }
+                          : undefined
+                      }
+                    >
+                      <Field label="Bidang Ilmu" compact>
+                        <input
+                          value={row[0]}
+                          onChange={(e) => setBRow(i, 0, e.target.value)}
+                          className="w-full text-sm outline-none px-3 py-2 rounded-lg"
+                          style={{ border: `1px solid ${C.line}` }}
+                        />
+                      </Field>
+                      <Field label="Target Capaian" compact>
+                        <textarea
+                          value={row[1]}
+                          onChange={(e) => setBRow(i, 1, e.target.value)}
+                          rows={2}
+                          className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-none"
+                          style={{ border: `1px solid ${C.line}` }}
+                        />
+                      </Field>
+                      <Field label="Indikator Keberhasilan" compact>
+                        <textarea
+                          value={row[2]}
+                          onChange={(e) => setBRow(i, 2, e.target.value)}
+                          rows={2}
+                          className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-none"
+                          style={{ border: `1px solid ${C.line}` }}
+                        />
+                      </Field>
+                      <WeeklyBreakdown items={weeklySlotsFor(i)} onChange={setCRow} />
+                    </EntryCard>
+                  ))}
+                  {bidangCount < TABLE_B_ROWS_MAX && (
+                    <button
+                      onClick={() => setBidangCount((c) => Math.min(c + 1, TABLE_B_ROWS_MAX))}
+                      className="w-full flex items-center justify-center gap-2 text-sm font-semibold py-3 rounded-2xl transition-colors"
+                      style={{ background: C.leaf, color: C.green, border: `1.5px dashed ${C.green}` }}
+                    >
+                      <PlusIcon />
+                      Tambah Bidang Ilmu
+                    </button>
+                  )}
+                </div>
 
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full text-sm font-semibold py-3.5 rounded-xl transition-opacity hover:opacity-90 disabled:opacity-60"
-              style={{ background: C.green, color: "#FFF" }}
-            >
-              {saving ? "Menyimpan…" : "Simpan"}
-            </button>
+                {saveMsg && (
+                  <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: C.leaf, border: `1px solid ${C.green}`, color: C.green }}>
+                    {saveMsg}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full text-sm font-semibold py-3.5 rounded-xl transition-opacity hover:opacity-90 disabled:opacity-60"
+                  style={{ background: C.green, color: "#FFF" }}
+                >
+                  {saving ? "Menyimpan…" : "Simpan"}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

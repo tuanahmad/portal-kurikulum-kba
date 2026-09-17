@@ -121,6 +121,41 @@ export function lookupPekanEntry(
   };
 }
 
+// ————— Tabel B Qonuni: 1 bidang ilmu bisa punya beberapa baris detail —————
+// Beda dari Kuttab Awwal (1 bidang = 1 baris tetap), Tabel B Qonuni gak punya pola kolom yang
+// konsisten antar guru — ada yang nulis sub-topik ("Ziyadah"/"Wirid"/"Tilawah" di bawah
+// "Al-Qur'an"), ada yang nulis catatan per-santri ("Fatimah: menyelesaikan surat...") sebagai
+// baris-baris di bawah 1 bidang yang sama, ada juga yang formatnya sama kayak Kuttab Awwal
+// (1 baris per bidang). Daripada nebak "kolom sekian pasti artinya sub-topik" (ternyata gak
+// selalu benar — sheet-rpb udah baca kolom lebar apa adanya), grouping di sini pakai 2 aturan:
+// (1) baris baru dimulai tiap kolom pertama (bidang ilmu) keisi, baris kolom-pertama-kosong
+//     dianggap lanjutan/detail dari bidang di atasnya;
+// (2) isi tiap baris diartikan dari BERAPA kolom sisanya yang keisi, bukan posisi kolom tetap.
+export type QonuniBidangDetail = { subItem: string; target: string; indikator: string };
+export type QonuniBidangGroup = { bidang: string; details: QonuniBidangDetail[] };
+
+export function groupTableBByBidang(tableB: string[][]): QonuniBidangGroup[] {
+  const groups: QonuniBidangGroup[] = [];
+  for (const row of tableB) {
+    const bidang = (row[0] ?? "").trim();
+    const rest = row.slice(1).map((v) => (v ?? "").trim()).filter(Boolean);
+    let detail: QonuniBidangDetail;
+    if (rest.length >= 3) detail = { subItem: rest[0], target: rest[1], indikator: rest[2] };
+    else if (rest.length === 2) detail = { subItem: "", target: rest[0], indikator: rest[1] };
+    else if (rest.length === 1) detail = { subItem: "", target: rest[0], indikator: "" };
+    else continue; // baris kosong beneran — harusnya udah kefilter di sheet-rpb, jaga-jaga aja
+
+    if (bidang) {
+      groups.push({ bidang, details: [detail] });
+    } else if (groups.length > 0) {
+      groups[groups.length - 1].details.push(detail);
+    } else {
+      groups.push({ bidang: "(tanpa nama bidang)", details: [detail] });
+    }
+  }
+  return groups;
+}
+
 /** Bangun ulang tableC dalam urutan PEKAN-MAJOR (samain format sama sheet asli) buat ditulis
  *  balik ke sheet — `bidangSlots` bidang ilmu per pekan (blok tetap, biar batas tiap pekan bisa
  *  ditebak lagi kalau perlu), diisi dari `getEntry(bidangIndex, pekan)`. */

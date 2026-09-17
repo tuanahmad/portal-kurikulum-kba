@@ -14,7 +14,14 @@ import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { MonthGrid } from "../components/MonthGrid";
 import { useAuth } from "../contexts/AuthContext";
-import { readRpbTab, parseTableCByBidang, lookupPekanEntry, type RpbTabData } from "../lib/rpbSheet";
+import {
+  readRpbTab,
+  parseTableCByBidang,
+  lookupPekanEntry,
+  groupTableBByBidang,
+  type RpbTabData,
+  type PekanEntry,
+} from "../lib/rpbSheet";
 import { readReflectionTab, type ReflectionData } from "../lib/refleksiSheet";
 
 /** Terisi apa nggak — dipakai di status "card bulan" (GuruView) & buat nge-filter tampilan rekap. */
@@ -288,17 +295,45 @@ function ManagementView() {
 
 /* ───────── RPB read-only ───────── */
 
+function PekanGrid({ pekan }: { pekan: PekanEntry[] }) {
+  return (
+    <div className="pt-1">
+      <FieldLabel>Rincian per Pekan</FieldLabel>
+      <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {pekan.map((p, w) => {
+          const sub = p.subIlmu.trim();
+          const metode = p.metode.trim();
+          return (
+            <div key={w} className="rounded-xl p-2.5" style={{ background: C.leaf, border: `1px solid ${C.line}` }}>
+              <span className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md mb-1.5" style={{ background: C.green, color: "#FFF" }}>
+                Pekan {w + 1}
+              </span>
+              <div className="text-[13px] font-medium" style={{ color: sub ? C.ink : C.muted }}>{sub || "—"}</div>
+              {metode && <div className="text-xs mt-0.5 whitespace-pre-wrap" style={{ color: C.muted }}>{metode}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
-  const bidangIdx: number[] = [];
-  data.tableB.forEach((row, i) => {
-    if (row.some((c) => (c ?? "").trim())) bidangIdx.push(i);
-  });
   // Tabel C di sheet asli disusun per-pekan, bukan per-bidang — cocokin ulang per baris
   // berdasarkan NAMA bidang ilmu (bukan posisi) biar isi tiap pekan gak ketuker sama bidang
-  // ilmu lain. Cuma buat Kuttab Awwal (lihat catatan di rpbSheet.ts); Qonuni masih pakai posisi
-  // apa adanya karena struktur kolomnya beda dan belum ditangani.
+  // ilmu lain. Berlaku buat semua jenjang sekarang (Qonuni juga cocok by NAMA bidang top-level,
+  // sama kayak Tabel C-nya).
   const isQonuni = jenjangOf(kelas) === "Qonuni";
-  const parsedC = isQonuni ? null : parseTableCByBidang(data.tableC);
+  const parsedC = parseTableCByBidang(data.tableC);
+
+  const bidangIdx: number[] = [];
+  if (!isQonuni) {
+    data.tableB.forEach((row, i) => {
+      if (row.some((c) => (c ?? "").trim())) bidangIdx.push(i);
+    });
+  }
+  const qonuniGroups = isQonuni ? groupTableBByBidang(data.tableB) : [];
+  const bidangCount = isQonuni ? qonuniGroups.length : bidangIdx.length;
 
   return (
     <div className="space-y-6">
@@ -320,42 +355,41 @@ function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
       />
 
       <div>
-        <SectionBar no="B" title="Target Pembelajaran" subtitle={`${bidangIdx.length} bidang ilmu`} />
-        {bidangIdx.length === 0 ? (
+        <SectionBar no="B" title="Target Pembelajaran" subtitle={`${bidangCount} bidang ilmu`} />
+        {bidangCount === 0 ? (
           <EmptyNote>Belum diisi untuk bulan ini.</EmptyNote>
+        ) : isQonuni ? (
+          <div className="mt-3 space-y-3">
+            {qonuniGroups.map((g, n) => {
+              const pekan = Array.from({ length: 5 }, (_, w) => lookupPekanEntry(parsedC, g.bidang, w + 1));
+              return (
+                <RekapAccordion key={n} badge={String(n + 1)} title={g.bidang}>
+                  {g.details.map((d, di) => (
+                    <div
+                      key={di}
+                      className={di > 0 ? "pt-2.5 mt-2.5 space-y-2.5" : "space-y-2.5"}
+                      style={di > 0 ? { borderTop: `1px solid ${C.line}` } : undefined}
+                    >
+                      {d.subItem && <ReadField label="Sub / Item" value={d.subItem} />}
+                      <ReadField label="Target Capaian" value={d.target} />
+                      <ReadField label="Indikator Keberhasilan" value={d.indikator} />
+                    </div>
+                  ))}
+                  <PekanGrid pekan={pekan} />
+                </RekapAccordion>
+              );
+            })}
+          </div>
         ) : (
           <div className="mt-3 space-y-3">
             {bidangIdx.map((bi, n) => {
               const [nama, target, indikator] = data.tableB[bi];
-              const pekan = Array.from({ length: 5 }, (_, w) => {
-                if (isQonuni) {
-                  const row = data.tableC[bi * 5 + w] ?? [];
-                  return { subIlmu: row[2] ?? "", metode: row[3] ?? "" };
-                }
-                return lookupPekanEntry(parsedC!, nama, w + 1);
-              });
+              const pekan = Array.from({ length: 5 }, (_, w) => lookupPekanEntry(parsedC, nama, w + 1));
               return (
                 <RekapAccordion key={bi} badge={String(n + 1)} title={nama || `Bidang ${n + 1}`}>
                   <ReadField label="Target Capaian" value={target} />
                   <ReadField label="Indikator Keberhasilan" value={indikator} />
-                  <div className="pt-1">
-                    <FieldLabel>Rincian per Pekan</FieldLabel>
-                    <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {pekan.map((p, w) => {
-                        const sub = p.subIlmu.trim();
-                        const metode = p.metode.trim();
-                        return (
-                          <div key={w} className="rounded-xl p-2.5" style={{ background: C.leaf, border: `1px solid ${C.line}` }}>
-                            <span className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md mb-1.5" style={{ background: C.green, color: "#FFF" }}>
-                              Pekan {w + 1}
-                            </span>
-                            <div className="text-[13px] font-medium" style={{ color: sub ? C.ink : C.muted }}>{sub || "—"}</div>
-                            {metode && <div className="text-xs mt-0.5 whitespace-pre-wrap" style={{ color: C.muted }}>{metode}</div>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <PekanGrid pekan={pekan} />
                 </RekapAccordion>
               );
             })}
