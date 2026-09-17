@@ -6,7 +6,7 @@ import { SkeletonBlock } from "../components/Skeleton";
 import { useAuth } from "../contexts/AuthContext";
 import { listDriveFolders, findChildFolder, type DriveNode } from "../lib/drive";
 
-type Jenjang = "Kuttab Awwal" | "Qonuni";
+type Jenjang = "Kuttab Awwal" | "Qonuni" | "Olahraga";
 
 const GRADIENTS = [
   `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`,
@@ -35,9 +35,12 @@ function countFor(nodes: DriveNode[], jenjang: Jenjang): number {
 
 export default function InstrumenPage() {
   const { role, kelas } = useAuth();
-  const myJenjang = jenjangOf(kelas);
+  // Guru olahraga bukan Kuttab Awwal/Qonuni dan cuma butuh lihat Panduan (belum ada Modul/Target
+  // buat olahraga) — jadi jenjang & kategori-nya langsung dikunci, gak lewat picker 2 langkah.
+  const isOlahraga = role === "olahraga";
+  const myJenjang = isOlahraga ? "Olahraga" : jenjangOf(kelas);
   const [jenjang, setJenjang] = useState<Jenjang | null>(myJenjang);
-  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [activeKey, setActiveKey] = useState<string | null>(isOlahraga ? "panduan" : null);
 
   const [state, setState] = useState<{
     loading: boolean;
@@ -74,8 +77,9 @@ export default function InstrumenPage() {
             Instrumen Ilmu
           </h1>
           <p className="text-sm mt-2 max-w-md mx-auto" style={{ color: C.muted }}>
-            Acuan guru dalam proses pembelajaran — modul, target, dan panduan pengajaran.
-            Pembaruan file dilakukan tim management lewat Google Drive.
+            {isOlahraga
+              ? "Panduan pengajaran olahraga sebagai acuan guru. Pembaruan file dilakukan tim management lewat Google Drive."
+              : "Acuan guru dalam proses pembelajaran — modul, target, dan panduan pengajaran. Pembaruan file dilakukan tim management lewat Google Drive."}
           </p>
         </header>
 
@@ -149,14 +153,16 @@ export default function InstrumenPage() {
         {/* Langkah 3 — isi kategori yang dipilih */}
         {jenjang && activeFolder && (
           <main className="mt-6">
-            <button
-              onClick={() => setActiveKey(null)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-4 transition-colors hover:opacity-80"
-              style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
-            >
-              <BackArrowIcon />
-              {activeFolder.name}
-            </button>
+            {!isOlahraga && (
+              <button
+                onClick={() => setActiveKey(null)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-4 transition-colors hover:opacity-80"
+                style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
+              >
+                <BackArrowIcon />
+                {activeFolder.name}
+              </button>
+            )}
 
             {state.loading && (
               <div className="space-y-2">

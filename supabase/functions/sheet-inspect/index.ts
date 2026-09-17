@@ -11,6 +11,9 @@
 //   Dipakai buat mecah tab "Kuttab Awwal 1" (gabungan, belum di-split kayak 1A/1B di bulan lain)
 //   jadi 2 tab terpisah kalau isinya masih TEMPLATE KOSONG (aman didupilkat, gak ada data ke-timpa) —
 //   jangan pernah dipanggil ke tab yang udah ada isinya tanpa ngecek dulu.
+// GET ?fileId=<parentFolderId>&createFolder=1&name=...  -> buat 1 folder Drive baru di dalam
+//   fileId (dipakai sebagai parent id di sini, bukan file). Butuh Drive API nyala + service
+//   account punya akses Editor ke folder induknya (kemungkinan gagal 403 kalau belum).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -82,6 +85,23 @@ Deno.serve(async (req: Request) => {
           }),
         }
       );
+      const body = await res.json();
+      return json({ status: res.status, body });
+    }
+
+    if (url.searchParams.get("createFolder")) {
+      const name = url.searchParams.get("name");
+      if (!name) return json({ error: "name wajib diisi" }, 400);
+      const token = await getAccessToken("https://www.googleapis.com/auth/drive");
+      const res = await fetch("https://www.googleapis.com/drive/v3/files", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          mimeType: "application/vnd.google-apps.folder",
+          parents: [fileId],
+        }),
+      });
       const body = await res.json();
       return json({ status: res.status, body });
     }

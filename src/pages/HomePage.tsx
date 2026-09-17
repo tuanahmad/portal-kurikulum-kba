@@ -167,6 +167,13 @@ function OlahragaMenu() {
   return (
     <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
       <HomeCard
+        to="/instrumen"
+        title="Panduan Olahraga"
+        desc="Panduan pengajaran olahraga sebagai acuan guru."
+        gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`}
+        icon={<BookIcon />}
+      />
+      <HomeCard
         to="/olahraga/rencana"
         title="Rencana Kegiatan Olahraga"
         desc="Isi rencana kegiatan olahraga Kuttab Awwal 1–3, per pekan tiap bulan."
