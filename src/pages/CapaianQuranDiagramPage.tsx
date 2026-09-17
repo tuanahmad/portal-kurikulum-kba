@@ -4,6 +4,7 @@ import { C, capaianQuranFileId, capaianRoster, isMonthOpen, pekanCountForBulan }
 import { useAuth } from "../contexts/AuthContext";
 import { readCapaianQuran, type CapaianQuranData } from "../lib/capaianQuranSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
+import { MonthGrid } from "../components/MonthGrid";
 
 const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
@@ -161,29 +162,12 @@ export default function CapaianQuranDiagramPage() {
         <div className="mt-6 space-y-6">
           <div>
             <div className="text-sm font-semibold mb-2.5" style={{ color: C.ink }}>Pilih bulan</div>
-            <div className="flex flex-wrap gap-2">
-              {BULAN_LIST.map((b) => {
-                const open = isMonthOpen(b);
-                const active = b === bulan;
-                return (
-                  <button
-                    key={b}
-                    disabled={!open}
-                    onClick={() => setBulan(active ? null : b)}
-                    className="text-sm font-medium px-3.5 py-2 rounded-xl transition-colors"
-                    style={{
-                      background: active ? C.green : open ? "#FFF" : C.leaf,
-                      color: active ? "#FFF" : open ? C.ink : C.muted,
-                      border: `1px solid ${active ? C.green : C.line}`,
-                      opacity: open ? 1 : 0.6,
-                      cursor: open ? "pointer" : "not-allowed",
-                    }}
-                  >
-                    {b}
-                  </button>
-                );
-              })}
-            </div>
+            <MonthGrid
+              months={BULAN_LIST}
+              value={bulan}
+              onSelect={(b) => setBulan(b === bulan ? null : b)}
+              isOpen={isMonthOpen}
+            />
           </div>
 
           {error && (
