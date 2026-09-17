@@ -6,6 +6,11 @@
 // GET ?fileId=...&testCopy=1 -> coba copy+convert file itu (xlsx->Google Sheets native) ke
 //   file BARU (source file sama sekali gak disentuh) - buat ngetes apakah service account bisa
 //   convert Office file yang selama ini bikin Sheets API nolak baca RPB/Refleksi produksi.
+// GET ?fileId=...&splitTab=1&sourceTitle=...&titleA=...&titleB=...  -> duplikat 1 tab JADI 2 tab
+//   baru (nama sesuai titleA/titleB) lalu HAPUS tab sumbernya, semua dalam 1 batchUpdate atomik.
+//   Dipakai buat mecah tab "Kuttab Awwal 1" (gabungan, belum di-split kayak 1A/1B di bulan lain)
+//   jadi 2 tab terpisah kalau isinya masih TEMPLATE KOSONG (aman didupilkat, gak ada data ke-timpa) —
+//   jangan pernah dipanggil ke tab yang udah ada isinya tanpa ngecek dulu.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -79,6 +84,42 @@ Deno.serve(async (req: Request) => {
       );
       const body = await res.json();
       return json({ status: res.status, body });
+    }
+
+    if (url.searchParams.get("splitTab")) {
+      const sourceTitle = url.searchParams.get("sourceTitle");
+      const titleA = url.searchParams.get("titleA");
+      const titleB = url.searchParams.get("titleB");
+      if (!sourceTitle || !titleA || !titleB) {
+        return json({ error: "sourceTitle, titleA, titleB wajib diisi" }, 400);
+      }
+      const token = await getAccessToken("https://www.googleapis.com/auth/spreadsheets");
+      const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+      const metaRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${fileId}?fields=sheets.properties`,
+        { headers }
+      );
+      if (!metaRes.ok) return json({ error: `Sheets API (metadata) ${metaRes.status}: ${await metaRes.text()}` }, 502);
+      const meta = await metaRes.json();
+      const src = (meta.sheets ?? []).find((s: any) => s.properties.title === sourceTitle);
+      if (!src) return json({ error: `Tab "${sourceTitle}" tidak ditemukan` }, 404);
+      const sheetId = src.properties.sheetId;
+      const index = src.properties.index;
+
+      const batchRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${fileId}:batchUpdate`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          requests: [
+            { duplicateSheet: { sourceSheetId: sheetId, insertSheetIndex: index + 1, newSheetName: titleA } },
+            { duplicateSheet: { sourceSheetId: sheetId, insertSheetIndex: index + 2, newSheetName: titleB } },
+            { deleteSheet: { sheetId } },
+          ],
+        }),
+      });
+      const body = await batchRes.json();
+      return json({ status: batchRes.status, body });
     }
 
     const token = await getAccessToken("https://www.googleapis.com/auth/spreadsheets.readonly");
