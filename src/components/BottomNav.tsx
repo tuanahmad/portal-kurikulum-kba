@@ -22,6 +22,38 @@ export function BottomNav() {
         {items.map((it) => {
           const active = pathname === it.to;
           const Icon = it.icon;
+          const isHome = it.to === "/home";
+
+          // Home ditaruh di tengah array (lihat navIcons.tsx) dan dirender lebih besar/menonjol
+          // di sini — lingkaran terangkat sedikit di atas garis bar, kayak pola "tombol utama"
+          // yang umum di app lain, biar gampang ditemuin jempol tanpa lihat.
+          if (isHome) {
+            return (
+              <Link
+                key={it.to}
+                to={it.to}
+                title={it.label}
+                className="flex-1 flex flex-col items-center justify-center min-w-0"
+              >
+                <span
+                  className="flex items-center justify-center rounded-full -mt-6"
+                  style={{
+                    width: 54,
+                    height: 54,
+                    background: `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`,
+                    border: "3px solid #FFFFFF",
+                    boxShadow: "0 4px 12px rgba(28,74,51,0.35)",
+                    color: "#FFFFFF",
+                  }}
+                >
+                  <span className="scale-125">
+                    <Icon active />
+                  </span>
+                </span>
+              </Link>
+            );
+          }
+
           return (
             <Link
               key={it.to}

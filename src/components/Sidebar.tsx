@@ -51,7 +51,10 @@ export function Sidebar() {
           }}
         >
           <nav className="space-y-1.5">
-            {sidebarItemsFor(role).map((it) => {
+            {/* Home ditaruh di tengah khusus buat BottomNav mobile (tombol utama yang menonjol) —
+                di sini (daftar vertikal desktop) tetap ditaruh paling atas, urutan yang wajar
+                buat menu dropdown biasa. */}
+            {[...sidebarItemsFor(role)].sort((a, b) => (a.to === "/home" ? -1 : b.to === "/home" ? 1 : 0)).map((it) => {
               const active = pathname === it.to;
               const Icon = it.icon;
               return (

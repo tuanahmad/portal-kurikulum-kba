@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { C, getGreeting } from "../data";
+import { C, getGreeting, KELAS_LIST } from "../data";
 import { useAuth } from "../contexts/AuthContext";
+import { readTodayStatus, type TodayStatus } from "../lib/dashboardStatus";
 
 export default function HomePage() {
   const { role, kelas, fullName } = useAuth();
@@ -115,7 +117,9 @@ function GuruMenu() {
 /** Menu management — gambaran umum, belum spesifik ke satu kelas. */
 function ManagementMenu() {
   return (
-    <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+    <main>
+      <RingkasanHariIni />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
       <HomeCard
         to="/instrumen"
         title="Instrumen Ilmu"
@@ -158,7 +162,126 @@ function ManagementMenu() {
         gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`}
         icon={<ChartIcon />}
       />
+      </div>
     </main>
+  );
+}
+
+const ALL_KELAS_NAMES = KELAS_LIST.map((k) => k.name);
+
+/** Ringkasan "siapa yang belum isi" — Jurnal & Absen (hari ini) + Capaian Al-Qur'an (minggu ini)
+ *  lintas 13 kelas, biar management gak perlu buka Rekap satu-satu cuma buat tau siapa yang bolong. */
+function RingkasanHariIni() {
+  const [status, setStatus] = useState<TodayStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<"jurnal" | "absen" | "quran" | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    readTodayStatus(ALL_KELAS_NAMES)
+      .then((s) => !cancelled && setStatus(s))
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (error) return null; // gagal muat ringkasan bukan hal fatal, cukup disembunyikan
+  if (!status) {
+    return (
+      <div className="mb-5 rounded-2xl p-4 sm:p-5 animate-pulse" style={{ background: "#FFF", border: `1px solid ${C.line}`, height: 88 }} />
+    );
+  }
+
+  const jurnalMissing = ALL_KELAS_NAMES.filter((k) => !status.jurnalFilled.includes(k));
+  const absenMissing = ALL_KELAS_NAMES.filter((k) => !status.absenFilled.includes(k));
+  const quranKnown = ALL_KELAS_NAMES.filter((k) => !status.quranUnknown.includes(k));
+  const quranMissing = quranKnown.filter((k) => !status.quranFilled.includes(k));
+
+  return (
+    <div className="mb-5 rounded-2xl p-4 sm:p-5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <div className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: C.green }}>
+        Status Pengisian
+      </div>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <StatusStat
+          label="Jurnal"
+          sub="hari ini"
+          filled={status.jurnalFilled.length}
+          total={status.totalKelas}
+          missing={jurnalMissing}
+          open={expanded === "jurnal"}
+          onToggle={() => setExpanded((e) => (e === "jurnal" ? null : "jurnal"))}
+        />
+        <StatusStat
+          label="Absen"
+          sub="hari ini"
+          filled={status.absenFilled.length}
+          total={status.totalKelas}
+          missing={absenMissing}
+          open={expanded === "absen"}
+          onToggle={() => setExpanded((e) => (e === "absen" ? null : "absen"))}
+        />
+        <StatusStat
+          label="Al-Qur'an"
+          sub="minggu ini"
+          filled={status.quranFilled.length}
+          total={quranKnown.length}
+          missing={quranMissing}
+          open={expanded === "quran"}
+          onToggle={() => setExpanded((e) => (e === "quran" ? null : "quran"))}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StatusStat({
+  label,
+  sub,
+  filled,
+  total,
+  missing,
+  open,
+  onToggle,
+}: {
+  label: string;
+  sub: string;
+  filled: number;
+  total: number;
+  missing: string[];
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const complete = total > 0 && filled === total;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={complete || total === 0}
+      className="text-left rounded-xl p-2.5 sm:p-3 transition-colors"
+      style={{ background: C.leaf, cursor: complete ? "default" : "pointer" }}
+    >
+      <div className="text-[11px] sm:text-xs font-semibold leading-tight" style={{ color: C.ink }}>{label}</div>
+      <div className="text-[9px] uppercase tracking-wide mb-1" style={{ color: C.muted }}>{sub}</div>
+      <span className="text-sm font-bold" style={{ color: complete ? C.green : "#B3441C" }}>
+        {filled}/{total}
+      </span>
+      {!complete && total > 0 && (
+        <div className="text-[10px] mt-1 leading-snug" style={{ color: C.muted }}>
+          {open ? "Sembunyikan" : `${missing.length} belum isi`}
+        </div>
+      )}
+      {open && !complete && (
+        <ul className="mt-2 space-y-0.5">
+          {missing.map((k) => (
+            <li key={k} className="text-[11px]" style={{ color: "#8A2A20" }}>
+              • {k}
+            </li>
+          ))}
+        </ul>
+      )}
+    </button>
   );
 }
 

@@ -4,18 +4,20 @@
 // sifatnya aksi harian sekali klik, bukan halaman yang dibuka berulang.
 type NavItem = { to: string; label: string; icon: (p: { active?: boolean }) => JSX.Element };
 
+// Home sengaja ditaruh di tengah (index 2 dari 5) — BottomNav render-nya lebih besar/menonjol
+// khusus buat item ini (lihat isHome di BottomNav.tsx), jadi urutan array = urutan tampil.
 const GURU_NAV: NavItem[] = [
-  { to: "/home", label: "Home", icon: HomeIcon },
   { to: "/instrumen", label: "Instrumen", icon: BookIcon },
   { to: "/rpb", label: "Rencana", icon: DocIcon },
+  { to: "/home", label: "Home", icon: HomeIcon },
   { to: "/capaian", label: "Capaian", icon: GridIcon },
   { to: "/jurnal", label: "Jurnal", icon: NotebookIcon },
 ];
 
 const OLAHRAGA_NAV: NavItem[] = [
-  { to: "/home", label: "Home", icon: HomeIcon },
   { to: "/instrumen", label: "Panduan", icon: BookIcon },
   { to: "/olahraga/rencana", label: "Rencana", icon: DocIcon },
+  { to: "/home", label: "Home", icon: HomeIcon },
   { to: "/olahraga/evaluasi", label: "Evaluasi", icon: GridIcon },
   { to: "/olahraga/absen", label: "Absen", icon: CalendarCheckIcon },
 ];
