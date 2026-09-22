@@ -4,6 +4,7 @@ import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { sidebarItemsFor, LogoutIcon, CalendarCheckIcon } from "./navIcons";
 import { ProfileNameField } from "./ProfileNameField";
+import { PushNotifToggle } from "./PushNotifToggle";
 
 /** Menu desktop (lg ke atas) — hamburger di kiri-atas membuka panel melayang di atas konten.
  *  Panel ini juga isinya info akun, Absen, & Keluar (di desktop gak ada ProfileMenu terpisah lagi). */
@@ -85,6 +86,8 @@ export function Sidebar() {
               <span className="text-sm font-medium">Absen Hari Ini</span>
             </Link>
           )}
+
+          {role === "guru" && <PushNotifToggle variant="dark" />}
 
           <button
             onClick={() => {

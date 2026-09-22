@@ -4,6 +4,7 @@ import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { LogoutIcon, CalendarCheckIcon } from "./navIcons";
 import { ProfileNameField } from "./ProfileNameField";
+import { PushNotifToggle } from "./PushNotifToggle";
 
 /** Ikon profil melayang di kanan atas, ada di semua halaman — isinya info akun & tombol keluar. */
 export function ProfileMenu() {
@@ -56,6 +57,8 @@ export function ProfileMenu() {
                 <CalendarCheckIcon />
                 <span className="text-sm font-medium">Absen Hari Ini</span>
               </Link>
+              <div className="h-px my-1" style={{ background: C.line }} />
+              <PushNotifToggle variant="light" />
             </>
           )}
           <div className="h-px my-1" style={{ background: C.line }} />
