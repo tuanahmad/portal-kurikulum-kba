@@ -11,6 +11,7 @@ import {
   type RpbTabData,
 } from "../lib/rpbSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
+import { RpbRekap } from "./RpbPage";
 
 const TABLE_B_ROWS_DEFAULT = 5; // muncul dari awal
 const TABLE_B_ROWS_MAX = 8; // batas atas — "+ Tambah Bidang Ilmu" bisa nambah sampai sini
@@ -57,13 +58,23 @@ export default function RpbFormPage() {
   const [tableB, setTableB] = useState<string[][]>(emptyTableB());
   const [tableC, setTableC] = useState<string[][]>(emptyTableC());
   const [bidangCount, setBidangCount] = useState(TABLE_B_ROWS_DEFAULT);
+  // Data mentah (belum di-pad/rebuild) — cuma dipakai buat tampilan read-only RpbRekap pas
+  // qonuniWriteBlocked (Juli–September Qonuni). tableB/tableC di atas udah dipotong/diproses
+  // khusus buat form edit, jadi gak cocok dipakai ulang buat rekap (butuh kolom Tabel B lebar,
+  // bukan 3 kolom hasil padRows).
+  const [rawData, setRawData] = useState<RpbTabData | null>(null);
 
   const file = RPB_FILES.find((f) => f.name === bulan);
-  // Struktur Tabel B/C Qonuni beda-beda antar guru (jumlah kolom & baris-nya gak konsisten, lihat
-  // catatan di rpbSheet.ts) — form isi-manual di sini (posisi baris/kolom tetap) gak aman dipakai
-  // buat nulis balik ke sheet Qonuni, risikonya nimpa data dengan struktur yang salah. Guru Qonuni
-  // tetap isi langsung di Google Sheets-nya sampai form ini didukung buat struktur yang bervariasi.
   const isQonuni = jenjangOf(kelas) === "Qonuni";
+  // Juli–September Qonuni udah ditulis tangan sama guru langsung di sheet, dengan struktur yang
+  // beda-beda antar guru (lihat catatan di rpbSheet.ts) — form isi-manual di sini (posisi
+  // baris/kolom tetap, sama kayak Kuttab Awwal) gak aman dipakai nulis balik ke bulan-bulan itu,
+  // risikonya nimpa data yang strukturnya udah beda dari yang diasumsikan form. Oktober dst masih
+  // TEMPLATE KOSONG (belum ada guru yang isi — dicek 2026-09-17) dan formatnya, per konfirmasi
+  // user, sama kayak Kuttab Awwal, jadi aman dibuka mulai Oktober: gak ada kemungkinan nimpa
+  // struktur lama karena belum ada struktur lama buat bulan-bulan itu.
+  const QONUNI_LEGACY_MONTHS = ["Juli", "Agustus", "September"];
+  const qonuniWriteBlocked = isQonuni && !!bulan && QONUNI_LEGACY_MONTHS.includes(bulan);
 
   useEffect(() => {
     if (!kelas || !file) return;
@@ -74,6 +85,7 @@ export default function RpbFormPage() {
     readRpbTab(file.id, kelas)
       .then((data) => {
         if (cancelled) return;
+        setRawData(data);
         setNamaGuru(data.namaGuru || fullName || "");
         setKelasField(data.kelas || kelas || "");
         setLevelField(data.level || jenjangOf(kelas) || "");
@@ -83,9 +95,9 @@ export default function RpbFormPage() {
         setTableB(paddedB);
         // Tabel C di sheet asli disusun per-pekan (5 bidang berurutan per pekan), bukan per-bidang
         // kayak state internal di sini — cocokin ulang per baris berdasarkan NAMA bidang ilmu
-        // (bukan posisi) biar isi tiap pekan gak ketuker sama bidang ilmu lain. Cuma buat Kuttab
-        // Awwal; struktur kolom Qonuni beda (lihat catatan di rpbSheet.ts), belum ditangani di sini.
-        if (jenjangOf(kelas) === "Qonuni") {
+        // (bukan posisi) biar isi tiap pekan gak ketuker sama bidang ilmu lain. Kalau form ini gak
+        // dirender (qonuniWriteBlocked), gak masalah rebuild-nya tetep jalan — tableC gak dipakai.
+        if (qonuniWriteBlocked) {
           setTableC(padRows(data.tableC, TABLE_C_ROWS, 4));
         } else {
           const parsed = parseTableCByBidang(data.tableC);
@@ -122,8 +134,8 @@ export default function RpbFormPage() {
     setSaveMsg(null);
     // Kolom Pekan & Bidang Ilmu di tableC gak pernah diketik manual lagi (slotnya udah tetap per
     // posisi), jadi diisi otomatis di sini pas mau nulis ke sheet, PER PEKAN (samain sama format
-    // sheet asli — lihat catatan di rpbSheet.ts). Simpan cuma dipakai buat Kuttab Awwal — Qonuni
-    // gak render tombol ini sama sekali (lihat isQonuni di atas).
+    // sheet asli — lihat catatan di rpbSheet.ts). Simpan gak render buat Qonuni Juli–September
+    // (lihat qonuniWriteBlocked di atas) — Oktober dst boleh, format-nya sama kayak Kuttab Awwal.
     const tableCForSave = buildTableCPekanMajor(
       tableB,
       TABLE_B_ROWS_MAX,
@@ -223,8 +235,10 @@ export default function RpbFormPage() {
               </div>
             )}
 
-            {/* Informasi umum — kartu ringkasan (read-only) by default, tombol Edit buat masuk mode form */}
-            {editingInfo ? (
+            {/* Informasi umum — kartu ringkasan (read-only) by default, tombol Edit buat masuk mode form.
+                Qonuni Juli–September gak render ini sama sekali — RpbRekap di bawah udah punya kartu
+                Informasi RPB sendiri (read-only), gak perlu 2 kartu info yang tumpang tindih. */}
+            {qonuniWriteBlocked ? null : editingInfo ? (
               <div className="rounded-2xl p-4 sm:p-5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-3 min-w-0">
@@ -335,30 +349,39 @@ export default function RpbFormPage() {
               </div>
             )}
 
-            {isQonuni ? (
-              <div className="rounded-2xl p-4 sm:p-5" style={{ background: C.leaf, border: `1px solid ${C.line}` }}>
-                <div className="text-sm font-semibold" style={{ color: C.ink }}>
-                  Form isi RPB Qonuni belum tersedia di sini
+            {qonuniWriteBlocked ? (
+              <>
+                {/* RPB Qonuni bulan ini ditulis langsung di Google Sheets dengan format yang
+                    beda-beda antar guru (lihat catatan di rpbSheet.ts) — belum aman diisi otomatis
+                    lewat form tanpa risiko keliru menimpa data, tapi guru/coach tetap bisa LIHAT
+                    isinya di sini (read-only), sama kayak yang manajemen lihat di Rencana & Refleksi. */}
+                {rawData ? (
+                  <RpbRekap data={rawData} kelas={kelas} />
+                ) : (
+                  <p className="text-sm" style={{ color: C.muted }}>Belum ada data.</p>
+                )}
+                <div className="rounded-2xl p-4 sm:p-5" style={{ background: C.leaf, border: `1px solid ${C.line}` }}>
+                  <div className="text-sm font-semibold" style={{ color: C.ink }}>
+                    Belum bisa diedit dari sini untuk bulan ini
+                  </div>
+                  <p className="text-xs mt-1.5 leading-relaxed" style={{ color: C.muted }}>
+                    Isi/edit RPB bulan ini langsung di Google Sheets — form di sini belum aman dipakai
+                    tanpa risiko keliru menimpa format yang sudah ditulis.
+                  </p>
+                  <a
+                    href={sheetUrl(file.id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold"
+                    style={{ color: C.green }}
+                  >
+                    Buka di Google Sheets
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                      <path d="M14 4h6v6M20 4l-9 9M9 5H5v14h14v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </a>
                 </div>
-                <p className="text-xs mt-1.5 leading-relaxed" style={{ color: C.muted }}>
-                  Format Tabel Target Pembelajaran RPB Qonuni beda-beda antar guru, jadi belum bisa diisi
-                  otomatis lewat form ini tanpa risiko keliru menimpa data. Rekap RPB yang sudah diisi tetap
-                  bisa dilihat manajemen di halaman Rencana &amp; Refleksi — silakan isi/edit langsung di
-                  Google Sheets untuk sementara.
-                </p>
-                <a
-                  href={sheetUrl(file.id)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold"
-                  style={{ color: C.green }}
-                >
-                  Buka di Google Sheets
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                    <path d="M14 4h6v6M20 4l-9 9M9 5H5v14h14v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </a>
-              </div>
+              </>
             ) : (
               <>
                 {/* Section B: Target Pembelajaran */}

@@ -77,7 +77,12 @@ export function parseTableCByBidang(tableC: string[][]): Map<string, Map<number,
     const subIlmu = (row[2] ?? "").trim();
     const metode = (row[3] ?? "").trim();
     if (pekanCell) {
-      const n = parseInt(pekanCell, 10);
+      // Sebagian guru nulis kolom Pekan sebagai teks ("pekan 1") bukan angka polos ("1") —
+      // parseInt gagal total buat yang diawali huruf (NaN, bukan cuma berhenti di non-digit),
+      // jadi curPekan gak pernah keisi dan Rincian per Pekan-nya kosong semua. Ambil angka
+      // pertama yang ketemu di string-nya, di mana pun posisinya, biar kedua bentuk kebaca.
+      const m = pekanCell.match(/\d+/);
+      const n = m ? parseInt(m[0], 10) : NaN;
       if (Number.isFinite(n) && n >= 1) curPekan = n;
     }
     if (bidangCell) curBidang = bidangCell;
@@ -119,6 +124,65 @@ export function lookupPekanEntry(
     subIlmu: entries.map((e) => e.subIlmu).filter(Boolean).join(" · "),
     metode: entries.map((e) => e.metode).filter(Boolean).join("\n\n"),
   };
+}
+
+export type OrphanBidangC = { bidang: string; pekan: PekanEntry[] };
+
+/** Sebagian guru nulis nama bidang di Tabel C (Rincian per Pekan) yang SAMA SEKALI beda topik
+ *  dari nama bidang di Tabel B (Target Pembelajaran) — bukan cuma beda ketik/panjang yang masih
+ *  kecocok lewat substring di lookupPekanEntry, tapi genuinely nama lain (mis. Tabel B bilang
+ *  "Urjuzah Miiyah" tapi Tabel C nulis "Siroh"; Tabel B punya baris terpisah "Membaca"/"Menulis"/
+ *  "Berhitung" tapi Tabel C gabung jadi 1 "Calistung"; atau bidang yang di Tabel C ADA isinya tapi
+ *  di Tabel B gak ada barisnya sama sekali, kayak "Keakhwatan"). lookupPekanEntry cuma dipanggil
+ *  per-bidang-Tabel-B, jadi baris begini nggak pernah "kepanggil" — datanya aman di sheet tapi
+ *  nggak keliatan di app sama sekali. Fungsi ini nyari baris-baris begitu (gak match bidang APAPUN
+ *  di `knownBidangNames`, pakai aturan cocok yang SAMA kayak lookupPekanEntry) dan nge-return
+ *  isinya apa adanya pakai nama asli dari Tabel C — TIDAK ditebak masuk ke bidang Tabel B yang
+ *  mana, biar gak salah gabung. */
+export function findOrphanBidangC(tableC: string[][], knownBidangNames: string[]): OrphanBidangC[] {
+  const known = knownBidangNames.map(normBidangName).filter(Boolean);
+  const isKnown = (key: string) => known.some((k) => k && (k.includes(key) || key.includes(k)));
+
+  const labels = new Map<string, string>(); // key ternormalisasi -> label asli (casing pertama ketemu)
+  const byKeyPekan = new Map<string, Map<number, PekanEntry[]>>();
+  let curPekan = 0;
+  let curBidang = "";
+  for (const row of tableC) {
+    const pekanCell = (row[0] ?? "").trim();
+    const bidangCell = (row[1] ?? "").trim();
+    const subIlmu = (row[2] ?? "").trim();
+    const metode = (row[3] ?? "").trim();
+    if (pekanCell) {
+      const m = pekanCell.match(/\d+/);
+      const n = m ? parseInt(m[0], 10) : NaN;
+      if (Number.isFinite(n) && n >= 1) curPekan = n;
+    }
+    if (bidangCell) curBidang = bidangCell;
+    if (!curPekan || !curBidang || (!subIlmu && !metode)) continue;
+    const key = normBidangName(curBidang);
+    if (isKnown(key)) continue;
+    if (!labels.has(key)) labels.set(key, curBidang);
+    if (!byKeyPekan.has(key)) byKeyPekan.set(key, new Map());
+    const byPekan = byKeyPekan.get(key)!;
+    if (!byPekan.has(curPekan)) byPekan.set(curPekan, []);
+    byPekan.get(curPekan)!.push({ subIlmu, metode });
+  }
+
+  const result: OrphanBidangC[] = [];
+  for (const [key, label] of labels) {
+    const byPekan = byKeyPekan.get(key)!;
+    const pekan = Array.from({ length: 5 }, (_, w): PekanEntry => {
+      const entries = byPekan.get(w + 1) ?? [];
+      if (entries.length === 0) return { subIlmu: "", metode: "" };
+      if (entries.length === 1) return entries[0];
+      return {
+        subIlmu: entries.map((e) => e.subIlmu).filter(Boolean).join(" · "),
+        metode: entries.map((e) => e.metode).filter(Boolean).join("\n\n"),
+      };
+    });
+    result.push({ bidang: label, pekan });
+  }
+  return result;
 }
 
 // ————— Tabel B Qonuni: 1 bidang ilmu bisa punya beberapa baris detail —————

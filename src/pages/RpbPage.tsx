@@ -19,6 +19,7 @@ import {
   parseTableCByBidang,
   lookupPekanEntry,
   groupTableBByBidang,
+  findOrphanBidangC,
   type RpbTabData,
   type PekanEntry,
 } from "../lib/rpbSheet";
@@ -318,7 +319,10 @@ function PekanGrid({ pekan }: { pekan: PekanEntry[] }) {
   );
 }
 
-function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
+/** Diexport biar bisa dipakai ulang di RpbFormPage.tsx (tampilan read-only buat guru sendiri,
+ *  bukan cuma management, buat bulan Qonuni yang belum bisa diisi dari app — lihat catatan
+ *  qonuniWriteBlocked di RpbFormPage.tsx). */
+export function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
   // Tabel C di sheet asli disusun per-pekan, bukan per-bidang — cocokin ulang per baris
   // berdasarkan NAMA bidang ilmu (bukan posisi) biar isi tiap pekan gak ketuker sama bidang
   // ilmu lain. Berlaku buat semua jenjang sekarang (Qonuni juga cocok by NAMA bidang top-level,
@@ -334,6 +338,12 @@ function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
   }
   const qonuniGroups = isQonuni ? groupTableBByBidang(data.tableB) : [];
   const bidangCount = isQonuni ? qonuniGroups.length : bidangIdx.length;
+  // Sebagian guru Qonuni nulis nama bidang di Tabel C beda topik sama sekali dari Tabel B (mis.
+  // Tabel B "Urjuzah Miiyah" tapi Tabel C "Siroh", atau ada bidang yang cuma nongol di Tabel C
+  // doang kayak "Keakhwatan") — kalau dibiarkan, isinya nggak pernah kepanggil lewat
+  // lookupPekanEntry di atas dan jadi nggak keliatan sama sekali di app meski datanya ada di
+  // sheet. Tampilin apa adanya di bawah, TIDAK ditebak masuk bidang Tabel B yang mana.
+  const orphanBidang = isQonuni ? findOrphanBidangC(data.tableC, qonuniGroups.map((g) => g.bidang)) : [];
 
   return (
     <div className="space-y-6">
@@ -396,6 +406,23 @@ function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
           </div>
         )}
       </div>
+
+      {orphanBidang.length > 0 && (
+        <div>
+          <SectionBar
+            no="C"
+            title="Rincian Lainnya"
+            subtitle={`${orphanBidang.length} bidang di Tabel Rincian per Pekan yang nggak nyambung ke Target Pembelajaran di atas`}
+          />
+          <div className="mt-3 space-y-3">
+            {orphanBidang.map((o, n) => (
+              <RekapAccordion key={n} badge={String(n + 1)} title={o.bidang}>
+                <PekanGrid pekan={o.pekan} />
+              </RekapAccordion>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
