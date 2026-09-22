@@ -20,11 +20,31 @@ const OLAHRAGA_NAV: NavItem[] = [
   { to: "/olahraga/absen", label: "Absen", icon: CalendarCheckIcon },
 ];
 
+// Semua 6 tujuan yang ada di card Home management (Instrumen Ilmu/Rencana & Refleksi/Capaian
+// Santri/Absen Guru/Daily Jurnal/Rekap Olahraga) — dipakai KHUSUS di Sidebar desktop (lihat
+// sidebarItemsFor), bukan di BottomNav mobile (yang tetap ngikut navItemsFor biasa, cuma 5 slot).
+const MANAGEMENT_NAV_FULL: NavItem[] = [
+  { to: "/home", label: "Home", icon: HomeIcon },
+  { to: "/instrumen", label: "Instrumen Ilmu", icon: BookIcon },
+  { to: "/rpb", label: "Rencana & Refleksi", icon: DocIcon },
+  { to: "/capaian", label: "Capaian Santri", icon: GridIcon },
+  { to: "/absen", label: "Absen Guru", icon: CalendarCheckIcon },
+  { to: "/jurnal", label: "Daily Jurnal", icon: NotebookIcon },
+  { to: "/olahraga", label: "Rekap Olahraga", icon: WhistleIcon },
+];
+
 /** Menu navigasi sesuai role. Guru olahraga lihat Home + Panduan + Rencana + Evaluasi + Absen
  *  (gantinya tab Rencana/Evaluasi/Absen yang tadinya ada di dalam halaman Olahraga). */
 export function navItemsFor(role: "management" | "guru" | "olahraga" | null): NavItem[] {
   if (role === "olahraga") return OLAHRAGA_NAV;
   return GURU_NAV;
+}
+
+/** Dipakai Sidebar (desktop) doang — management dapet semua 6 tujuan Home-card-nya di hamburger,
+ *  bukan cuma subset kayak BottomNav mobile. Guru/olahraga sama aja kayak navItemsFor biasa. */
+export function sidebarItemsFor(role: "management" | "guru" | "olahraga" | null): NavItem[] {
+  if (role === "management") return MANAGEMENT_NAV_FULL;
+  return navItemsFor(role);
 }
 
 // dipertahankan utk kompatibilitas kalau masih ada yang import
