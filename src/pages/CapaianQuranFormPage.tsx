@@ -189,8 +189,8 @@ export default function CapaianQuranFormPage() {
             </Step>
           )}
 
-          {/* Langkah 3 — Slot */}
-          {section && (
+          {/* Langkah 3 (guru) — Slot, satu per satu buat diisi */}
+          {isGuru && section && (
             <Step n={3} label={`Pilih ${slotLabel.toLowerCase()} ke-`}>
               <div className="flex flex-wrap gap-1.5">
                 {Array.from({ length: section.slotCount }, (_, i) => i + 1).map((n) => {
@@ -214,8 +214,18 @@ export default function CapaianQuranFormPage() {
             </Step>
           )}
 
-          {/* Langkah 4 — Isi angka per santri */}
-          {section && slot && (
+          {/* Management — rekap per Pekan (bukan pilih pertemuan satu-satu), tabel Senin-Jumat
+              sekaligus buat section tipe "pertemuan", 1 kolom buat tipe "pekan". */}
+          {!isGuru && section && (
+            <div className="space-y-3">
+              {Array.from({ length: weekCountFor(section) }, (_, i) => i + 1).map((w) => (
+                <WeekRekapAccordion key={w} section={section} week={w} roster={roster} />
+              ))}
+            </div>
+          )}
+
+          {/* Langkah 4 (guru) — Isi angka per santri */}
+          {isGuru && section && slot && (
             <div
               className="relative rounded-2xl p-4 sm:p-5"
               style={{ background: GOLD, boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}
@@ -229,12 +239,8 @@ export default function CapaianQuranFormPage() {
                 </div>
                 <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.8)" }}>
                   {section.type === "pekan"
-                    ? isGuru
-                      ? "Angka = putaran mengulang hafalan. Kosongkan kalau nggak ada. Isi 0 kalau nggak ngulang."
-                      : "Angka = putaran mengulang hafalan santri pada pekan ini."
-                    : isGuru
-                      ? "Angka = baris yang dibaca. Kosongkan kalau nggak baca. Isi 0 kalau ngulang baris yang sama."
-                      : "Angka = baris yang dibaca santri pada pertemuan ini."}
+                    ? "Angka = putaran mengulang hafalan. Kosongkan kalau nggak ada. Isi 0 kalau nggak ngulang."
+                    : "Angka = baris yang dibaca. Kosongkan kalau nggak baca. Isi 0 kalau ngulang baris yang sama."}
                 </p>
 
                 <div className="mt-4 space-y-2.5">
@@ -243,89 +249,78 @@ export default function CapaianQuranFormPage() {
                       Belum ada daftar santri buat kelas ini — hubungi koordinator kurikulum.
                     </p>
                   )}
-                  {roster.map((nama, i) =>
-                    isGuru ? (
-                      <div key={i} className="rounded-xl p-3" style={{ background: "#FFF" }}>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-sm font-semibold truncate" style={{ color: C.ink }}>
-                            {i + 1}. {nama}
-                          </span>
-                          <input
-                            value={values[i] ?? ""}
-                            onChange={(e) =>
-                              setValues((prev) => prev.map((v, vi) => (vi === i ? e.target.value : v)))
-                            }
-                            inputMode="decimal"
-                            placeholder="—"
-                            className="w-16 text-sm text-center outline-none px-2 py-1.5 rounded-lg shrink-0"
-                            style={{ border: `1px solid ${C.line}` }}
-                          />
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {QUICK.map((q) => {
-                            const on = (values[i] ?? "") === q;
-                            return (
-                              <button
-                                key={q}
-                                onClick={() =>
-                                  setValues((prev) => prev.map((v, vi) => (vi === i ? (on ? "" : q) : v)))
-                                }
-                                className="px-2 py-1 rounded-md text-xs font-medium transition-colors"
-                                style={{
-                                  background: on ? C.green : C.leaf,
-                                  color: on ? "#FFF" : C.green,
-                                }}
-                              >
-                                {q === "0,5" ? "½" : q}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <div key={i} className="rounded-xl p-3 flex items-center justify-between gap-3" style={{ background: "#FFF" }}>
+                  {roster.map((nama, i) => (
+                    <div key={i} className="rounded-xl p-3" style={{ background: "#FFF" }}>
+                      <div className="flex items-center justify-between gap-3">
                         <span className="text-sm font-semibold truncate" style={{ color: C.ink }}>
                           {i + 1}. {nama}
                         </span>
-                        <span className="text-sm font-semibold shrink-0" style={{ color: values[i] ? C.green : C.muted }}>
-                          {values[i] || "—"}
-                        </span>
+                        <input
+                          value={values[i] ?? ""}
+                          onChange={(e) =>
+                            setValues((prev) => prev.map((v, vi) => (vi === i ? e.target.value : v)))
+                          }
+                          inputMode="decimal"
+                          placeholder="—"
+                          className="w-16 text-sm text-center outline-none px-2 py-1.5 rounded-lg shrink-0"
+                          style={{ border: `1px solid ${C.line}` }}
+                        />
                       </div>
-                    )
-                  )}
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {QUICK.map((q) => {
+                          const on = (values[i] ?? "") === q;
+                          return (
+                            <button
+                              key={q}
+                              onClick={() =>
+                                setValues((prev) => prev.map((v, vi) => (vi === i ? (on ? "" : q) : v)))
+                              }
+                              className="px-2 py-1 rounded-md text-xs font-medium transition-colors"
+                              style={{
+                                background: on ? C.green : C.leaf,
+                                color: on ? "#FFF" : C.green,
+                              }}
+                            >
+                              {q === "0,5" ? "½" : q}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                {isGuru && saveMsg && (
+                {saveMsg && (
                   <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "rgba(255,255,255,0.9)", color: C.green }}>
                     {saveMsg}
                   </div>
                 )}
 
-                {isGuru ? (
-                  <button
-                    onClick={handleSave}
-                    disabled={saving || roster.length === 0}
-                    className="mt-4 w-full py-3 rounded-xl text-sm font-bold transition-opacity"
-                    style={{ background: C.green, color: "#FFF", opacity: saving ? 0.6 : 1 }}
-                  >
-                    {saving ? "Menyimpan…" : "Simpan"}
-                  </button>
-                ) : (
-                  <a
-                    href={sheetUrl(fileId)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold"
-                    style={{ color: "rgba(255,255,255,0.85)" }}
-                  >
-                    Buka versi Google Sheets
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                      <path d="M14 4h6v6M20 4l-9 9M9 5H5v14h14v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </a>
-                )}
+                <button
+                  onClick={handleSave}
+                  disabled={saving || roster.length === 0}
+                  className="mt-4 w-full py-3 rounded-xl text-sm font-bold transition-opacity"
+                  style={{ background: C.green, color: "#FFF", opacity: saving ? 0.6 : 1 }}
+                >
+                  {saving ? "Menyimpan…" : "Simpan"}
+                </button>
               </div>
             </div>
+          )}
+
+          {!isGuru && section && (
+            <a
+              href={sheetUrl(fileId)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold"
+              style={{ color: C.green }}
+            >
+              Buka versi Google Sheets
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M14 4h6v6M20 4l-9 9M9 5H5v14h14v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
           )}
         </div>
       </div>
@@ -355,5 +350,97 @@ function BookmarkIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
       <path d="M6 4h12v16l-6-4-6 4V4Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+const DAY_LABELS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
+
+/** Section tipe "pertemuan" (Talaqqi/Ziyadah/dst) punya 25 slot = 5 hari x 5 pekan — pekan ke-w
+ *  isinya slot 5(w-1)+1..5w (lihat catatan "Pertemuan" di komentar atas file). Tipe "pekan"
+ *  (Wirid) udah 1 slot = 1 pekan, jadi jumlah pekan-nya ya slotCount itu sendiri. */
+function weekCountFor(section: CapaianQuranSection): number {
+  return section.type === "pekan" ? section.slotCount : Math.ceil(section.slotCount / 5);
+}
+
+function isFilled(v: string | undefined): boolean {
+  return !!v && v.trim() !== "";
+}
+
+/** Rekap read-only 1 pekan buat management — ganti alur "pilih pertemuan ke-N satu-satu" punya
+ *  guru. Tipe "pertemuan": tabel Senin-Jumat sekaligus. Tipe "pekan": 1 kolom (Wirid). */
+function WeekRekapAccordion({
+  section,
+  week,
+  roster,
+}: {
+  section: CapaianQuranSection;
+  week: number;
+  roster: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const isPekan = section.type === "pekan";
+  const slots = isPekan ? [week] : [1, 2, 3, 4, 5].map((d) => (week - 1) * 5 + d);
+  const validSlots = slots.filter((s) => s <= section.slotCount);
+  const hasAny = roster.some((_, i) => validSlots.some((s) => isFilled(section.students[i]?.values?.[s - 1])));
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+        style={{ background: open ? C.leaf : "#FFF" }}
+      >
+        <span className="flex-1 text-sm font-semibold" style={{ color: C.ink }}>Pekan {week}</span>
+        {!hasAny && (
+          <span className="text-xs" style={{ color: C.muted }}>Belum diisi</span>
+        )}
+        <svg
+          width="14" height="14" viewBox="0 0 24 24" fill="none"
+          style={{ color: C.muted, transform: open ? "rotate(180deg)" : "none" }}
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 pt-1 overflow-x-auto">
+          {roster.length === 0 ? (
+            <p className="text-xs" style={{ color: C.muted }}>Belum ada daftar santri buat kelas ini.</p>
+          ) : (
+            <table className="w-full text-xs" style={{ borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th className="text-left font-semibold pb-2 pr-2" style={{ color: C.muted }}>Santri</th>
+                  {isPekan ? (
+                    <th className="text-center font-semibold pb-2" style={{ color: C.muted }}>Pekan {week}</th>
+                  ) : (
+                    validSlots.map((s, di) => (
+                      <th key={s} className="text-center font-semibold pb-2 px-1" style={{ color: C.muted }}>
+                        {DAY_LABELS[di]}
+                      </th>
+                    ))
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {roster.map((nama, i) => (
+                  <tr key={i} style={{ borderTop: `1px solid ${C.line}` }}>
+                    <td className="py-2 pr-2 truncate" style={{ color: C.ink, maxWidth: 120 }}>{nama}</td>
+                    {validSlots.map((s) => {
+                      const v = section.students[i]?.values?.[s - 1];
+                      return (
+                        <td key={s} className="text-center py-2 px-1" style={{ color: isFilled(v) ? C.ink : C.muted }}>
+                          {isFilled(v) ? v : "—"}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

@@ -3,6 +3,11 @@ import { Link } from "react-router-dom";
 import { C, getGreeting, KELAS_LIST } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { readTodayStatus, type TodayStatus } from "../lib/dashboardStatus";
+import {
+  NotebookIcon as NotebookIconOutline,
+  CalendarCheckIcon as CalendarCheckIconOutline,
+  BookIcon as BookIconOutline,
+} from "../components/navIcons";
 
 export default function HomePage() {
   const { role, kelas, fullName } = useAuth();
@@ -169,12 +174,22 @@ function ManagementMenu() {
 
 const ALL_KELAS_NAMES = KELAS_LIST.map((k) => k.name);
 
+/** "Kuttab Awwal 1A" -> "KA 1A", "Qonuni 2 Akhwat" -> "KQ 2 Akhwat" (Kuttab Qonuni) — singkatan
+ *  biar list "belum isi" gak makan tempat pas nama kelasnya panjang. */
+function abbrevKelas(name: string): string {
+  return name.replace(/^Kuttab Awwal/, "KA").replace(/^Qonuni/, "KQ");
+}
+
+type StatusRowData = { key: string; label: string; sub: string; icon: React.ReactNode; iconBg: string; iconColor: string; filled: number; total: number; missing: string[] };
+
 /** Ringkasan "siapa yang belum isi" — Jurnal & Absen (hari ini) + Capaian Al-Qur'an (minggu ini)
- *  lintas 13 kelas, biar management gak perlu buka Rekap satu-satu cuma buat tau siapa yang bolong. */
+ *  lintas 13 kelas, biar management gak perlu buka Rekap satu-satu cuma buat tau siapa yang bolong.
+ *  Desain baris + progress bar (bukan 3 kotak kecil dijejer) — user bilang versi lama "kaku, kayak
+ *  tabel dipadetin" dibanding card lain di app yang gede & ada ikonnya. */
 function RingkasanHariIni() {
   const [status, setStatus] = useState<TodayStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<"jurnal" | "absen" | "quran" | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -189,7 +204,7 @@ function RingkasanHariIni() {
   if (error) return null; // gagal muat ringkasan bukan hal fatal, cukup disembunyikan
   if (!status) {
     return (
-      <div className="mb-5 rounded-2xl p-4 sm:p-5 animate-pulse" style={{ background: "#FFF", border: `1px solid ${C.line}`, height: 88 }} />
+      <div className="mb-5 rounded-2xl p-4 sm:p-5 animate-pulse" style={{ background: "#FFF", border: `1px solid ${C.line}`, height: 168 }} />
     );
   }
 
@@ -198,90 +213,112 @@ function RingkasanHariIni() {
   const quranKnown = ALL_KELAS_NAMES.filter((k) => !status.quranUnknown.includes(k));
   const quranMissing = quranKnown.filter((k) => !status.quranFilled.includes(k));
 
+  const rows: StatusRowData[] = [
+    {
+      key: "jurnal",
+      label: "Jurnal",
+      sub: "hari ini",
+      icon: <NotebookIconOutline />,
+      iconBg: C.leaf,
+      iconColor: C.green,
+      filled: status.jurnalFilled.length,
+      total: status.totalKelas,
+      missing: jurnalMissing,
+    },
+    {
+      key: "absen",
+      label: "Absen",
+      sub: "hari ini",
+      icon: <CalendarCheckIconOutline />,
+      iconBg: C.leaf,
+      iconColor: C.green,
+      filled: status.absenFilled.length,
+      total: status.totalKelas,
+      missing: absenMissing,
+    },
+    {
+      key: "quran",
+      label: "Al-Qur'an",
+      sub: "minggu ini",
+      icon: <BookIconOutline />,
+      iconBg: "#FAEEDA",
+      iconColor: "#8A6A20",
+      filled: status.quranFilled.length,
+      total: quranKnown.length,
+      missing: quranMissing,
+    },
+  ];
+  const anyMissing = rows.some((r) => r.missing.length > 0);
+
   return (
     <div className="mb-5 rounded-2xl p-4 sm:p-5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-      <div className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: C.green }}>
+      <div className="text-xs font-bold uppercase tracking-wide mb-4" style={{ color: C.green }}>
         Status Pengisian
       </div>
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <StatusStat
-          label="Jurnal"
-          sub="hari ini"
-          filled={status.jurnalFilled.length}
-          total={status.totalKelas}
-          missing={jurnalMissing}
-          open={expanded === "jurnal"}
-          onToggle={() => setExpanded((e) => (e === "jurnal" ? null : "jurnal"))}
-        />
-        <StatusStat
-          label="Absen"
-          sub="hari ini"
-          filled={status.absenFilled.length}
-          total={status.totalKelas}
-          missing={absenMissing}
-          open={expanded === "absen"}
-          onToggle={() => setExpanded((e) => (e === "absen" ? null : "absen"))}
-        />
-        <StatusStat
-          label="Al-Qur'an"
-          sub="minggu ini"
-          filled={status.quranFilled.length}
-          total={quranKnown.length}
-          missing={quranMissing}
-          open={expanded === "quran"}
-          onToggle={() => setExpanded((e) => (e === "quran" ? null : "quran"))}
-        />
+      <div className="space-y-4">
+        {rows.map((r) => (
+          <StatusRow key={r.key} row={r} />
+        ))}
       </div>
+      {anyMissing && (
+        <button
+          type="button"
+          onClick={() => setDetailOpen((o) => !o)}
+          className="w-full mt-4 py-2.5 rounded-xl text-xs font-semibold transition-colors"
+          style={{ background: C.leaf, color: C.green }}
+        >
+          {detailOpen ? "Sembunyikan detail" : "Lihat detail yang belum isi"}
+        </button>
+      )}
+      {detailOpen && (
+        <div className="mt-3 space-y-3">
+          {rows.filter((r) => r.missing.length > 0).map((r) => (
+            <div key={r.key}>
+              <div className="text-[11px] font-semibold mb-1.5" style={{ color: C.ink }}>
+                {r.label} — {r.missing.length} belum isi
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                {r.missing.map((k) => (
+                  <div key={k} className="text-[11px]" style={{ color: C.muted }}>
+                    {abbrevKelas(k)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function StatusStat({
-  label,
-  sub,
-  filled,
-  total,
-  missing,
-  open,
-  onToggle,
-}: {
-  label: string;
-  sub: string;
-  filled: number;
-  total: number;
-  missing: string[];
-  open: boolean;
-  onToggle: () => void;
-}) {
+function StatusRow({ row }: { row: StatusRowData }) {
+  const { label, sub, icon, iconBg, iconColor, filled, total, missing } = row;
+  const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
   const complete = total > 0 && filled === total;
+  const barColor = complete ? C.green : missing.length > total / 2 ? "#BA7517" : C.green;
+
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      disabled={complete || total === 0}
-      className="text-left rounded-xl p-2.5 sm:p-3 transition-colors"
-      style={{ background: C.leaf, cursor: complete ? "default" : "pointer" }}
-    >
-      <div className="text-[11px] sm:text-xs font-semibold leading-tight" style={{ color: C.ink }}>{label}</div>
-      <div className="text-[9px] uppercase tracking-wide mb-1" style={{ color: C.muted }}>{sub}</div>
-      <span className="text-sm font-bold" style={{ color: complete ? C.green : "#B3441C" }}>
-        {filled}/{total}
-      </span>
-      {!complete && total > 0 && (
-        <div className="text-[10px] mt-1 leading-snug" style={{ color: C.muted }}>
-          {open ? "Sembunyikan" : `${missing.length} belum isi`}
+    <div>
+      <div className="flex items-center gap-2.5 mb-1.5">
+        <span
+          className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
+          style={{ background: iconBg, color: iconColor }}
+        >
+          {icon}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-medium leading-tight" style={{ color: C.ink }}>{label}</div>
+          <div className="text-[11px]" style={{ color: C.muted }}>{sub}</div>
         </div>
-      )}
-      {open && !complete && (
-        <ul className="mt-2 space-y-0.5">
-          {missing.map((k) => (
-            <li key={k} className="text-[11px]" style={{ color: "#8A2A20" }}>
-              • {k}
-            </li>
-          ))}
-        </ul>
-      )}
-    </button>
+        <div className="text-sm font-medium shrink-0" style={{ color: C.ink }}>
+          {filled}<span style={{ color: C.muted }}>/{total}</span>
+        </div>
+      </div>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: C.leaf }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: barColor }} />
+      </div>
+    </div>
   );
 }
 
