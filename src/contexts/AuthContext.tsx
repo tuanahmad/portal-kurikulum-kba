@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { supabase } from "../lib/supabaseClient";
 import type { Session } from "@supabase/supabase-js";
 
@@ -36,14 +36,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // Splash logo di index.html (tampil instan sebelum React siap) — begitu sesi login kelar
-  // dicek, hilangin dengan fade lalu buang elemennya biar gak nyangkut di DOM.
+  // dicek, hilangin dengan fade lalu buang elemennya biar gak nyangkut di DOM. Ditahan minimal
+  // 1 detik biar animasinya kelihatan (kalau cek sesi kelar kelewat cepat, jadi cuma kedip).
+  const splashShownAt = useRef(Date.now());
   useEffect(() => {
     if (loading) return;
     const el = document.getElementById("app-splash");
     if (!el) return;
-    el.classList.add("app-splash-hide");
-    const t = setTimeout(() => el.remove(), 350);
-    return () => clearTimeout(t);
+    const elapsed = Date.now() - splashShownAt.current;
+    const remaining = Math.max(0, 1000 - elapsed);
+    const hideTimer = setTimeout(() => {
+      el.classList.add("app-splash-hide");
+      setTimeout(() => el.remove(), 350);
+    }, remaining);
+    return () => clearTimeout(hideTimer);
   }, [loading]);
 
   async function loadProfile(userId: string) {
