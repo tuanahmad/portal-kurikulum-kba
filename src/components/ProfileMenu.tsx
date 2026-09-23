@@ -61,6 +61,12 @@ export function ProfileMenu() {
               <PushNotifToggle variant="light" />
             </>
           )}
+          {role === "olahraga" && (
+            <>
+              <div className="h-px my-1" style={{ background: C.line }} />
+              <PushNotifToggle variant="light" />
+            </>
+          )}
           <div className="h-px my-1" style={{ background: C.line }} />
           <button
             onClick={() => {

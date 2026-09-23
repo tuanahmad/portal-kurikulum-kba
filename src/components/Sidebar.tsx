@@ -90,7 +90,7 @@ export function Sidebar() {
             </Link>
           )}
 
-          {role === "guru" && <PushNotifToggle variant="dark" />}
+          {(role === "guru" || role === "olahraga") && <PushNotifToggle variant="dark" />}
 
           <button
             onClick={() => {

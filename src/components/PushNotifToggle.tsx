@@ -22,8 +22,9 @@ function BellIcon({ color }: { color: string }) {
   );
 }
 
-/** Toggle "Aktifkan Notifikasi" — pengingat harian Jurnal/Absen/Capaian Al-Qur'an lewat push
- *  notification browser. Dipasang di ProfileMenu (mobile) & Sidebar (desktop), guru doang. */
+/** Toggle "Aktifkan Notifikasi" — pengingat lewat push notification browser (guru: harian
+ *  Jurnal/Absen/Capaian Al-Qur'an; olahraga: bulanan Rencana/Evaluasi). Dipasang di ProfileMenu
+ *  (mobile) & Sidebar (desktop). */
 export function PushNotifToggle({ variant }: { variant: "light" | "dark" }) {
   const [status, setStatus] = useState<"loading" | "unsupported" | "ios-hint" | "off" | "on">("loading");
   const [busy, setBusy] = useState(false);
