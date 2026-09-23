@@ -10,9 +10,38 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#1C4A33" />
+    <style>
+      html, body { background: #FBFAF7; }
+      #app-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #FBFAF7;
+        transition: opacity 0.35s ease;
+      }
+      #app-splash img {
+        width: 96px;
+        height: 96px;
+        animation: app-splash-breathe 1.6s ease-in-out infinite;
+      }
+      #app-splash.app-splash-hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+      @keyframes app-splash-breathe {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="app-splash" aria-hidden="true">
+      <img src="/icon-192.png" alt="" />
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

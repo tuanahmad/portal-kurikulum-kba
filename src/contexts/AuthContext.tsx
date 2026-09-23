@@ -35,6 +35,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [fullName, setFullName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Splash logo di index.html (tampil instan sebelum React siap) — begitu sesi login kelar
+  // dicek, hilangin dengan fade lalu buang elemennya biar gak nyangkut di DOM.
+  useEffect(() => {
+    if (loading) return;
+    const el = document.getElementById("app-splash");
+    if (!el) return;
+    el.classList.add("app-splash-hide");
+    const t = setTimeout(() => el.remove(), 350);
+    return () => clearTimeout(t);
+  }, [loading]);
+
   async function loadProfile(userId: string) {
     const { data, error } = await supabase
       .from("profiles")
