@@ -51,40 +51,27 @@ export const INSTRUMEN_FOLDERS = [
 ];
 
 // ————— Section 2: Rencana Pembelajaran Guru (RPB + Refleksi, guru checklist manual) —————
-// Juli & Agustus masih pakai id salinan dev (RPB-DEV COPY) — 2 bulan itu udah "tutup buku"
-// (sudah dilaporkan, gak ada yang ngedit lagi) dan isinya di sana sudah final; file produksi
-// asli Juli/Agustus masih .xlsx (belum dikonversi user ke Google Sheets native) jadi gak bisa
-// dibaca Sheets API. September dst sudah dikonversi user jadi Google Sheets native — id di bawah
-// sudah nunjuk ke situ (bukan .xlsx lama), jadi RPB September+ sekarang baca/tulis langsung ke
-// dokumen yang beneran dipakai guru, bukan dev-copy lagi.
+// Semua bulan (Juli-Desember) sekarang nunjuk ke dokumen Google Sheets native produksi yang
+// beneran dipakai guru — Juli & Agustus baru dikonversi user dari .xlsx per 2026-09-24
+// (sebelumnya masih baca salinan dev karena Sheets API gak bisa baca .xlsx mentah).
 export const RPB_FILES = [
-  { id: "1XgwTSiC5wU0-QNEsC8uFlnrYXH5NFiJFOjtRD4ld6PA", name: "Juli" },
-  { id: "1cVTNYPEZryOvw3NDhNZ3paiSfoIENepcNEC4ov5mZT4", name: "Agustus" },
+  { id: "1GkhUEz8jK5bkTuLvTJDpFS4EHFDGvcYIzvwefoPB9SQ", name: "Juli" },
+  { id: "1bjRH29qwRzmBjYAu8YWiPAlzdkrGRtBYy1fDdaYpBYA", name: "Agustus" },
   { id: "14TI4RiUQZoD0fSZlqmPSfsxKgjIDgm9E1FX8x7utKSc", name: "September" },
   { id: "1_hXCdGZcnqz7OlV7egvpXZuO0VNU0w908r0senMbaus", name: "Oktober" },
   { id: "1__E6lEwrxZFIKrnDvGqWWthvUGGO4mleW1S_MjP1Hf4", name: "November" },
   { id: "1-LOGnWYGRyyak1PZDoLMtdPQawWpkd9Cy4yACY4hj6A", name: "Desember" },
 ];
 
-// Salinan uji coba buat form isi-langsung-di-app Refleksi (RefleksiFormPage) — file produksi
-// asli Refleksi masih .xlsx (belum dikonversi ke Google Sheets native, beda dari RPB di atas
-// yang sudah), jadi Sheets API masih belum bisa baca — tetap pakai dev-copy sampai dikonversi.
-export const REFLEKSI_FILES_DEV: { id: string; name: string }[] = [
-  { id: "13HeNSGYrBlOXQyhiUNLjVxrTZGZF52uRlTXlHjwsvig", name: "Juli" },
-  { id: "1lw1t1A_bO7O0BaZo-DgtKIjTYF1CmVsxup24dZxo2lw", name: "Agustus" },
-  { id: "1VFgjCsjGwHvkiPFLZAMCL-crDbKspm-jVQi8OovYtTA", name: "September" },
-  { id: "12Xj-F73UV4Hq04OY0E9wZEZSNfnsOpiEqOV2gPHtMYE", name: "Oktober" },
-  { id: "1iZVlZhiQlGxkNxphJtjotGQw_6fi6AlDrcadZbdZHDo", name: "November" },
-  { id: "10dSP-zFzvW6i0_U9_L9-A5WcCPLWZKeuUjgYp-olGe0", name: "Desember" },
-];
-
-export const REFLEKSI_FILES = [
-  { id: "1rukZunfwdaCKXfXOSPaLRsqd06T7z1TP", name: "Juli" },
-  { id: "1i1TV5RmvuDdaMR73oexsR5TPlyilF0ah", name: "Agustus" },
-  { id: "1i29xY7IL4eW3KjaxPzp3m_Mii0-Bd4mm", name: "September" },
-  { id: "1yhaaYyn1y89ZlfPWxFa93jGOuF8Q7uYX", name: "Oktober" },
-  { id: "1C8Qo3aXf2EbwCsftdUaP3hf6NJ_WmaoL", name: "November" },
-  { id: "1xrtYH55ze3a4WTBfwqHhHbyB9jmoH18q", name: "Desember" },
+// Refleksi (RefleksiFormPage) — sama kayak RPB, semua bulan sekarang nunjuk ke dokumen Sheets
+// native produksi (dikonversi user dari .xlsx per 2026-09-24), bukan salinan dev lagi.
+export const REFLEKSI_FILES: { id: string; name: string }[] = [
+  { id: "1ICQyZM3RLtJMMJY-7Rz7C4N2h_SL610_eeZVe7DHn10", name: "Juli" },
+  { id: "1T8alxjv_snPHORJEDCDZLc8iArtqNAm9JzuOWPHmunY", name: "Agustus" },
+  { id: "1wW7-Njl0unRhitm42WGgifgK7H24WYoxrfXx7XkKj2A", name: "September" },
+  { id: "1gpDtKnA-f33YD807ozYNiBAgoT0TbxLkhZ-ifa14R3c", name: "Oktober" },
+  { id: "1TrqfwZD-2gIDwI98dUv3SPM_GDCEs05QUZ_EkmSNl-Y", name: "November" },
+  { id: "1oAiOtf94lFdGHYn_OdSmC_yCnls2m10SwZlhSKiCrJk", name: "Desember" },
 ];
 
 /** Roster buat Capaian Al-Qur'an — per kelas (1A & 1B dipisah, guru & sheet-nya beda). */

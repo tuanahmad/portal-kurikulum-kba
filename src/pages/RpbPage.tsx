@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   C,
   RPB_FILES,
-  REFLEKSI_FILES_DEV,
+  REFLEKSI_FILES,
   KELAS_LIST,
   fileUrl,
   isMonthOpen,
@@ -86,7 +86,7 @@ function GuruView() {
     const openMonths = RPB_FILES.filter((f) => isMonthOpen(f.name));
     Promise.all(
       openMonths.map(async (f) => {
-        const refFile = REFLEKSI_FILES_DEV.find((r) => r.name === f.name);
+        const refFile = REFLEKSI_FILES.find((r) => r.name === f.name);
         const [rpb, ref] = await Promise.all([
           readRpbTab(f.id, kelas).catch(() => null),
           refFile ? readReflectionTab(refFile.id, kelas).catch(() => null) : Promise.resolve(null),
@@ -202,7 +202,7 @@ function ManagementView() {
   const monthOpen = isMonthOpen(bulan);
 
   const rpbFile = RPB_FILES.find((f) => f.name === bulan);
-  const refFile = REFLEKSI_FILES_DEV.find((f) => f.name === bulan);
+  const refFile = REFLEKSI_FILES.find((f) => f.name === bulan);
   const sheetHref = mode === "rpb" ? rpbFile && fileUrl(rpbFile.id) : refFile && fileUrl(refFile.id);
 
   useEffect(() => {

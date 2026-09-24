@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
-import { C, REFLEKSI_FILES_DEV, SANTRI_LIST, jenjangOf, isMonthOpen } from "../data";
+import { C, REFLEKSI_FILES, SANTRI_LIST, jenjangOf, isMonthOpen } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { readReflectionTab, writeReflectionTab, type ReflectionData } from "../lib/refleksiSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
@@ -43,10 +43,10 @@ function padFlat(rows: string[][] | undefined, count: number): string[] {
   return Array.from({ length: count }, (_, i) => base[i]?.[0] ?? "");
 }
 
-/** Halaman isi Refleksi Bulanan — pola sama persis kayak RpbFormPage (nulis ke salinan uji coba
- *  REFLEKSI_FILES_DEV selama data asli belum dimigrasikan). Bagian G "Refleksi Perkembangan
- *  Murid" bedanya: nama santri gak diketik guru, tapi ditarik dari SANTRI_LIST (roster yang
- *  dikasih koordinator) — guru tinggal klik nama buat buka & isi field-nya (accordion). */
+/** Halaman isi Refleksi Bulanan — pola sama persis kayak RpbFormPage, nulis langsung ke dokumen
+ *  produksi (REFLEKSI_FILES). Bagian G "Refleksi Perkembangan Murid" bedanya: nama santri gak
+ *  diketik guru, tapi ditarik dari SANTRI_LIST (roster yang dikasih koordinator) — guru tinggal
+ *  klik nama buat buka & isi field-nya (accordion). */
 export default function RefleksiFormPage() {
   const navigate = useNavigate();
   const { bulan } = useParams<{ bulan: string }>();
@@ -76,7 +76,7 @@ export default function RefleksiFormPage() {
   );
   const [murid, setMurid] = useState<string[][]>(Array.from({ length: ROSTER_ROWS }, () => ["", "", "", ""]));
 
-  const file = REFLEKSI_FILES_DEV.find((f) => f.name === bulan);
+  const file = REFLEKSI_FILES.find((f) => f.name === bulan);
   const roster = (kelas && SANTRI_LIST[kelas]) || [];
 
   useEffect(() => {
