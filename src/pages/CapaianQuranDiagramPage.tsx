@@ -52,11 +52,20 @@ function parseNum(s: string): number {
   return Number.isFinite(v) ? v : 0;
 }
 
+/** True kalau isinya BUKAN angka (mis. "PT", "PT28", "TS") — kode yang sebagian guru tulis buat
+ *  nandain "Persiapan Tasmi'"/"Tasmi'" dkk, bukan berarti kosong/nggak ada capaian. */
+function isTextMarker(v: string | undefined): boolean {
+  const t = String(v ?? "").trim();
+  if (t === "" || t === "-") return false;
+  return !/^\d+([.,]\d+)?$/.test(t);
+}
+
 type Series = {
   section: string;
   color: string;
   type: "pertemuan" | "pekan";
   weeks: number[];
+  weekNotes: string[][]; // kode non-angka (PT/TS/dst) yang ketemu di tiap pekan, kalau ada
   hasData: boolean;
 };
 
@@ -85,7 +94,17 @@ function seriesForStudent(data: CapaianQuranData, rosterName: string, weeksInMon
             for (let p = k * 5; p < k * 5 + 5; p++) sum += parseNum(vals[p] ?? "");
             return sum;
           });
-    return { section: sec.name, color: colorFor(sec.name, i), type: sec.type, weeks, hasData };
+    const weekNotes: string[][] =
+      sec.type === "pekan"
+        ? Array.from({ length: weeksInMonth }, (_, k) => (isTextMarker(vals[k]) ? [String(vals[k]).trim()] : []))
+        : Array.from({ length: weeksInMonth }, (_, k) => {
+            const notes: string[] = [];
+            for (let p = k * 5; p < k * 5 + 5; p++) {
+              if (isTextMarker(vals[p])) notes.push(String(vals[p]).trim());
+            }
+            return notes;
+          });
+    return { section: sec.name, color: colorFor(sec.name, i), type: sec.type, weeks, weekNotes, hasData };
   });
 }
 
@@ -258,11 +277,21 @@ function SectionBars({ s }: { s: Series }) {
           const h = maxVal > 0 ? (plotH * v) / maxVal : 0;
           const cx = padX + slotW * k + slotW / 2;
           const y = baseY - h;
+          const notes = s.weekNotes[k] ?? [];
+          const noteLabel = notes.length > 0 ? [...new Set(notes)].join("/") : "";
+          const topLabel = v > 0 && noteLabel ? `${fmt(v)} ${noteLabel}` : v > 0 ? fmt(v) : noteLabel;
           return (
             <g key={k}>
               {v > 0 && <rect x={cx - barW / 2} y={y} width={barW} height={h} rx={2} fill={s.color} />}
-              <text x={cx} y={y - 3} textAnchor="middle" fontSize={9} fill={C.muted}>
-                {v ? fmt(v) : ""}
+              <text
+                x={cx}
+                y={y - 3}
+                textAnchor="middle"
+                fontSize={9}
+                fontWeight={noteLabel ? 700 : 400}
+                fill={noteLabel ? C.gold : C.muted}
+              >
+                {topLabel}
               </text>
               <text x={cx} y={H - 3} textAnchor="middle" fontSize={9} fill={C.muted}>
                 P{k + 1}
@@ -271,6 +300,12 @@ function SectionBars({ s }: { s: Series }) {
           );
         })}
       </svg>
+      {s.weekNotes.some((n) => n.length > 0) && (
+        <p className="text-[10px] mt-1" style={{ color: C.muted }}>
+          <span style={{ color: C.gold, fontWeight: 600 }}>PT</span> = persiapan tasmi',{" "}
+          <span style={{ color: C.gold, fontWeight: 600 }}>TS</span> = tasmi' — bukan kosong, cuma belum berupa angka baris.
+        </p>
+      )}
     </div>
   );
 }

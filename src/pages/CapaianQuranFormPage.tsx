@@ -80,7 +80,10 @@ export default function CapaianQuranFormPage() {
         return idx >= 0 ? section.students[idx]?.values?.[slot - 1] ?? "" : "";
       })
     );
-    setSaveMsg(null);
+    // sengaja gak clear saveMsg di sini -- efek ini juga jalan ulang abis handleSave nge-refetch
+    // `data` (bikin `section` jadi objek baru), dan kalau saveMsg ikut ke-clear di situ, pesan
+    // "Tersimpan ke sheet." keburu ilang instan padahal baru aja muncul. Clear-nya dipindah ke
+    // titik user GANTI slot/section secara manual (lihat onClick di picker-nya).
   }, [section, slot, roster]);
 
   if (isGuru && !kelas) {
@@ -108,6 +111,11 @@ export default function CapaianQuranFormPage() {
         roster,
         values,
       });
+      // Refetch abis simpan -- tanpa ini, `data` di state tetap versi SEBELUM disimpan, jadi
+      // kalau guru pindah slot/section terus balik lagi ke slot yang baru diedit, useEffect di
+      // atas nge-populate ulang `values` dari data LAMA itu (keliatan kaya editannya "ilang").
+      const fresh = await readCapaianQuran(fileId, bulan);
+      setData(fresh);
       setSaveMsg("Tersimpan ke sheet.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -182,6 +190,7 @@ export default function CapaianQuranFormPage() {
                   onChange={(i) => {
                     setSectionName(i == null ? null : data.sections[i].name);
                     setSlot(null);
+                    setSaveMsg(null);
                   }}
                   placeholderLabel="Pilih jenis capaian"
                   selectedLabel="Jenis capaian"
@@ -202,7 +211,10 @@ export default function CapaianQuranFormPage() {
                   return (
                     <button
                       key={n}
-                      onClick={() => setSlot(active ? null : n)}
+                      onClick={() => {
+                        setSlot(active ? null : n);
+                        setSaveMsg(null);
+                      }}
                       className="w-10 h-10 rounded-lg text-sm font-semibold transition-colors"
                       style={{
                         background: active ? C.green : "#FFF",
@@ -243,8 +255,8 @@ export default function CapaianQuranFormPage() {
                 </div>
                 <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.8)" }}>
                   {section.type === "pekan"
-                    ? "Angka = putaran mengulang hafalan. Kosongkan kalau nggak ada. Isi 0 kalau nggak ngulang."
-                    : "Angka = baris yang dibaca. Kosongkan kalau nggak baca. Isi 0 kalau ngulang baris yang sama."}
+                    ? "Angka = putaran mengulang hafalan. Kosongkan kalau nggak ada. Isi 0 kalau nggak ngulang. Bisa juga diisi kode kaya PT (persiapan tasmi') / TS (tasmi')."
+                    : "Angka = baris yang dibaca. Kosongkan kalau nggak baca. Isi 0 kalau ngulang baris yang sama. Bisa juga diisi kode kaya PT (persiapan tasmi') / TS (tasmi')."}
                 </p>
 
                 <div className="mt-4 space-y-2.5">
@@ -264,9 +276,9 @@ export default function CapaianQuranFormPage() {
                           onChange={(e) =>
                             setValues((prev) => prev.map((v, vi) => (vi === i ? e.target.value : v)))
                           }
-                          inputMode="decimal"
-                          placeholder="—"
-                          className="w-16 text-sm text-center outline-none px-2 py-1.5 rounded-lg shrink-0"
+                          inputMode="text"
+                          placeholder="— / PT / TS"
+                          className="w-20 text-sm text-center outline-none px-2 py-1.5 rounded-lg shrink-0"
                           style={{ border: `1px solid ${C.line}` }}
                         />
                       </div>
