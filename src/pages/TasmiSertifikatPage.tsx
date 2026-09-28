@@ -4,21 +4,21 @@ import { C, LOGO } from "../data";
 import { readTasmiById, type TasmiRecord } from "../lib/tasmi";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 
-const BULAN = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
-
-function labelTanggalPanjang(ymd: string): string {
-  const [y, m, d] = ymd.split("-").map(Number);
-  return `${d} ${BULAN[m - 1]} ${y}`;
+/** Kelas Qonuni dipisah Ikhwan/Akhwat -- dipakai buat nebak gender santri (Kuttab Awwal belum
+ *  dipisah di nama kelasnya, default cewek). Gak ada field gender santri tersimpan di sistem,
+ *  jadi ini tebakan dari nama kelas doang. */
+function isMale(kelas: string | null): boolean {
+  return !!kelas?.includes("Ikhwan");
 }
 
-/** Kelas Qonuni dipisah Ikhwan/Akhwat -- dipakai buat nebak "bin"/"binti". Kuttab Awwal (belum
- *  dipisah gender di nama kelasnya) default ke "binti" apa adanya, guru bisa liat & minta ganti
- *  manual kalau meleset (gak ada field gender santri tersimpan di sistem). */
-function binOrBinti(kelas: string | null): "bin" | "binti" {
-  return kelas?.includes("Ikhwan") ? "bin" : "binti";
+function binOrBinti(male: boolean): "bin" | "binti" {
+  return male ? "bin" : "binti";
+}
+
+/** Tanggal dalam angka & nama bulan Arab (Intl bawaan browser) -- "٢٨ سبتمبر ٢٠٢٦". */
+function labelTanggalArab(ymd: string): string {
+  const d = new Date(`${ymd}T00:00:00`);
+  return d.toLocaleDateString("ar", { day: "numeric", month: "long", year: "numeric" });
 }
 
 export default function TasmiSertifikatPage() {
@@ -74,7 +74,8 @@ export default function TasmiSertifikatPage() {
     );
   }
 
-  const sapaan = binOrBinti(kelas);
+  const male = isMale(kelas);
+  const sapaan = binOrBinti(male);
   const namaLengkap = record.nama_ayah
     ? `${record.nama_santri} ${sapaan} ${record.nama_ayah}`
     : record.nama_santri;
@@ -83,7 +84,7 @@ export default function TasmiSertifikatPage() {
     <div className="min-h-dvh" style={{ background: "#EFEAD9" }}>
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Quicksand:wght@500;600;700&family=Amiri:wght@700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@500;700;800&family=Quicksand:wght@500;600;700&display=swap"
       />
       <style>{`
         @media print {
@@ -115,13 +116,30 @@ export default function TasmiSertifikatPage() {
       </div>
 
       <div className="flex justify-center px-4 pb-10">
-        <Certificate record={record} namaLengkap={namaLengkap} />
+        <Certificate record={record} namaLengkap={namaLengkap} male={male} kelas={kelas} />
       </div>
     </div>
   );
 }
 
-function Certificate({ record, namaLengkap }: { record: TasmiRecord; namaLengkap: string }) {
+function Certificate({
+  record,
+  namaLengkap,
+  male,
+  kelas,
+}: {
+  record: TasmiRecord;
+  namaLengkap: string;
+  male: boolean;
+  kelas: string | null;
+}) {
+  const talib = male ? "الطالب" : "الطالبة";
+  const ustadz = male ? "الأستاذ" : "الأستاذة";
+  const atamma = male ? "أتمّ" : "أتمّت";
+  const lahu = male ? "له" : "لها";
+  const yarzuqahu = male ? "يرزقه" : "يرزقها";
+  const yajaalahu = male ? "يجعله" : "يجعلها";
+
   return (
     <div
       className="cert-page relative overflow-hidden shrink-0"
@@ -132,8 +150,9 @@ function Certificate({ record, namaLengkap }: { record: TasmiRecord; namaLengkap
         aspectRatio: "297 / 210",
         background: "linear-gradient(180deg, #FFFDF7 0%, #FFF8EA 100%)",
         boxShadow: "0 12px 40px rgba(28,74,51,0.18)",
-        fontFamily: "'Quicksand', sans-serif",
+        fontFamily: "'Tajawal', 'Quicksand', sans-serif",
       }}
+      dir="rtl"
     >
       <Decorations />
 
@@ -148,131 +167,190 @@ function Certificate({ record, namaLengkap }: { record: TasmiRecord; namaLengkap
       />
 
       {/* Konten */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-[10%]" style={{ paddingBottom: "3%" }}>
-        <CrownIcon />
-        <img
-          src={LOGO}
-          alt="Logo Kuttab Budi Ashari"
-          style={{ width: "13%", marginTop: "1%", mixBlendMode: "multiply", filter: "brightness(1.04)" }}
-        />
+      <div className="absolute inset-0 flex flex-col items-center text-center px-[8%]" style={{ paddingTop: "6.5%", paddingBottom: "4%" }}>
+        {/* Header 2 kolom: logo+nama di kanan (awal teks RTL), lambang di kiri */}
+        <div className="w-full flex items-start justify-between" style={{ maxWidth: "88%" }}>
+          <div className="flex flex-col items-center" style={{ width: "22%" }}>
+            <img
+              src={LOGO}
+              alt="Logo Kuttab Budi Ashari"
+              style={{ width: "70%", mixBlendMode: "multiply", filter: "brightness(1.04)" }}
+            />
+            <div style={{ fontFamily: "'Tajawal', sans-serif", fontWeight: 700, fontSize: "clamp(10px, 1.1vw, 13px)", color: C.green, marginTop: "4%" }}>
+              كُتّاب بودي أشعري
+            </div>
+            <div style={{ fontSize: "clamp(8px, 0.85vw, 10px)", color: C.muted, fontWeight: 600 }} dir="ltr">
+              Kuttab Budi Ashari
+            </div>
+          </div>
 
+          <div className="flex flex-col items-center" style={{ width: "22%" }}>
+            <CrownIcon />
+            <div
+              className="rounded-full flex items-center justify-center"
+              style={{ width: "58%", aspectRatio: "1/1", marginTop: "6%", border: "2px solid #E7CE96", background: "rgba(217,185,104,0.12)" }}
+            >
+              <StarBadgeIcon />
+            </div>
+          </div>
+        </div>
+
+        {/* Judul kaligrafi */}
         <div
           style={{
-            fontFamily: "'Baloo 2', cursive",
-            fontWeight: 800,
-            fontSize: "clamp(32px, 5.4vw, 64px)",
+            fontFamily: "'Lalezar', cursive",
+            fontWeight: 400,
+            fontSize: "clamp(48px, 7.4vw, 88px)",
             color: "#B3801E",
-            marginTop: "2%",
-            letterSpacing: "0.03em",
-            textShadow: "0 2px 0 #FFF2CE",
+            marginTop: "1.5%",
+            textShadow: "0 3px 0 #FFF2CE",
+            lineHeight: 1,
           }}
         >
-          Busyro Tasmi'
+          بُشرى تسميع
         </div>
 
-        <div style={{ fontSize: "clamp(12px, 1.4vw, 16px)", color: C.muted, marginTop: "0.8%", fontWeight: 600 }}>
-          {labelTanggalPanjang(record.tanggal)}
-        </div>
-
+        {/* Pita keterangan */}
         <div
-          dir="rtl"
+          className="rounded-full"
           style={{
-            fontFamily: "'Amiri', serif",
-            fontSize: "clamp(24px, 3.6vw, 40px)",
-            color: C.green,
-            marginTop: "2.8%",
+            background: "#EDF3EE",
+            padding: "0.9% 4%",
+            marginTop: "2.2%",
+            fontSize: "clamp(12px, 1.5vw, 16px)",
             fontWeight: 700,
+            color: C.green,
           }}
         >
-          بارك الله فيكم
+          تشهد كُتّاب بودي أشعري بأنّ {talib}
         </div>
 
-        <div style={{ marginTop: "3%", maxWidth: "80%" }}>
-          <div
-            style={{
-              fontSize: "clamp(16px, 2vw, 22px)",
-              color: C.green,
-              fontWeight: 700,
-            }}
-          >
-            {record.nama_guru || "Ustadz/ah"}
-          </div>
-          <div
-            style={{
-              fontSize: "clamp(13px, 1.6vw, 17px)",
-              color: "#3A3226",
-              fontWeight: 600,
-              marginTop: "0.6%",
-            }}
-          >
-            yang telah mengantarkan ananda
-          </div>
-          <div
-            style={{
-              fontSize: "clamp(17px, 2.2vw, 24px)",
-              color: C.green,
-              fontWeight: 700,
-              marginTop: "0.8%",
-            }}
-          >
-            {namaLengkap}
-          </div>
-          <div
-            style={{
-              fontSize: "clamp(13px, 1.6vw, 17px)",
-              color: "#3A3226",
-              fontWeight: 600,
-              marginTop: "0.8%",
-            }}
-          >
-            berhasil mentasmi'kan{" "}
-            <span style={{ color: "#B3801E", fontWeight: 700 }}>{record.juz || "—"}</span>
-          </div>
+        {/* Nama santri */}
+        <div
+          style={{
+            fontSize: "clamp(20px, 2.8vw, 32px)",
+            color: C.green,
+            fontWeight: 700,
+            marginTop: "1.8%",
+            borderBottom: `2px solid #D9B968`,
+            paddingBottom: "0.6%",
+          }}
+          dir="ltr"
+        >
+          {namaLengkap}
         </div>
 
-        <div className="flex items-stretch" style={{ gap: "3%", marginTop: "2.4%" }}>
-          <StatPill label="Durasi" value={record.durasi || "—"} />
-          <StatPill label="Kesalahan" value={String(record.jumlah_kesalahan)} />
-        </div>
+        {/* Badge kelas */}
+        {kelas && (
+          <div className="flex items-center" style={{ gap: "2%", marginTop: "1.6%" }}>
+            <span style={{ fontSize: "clamp(11px, 1.3vw, 14px)", color: C.muted, fontWeight: 600 }}>من فصل:</span>
+            <span
+              className="rounded-full"
+              style={{
+                background: "#E6F1FB",
+                border: "1px solid #B9D6F2",
+                color: "#1F5E93",
+                fontWeight: 700,
+                fontSize: "clamp(11px, 1.3vw, 14px)",
+                padding: "0.3% 2.5%",
+              }}
+              dir="ltr"
+            >
+              {kelas}
+            </span>
+          </div>
+        )}
 
+        {/* Paragraf capaian */}
+        <p
+          style={{
+            fontSize: "clamp(13px, 1.6vw, 17px)",
+            color: "#3A3226",
+            marginTop: "2.4%",
+            maxWidth: "82%",
+            lineHeight: 2,
+            fontWeight: 600,
+          }}
+        >
+          قد {atamma} تسميع <span style={{ color: "#B3801E", fontWeight: 700 }}>{record.juz || "—"}</span> بإشراف {ustadz}{" "}
+          <span style={{ color: C.green, fontWeight: 700 }} dir="ltr">{record.nama_guru || "—"}</span> بتاريخ{" "}
+          {labelTanggalArab(record.tanggal)}، في مدة{" "}
+          <span style={{ color: "#B3801E", fontWeight: 700 }} dir="ltr">{record.durasi || "—"}</span> وبعدد الأخطاء:{" "}
+          <span style={{ color: "#B3801E", fontWeight: 700 }}>{record.jumlah_kesalahan}</span>.
+        </p>
+
+        {/* Doa */}
         <p
           style={{
             fontSize: "clamp(12px, 1.5vw, 16px)",
             color: C.muted,
-            marginTop: "5.5%",
-            maxWidth: "60%",
-            lineHeight: 1.75,
+            marginTop: "2%",
+            maxWidth: "64%",
+            lineHeight: 1.9,
             fontStyle: "italic",
           }}
         >
-          Semoga Allah senantiasa menyuburkan rasa cinta terhadap Al-Qur'an di dalam hati ananda dan
-          menjadikannya bagian dari keluarga Allah.
+          بارك الله {lahu}، ونسأل الله أن {yarzuqahu} حبّ القرآن دائمًا، و{yajaalahu} من أهل القرآن وخاصته.
         </p>
+
+        {/* Footer */}
+        <div className="w-full flex items-end justify-between mt-auto" style={{ maxWidth: "84%" }}>
+          <FooterBlock label="التاريخ">
+            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(11px, 1.3vw, 14px)", color: C.ink }}>
+              {labelTanggalArab(record.tanggal)}
+            </div>
+          </FooterBlock>
+          <FooterBlock label={ustadz}>
+            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(11px, 1.3vw, 14px)", color: C.ink }}>
+              {record.nama_guru || "—"}
+            </div>
+          </FooterBlock>
+          <FooterBlock label="ختم المؤسسة">
+            <div
+              className="rounded-full flex items-center justify-center mx-auto"
+              style={{ width: 46, height: 46, border: `2px dashed #B3801E` }}
+            >
+              <img src={LOGO} alt="" style={{ width: "70%", mixBlendMode: "multiply" }} />
+            </div>
+          </FooterBlock>
+        </div>
       </div>
     </div>
   );
 }
 
-function StatPill({ label, value }: { label: string; value: string }) {
+function FooterBlock({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div
-      className="rounded-xl"
-      style={{
-        background: "rgba(217,185,104,0.14)",
-        border: "1px solid #E7CE96",
-        padding: "0.6% 3%",
-        minWidth: "20%",
-      }}
-    >
+    <div className="flex flex-col items-center" style={{ width: "30%" }}>
+      {children}
       <div
-        style={{ fontSize: "clamp(9px, 1vw, 11px)", color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}
+        style={{
+          fontSize: "clamp(9px, 1vw, 11px)",
+          color: C.muted,
+          fontWeight: 700,
+          marginTop: "3%",
+          borderTop: `1px solid ${C.line}`,
+          paddingTop: "2%",
+          width: "80%",
+        }}
       >
         {label}
       </div>
-      <div style={{ fontSize: "clamp(14px, 1.7vw, 19px)", color: "#B3801E", fontWeight: 700, marginTop: 2 }}>
-        {value}
-      </div>
     </div>
+  );
+}
+
+function StarBadgeIcon() {
+  return (
+    <svg width="60%" height="60%" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 2l2.6 6.2L21 9l-5 4.4L17.4 20 12 16.6 6.6 20 8 13.4 3 9l6.4-0.8L12 2Z"
+        fill="#F0C670"
+        stroke="#B3801E"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
