@@ -4,6 +4,7 @@ export type TasmiRecord = {
   id: string;
   tanggal: string; // "YYYY-MM-DD"
   nama_santri: string;
+  nama_ayah: string;
   usia_santri: string;
   nama_guru: string;
   juz: string;
@@ -15,6 +16,7 @@ export type TasmiRecord = {
 export type TasmiDraft = {
   tanggal: string;
   nama_santri: string;
+  nama_ayah: string;
   usia_santri: string;
   nama_guru: string;
   juz: string;
@@ -25,6 +27,7 @@ export type TasmiDraft = {
 export const emptyTasmiDraft = (tanggal: string, namaGuru: string): TasmiDraft => ({
   tanggal,
   nama_santri: "",
+  nama_ayah: "",
   usia_santri: "",
   nama_guru: namaGuru,
   juz: "",
@@ -35,15 +38,25 @@ export const emptyTasmiDraft = (tanggal: string, namaGuru: string): TasmiDraft =
 /** Baca riwayat tasmi' 1 kelas, terbaru duluan. Guru cuma bisa baca punya dia sendiri (RLS),
  *  management bisa baca semua kelas -- makanya query di sini tetap filter `kelas` biar konsisten
  *  buat kedua role (guru juga kebetulan cuma punya 1 kelas). */
+const SELECT_COLS = "id, tanggal, nama_santri, nama_ayah, usia_santri, nama_guru, juz, durasi, jumlah_kesalahan, updated_at";
+
 export async function readTasmiByKelas(kelas: string): Promise<TasmiRecord[]> {
   const { data, error } = await supabase
     .from("tasmi_records")
-    .select("id, tanggal, nama_santri, usia_santri, nama_guru, juz, durasi, jumlah_kesalahan, updated_at")
+    .select(SELECT_COLS)
     .eq("kelas", kelas)
     .order("tanggal", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as TasmiRecord[];
+}
+
+/** Baca 1 catatan by id -- dipakai halaman sertifikat (dibuka dari kartu riwayat, jadi RLS yang
+ *  sama kayak readTasmiByKelas otomatis berlaku: guru cuma bisa buka punya kelasnya sendiri). */
+export async function readTasmiById(id: string): Promise<TasmiRecord | null> {
+  const { data, error } = await supabase.from("tasmi_records").select(SELECT_COLS).eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as TasmiRecord | null) ?? null;
 }
 
 export async function createTasmiRecord(kelas: string, draft: TasmiDraft): Promise<void> {
@@ -57,6 +70,7 @@ export async function createTasmiRecord(kelas: string, draft: TasmiDraft): Promi
     kelas,
     tanggal: draft.tanggal,
     nama_santri: draft.nama_santri,
+    nama_ayah: draft.nama_ayah.trim(),
     usia_santri: draft.usia_santri.trim(),
     nama_guru: draft.nama_guru.trim(),
     juz: draft.juz.trim(),
@@ -72,6 +86,7 @@ export async function updateTasmiRecord(id: string, draft: TasmiDraft): Promise<
     .update({
       tanggal: draft.tanggal,
       nama_santri: draft.nama_santri,
+      nama_ayah: draft.nama_ayah.trim(),
       usia_santri: draft.usia_santri.trim(),
       nama_guru: draft.nama_guru.trim(),
       juz: draft.juz.trim(),

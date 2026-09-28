@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { C, capaianRoster } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { PageLoadingSkeleton } from "../components/Skeleton";
@@ -151,6 +151,7 @@ export default function TasmiPage() {
                 <TasmiCard
                   key={r.id}
                   record={r}
+                  kelas={kelas ?? ""}
                   editable={isGuru}
                   onEdit={() => {
                     setEditing(r);
@@ -187,6 +188,7 @@ function TasmiForm({
       ? {
           tanggal: existing.tanggal,
           nama_santri: existing.nama_santri,
+          nama_ayah: existing.nama_ayah,
           usia_santri: existing.usia_santri,
           nama_guru: existing.nama_guru,
           juz: existing.juz,
@@ -255,6 +257,15 @@ function TasmiForm({
               style={{ border: `1px solid ${C.line}` }}
             />
           )}
+        </Field>
+        <Field label="Nama Ayah/Wali">
+          <input
+            value={form.nama_ayah}
+            onChange={(e) => setForm((p) => ({ ...p, nama_ayah: e.target.value }))}
+            placeholder="mis. Ja'far Hidayatullah"
+            className="w-full text-sm outline-none px-3.5 py-2.5 rounded-xl"
+            style={{ border: `1px solid ${C.line}` }}
+          />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Usia Santri">
@@ -333,11 +344,13 @@ function TasmiForm({
 
 function TasmiCard({
   record,
+  kelas,
   editable,
   onEdit,
   onDeleted,
 }: {
   record: TasmiRecord;
+  kelas: string;
   editable: boolean;
   onEdit: () => void;
   onDeleted: () => void;
@@ -404,9 +417,23 @@ function TasmiCard({
         <MiniStat label="Durasi" value={record.durasi || "—"} />
         <MiniStat label="Kesalahan" value={String(record.jumlah_kesalahan)} />
       </div>
-      {record.nama_guru && (
-        <div className="text-[11px] mt-2.5" style={{ color: C.muted }}>Diuji oleh {record.nama_guru}</div>
-      )}
+      <div className="flex items-center justify-between gap-3 mt-2.5">
+        {record.nama_guru ? (
+          <div className="text-[11px]" style={{ color: C.muted }}>Diuji oleh {record.nama_guru}</div>
+        ) : (
+          <span />
+        )}
+        <Link
+          to={`/capaian/tasmi/${record.id}/sertifikat?kelas=${encodeURIComponent(kelas)}`}
+          className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold"
+          style={{ color: C.gold }}
+        >
+          Lihat Sertifikat
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+      </div>
     </div>
   );
 }
