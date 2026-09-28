@@ -17,6 +17,7 @@ import RefleksiFormPage from "./pages/RefleksiFormPage";
 import CapaianQuranFormPage from "./pages/CapaianQuranFormPage";
 import CapaianQuranDiagramPage from "./pages/CapaianQuranDiagramPage";
 import CapaianIlmuFormPage from "./pages/CapaianIlmuFormPage";
+import TasmiPage from "./pages/TasmiPage";
 
 export default function App() {
   return (
@@ -101,6 +102,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["guru", "management"]}>
                 <CapaianIlmuFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/capaian/tasmi"
+            element={
+              <ProtectedRoute allowedRoles={["guru", "management"]}>
+                <TasmiPage />
               </ProtectedRoute>
             }
           />

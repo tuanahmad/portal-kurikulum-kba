@@ -100,6 +100,7 @@ function CapaianLinks({
     : `/capaian/quran/diagram?kelas=${encodeURIComponent(kelasName)}`;
   const ilmuTo = guru ? "/capaian/ilmu" : `/capaian/ilmu?kelas=${encodeURIComponent(kelasName)}`;
   const quranTo = guru ? "/capaian/quran" : `/capaian/quran?kelas=${encodeURIComponent(kelasName)}`;
+  const tasmiTo = guru ? "/capaian/tasmi" : `/capaian/tasmi?kelas=${encodeURIComponent(kelasName)}`;
   return (
     <main className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
       <AccentCard
@@ -123,6 +124,13 @@ function CapaianLinks({
         gradient={`linear-gradient(135deg, #3B6EA5 0%, #274C74 100%)`}
         to={diagramTo}
       />
+      <AccentCard
+        title="Tasmi'"
+        desc={guru ? "Catat tiap kali ada santri tasmi'" : "Riwayat tasmi' santri di kelas ini"}
+        icon={<TasmiIcon />}
+        gradient="linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)"
+        to={tasmiTo}
+      />
     </main>
   );
 }
@@ -141,6 +149,16 @@ function BookIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
       <path d="M4 5.5c2-1 5-1 8 .5 3-1.5 6-1.5 8-.5v13c-2-1-5-1-8 .5-3-1.5-6-1.5-8-.5v-13Z" stroke="#FFF" strokeWidth="1.7" strokeLinejoin="round" />
       <path d="M12 6v13" stroke="#FFF" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+function TasmiIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M9 12.5l2 2 4.5-5" stroke="#FFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 3a9 9 0 1 0 9 9" stroke="#FFF" strokeWidth="1.9" strokeLinecap="round" />
+      <path d="M17.5 3.5v4h-4" stroke="#FFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
