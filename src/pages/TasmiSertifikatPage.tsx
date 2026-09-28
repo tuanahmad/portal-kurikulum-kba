@@ -150,7 +150,11 @@ function Certificate({ record, namaLengkap }: { record: TasmiRecord; namaLengkap
       {/* Konten */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-[10%]" style={{ paddingBottom: "3%" }}>
         <CrownIcon />
-        <img src={LOGO} alt="Logo Kuttab Budi Ashari" style={{ width: "8%", marginTop: "1%" }} />
+        <img
+          src={LOGO}
+          alt="Logo Kuttab Budi Ashari"
+          style={{ width: "13%", marginTop: "1%", mixBlendMode: "multiply", filter: "brightness(1.04)" }}
+        />
 
         <div
           style={{
@@ -183,27 +187,59 @@ function Certificate({ record, namaLengkap }: { record: TasmiRecord; namaLengkap
           بارك الله فيكم
         </div>
 
-        <p
-          style={{
-            fontSize: "clamp(15px, 1.9vw, 21px)",
-            color: "#3A3226",
-            marginTop: "3.6%",
-            maxWidth: "78%",
-            lineHeight: 1.8,
-            fontWeight: 600,
-          }}
-        >
-          {record.nama_guru || "Ustadz/ah"} yang telah mengantarkan ananda{" "}
-          <span style={{ color: C.green, fontWeight: 700 }}>{namaLengkap}</span> berhasil mentasmi'kan{" "}
-          <span style={{ color: "#B3801E", fontWeight: 700 }}>{record.juz || "—"}</span> dengan{" "}
-          <span style={{ color: "#B3801E", fontWeight: 700 }}>{record.jumlah_kesalahan}</span> kesalahan.
-        </p>
+        <div style={{ marginTop: "3%", maxWidth: "80%" }}>
+          <div
+            style={{
+              fontSize: "clamp(16px, 2vw, 22px)",
+              color: C.green,
+              fontWeight: 700,
+            }}
+          >
+            {record.nama_guru || "Ustadz/ah"}
+          </div>
+          <div
+            style={{
+              fontSize: "clamp(13px, 1.6vw, 17px)",
+              color: "#3A3226",
+              fontWeight: 600,
+              marginTop: "0.6%",
+            }}
+          >
+            yang telah mengantarkan ananda
+          </div>
+          <div
+            style={{
+              fontSize: "clamp(17px, 2.2vw, 24px)",
+              color: C.green,
+              fontWeight: 700,
+              marginTop: "0.8%",
+            }}
+          >
+            {namaLengkap}
+          </div>
+          <div
+            style={{
+              fontSize: "clamp(13px, 1.6vw, 17px)",
+              color: "#3A3226",
+              fontWeight: 600,
+              marginTop: "0.8%",
+            }}
+          >
+            berhasil mentasmi'kan{" "}
+            <span style={{ color: "#B3801E", fontWeight: 700 }}>{record.juz || "—"}</span>
+          </div>
+        </div>
+
+        <div className="flex items-stretch" style={{ gap: "3%", marginTop: "2.4%" }}>
+          <StatPill label="Durasi" value={record.durasi || "—"} />
+          <StatPill label="Kesalahan" value={String(record.jumlah_kesalahan)} />
+        </div>
 
         <p
           style={{
             fontSize: "clamp(12px, 1.5vw, 16px)",
             color: C.muted,
-            marginTop: "3%",
+            marginTop: "5.5%",
             maxWidth: "60%",
             lineHeight: 1.75,
             fontStyle: "italic",
@@ -212,6 +248,29 @@ function Certificate({ record, namaLengkap }: { record: TasmiRecord; namaLengkap
           Semoga Allah senantiasa menyuburkan rasa cinta terhadap Al-Qur'an di dalam hati ananda dan
           menjadikannya bagian dari keluarga Allah.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function StatPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      className="rounded-xl"
+      style={{
+        background: "rgba(217,185,104,0.14)",
+        border: "1px solid #E7CE96",
+        padding: "0.6% 3%",
+        minWidth: "20%",
+      }}
+    >
+      <div
+        style={{ fontSize: "clamp(9px, 1vw, 11px)", color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}
+      >
+        {label}
+      </div>
+      <div style={{ fontSize: "clamp(14px, 1.7vw, 19px)", color: "#B3801E", fontWeight: 700, marginTop: 2 }}>
+        {value}
       </div>
     </div>
   );

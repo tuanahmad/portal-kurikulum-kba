@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { C, capaianRoster } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { PageLoadingSkeleton } from "../components/Skeleton";
+import { PickerCard } from "../components/PickerCard";
 import {
   readTasmiByKelas,
   createTasmiRecord,
@@ -237,17 +238,18 @@ function TasmiForm({
         </Field>
         <Field label="Nama Santri">
           {roster.length > 0 ? (
-            <select
-              value={form.nama_santri}
-              onChange={(e) => setForm((p) => ({ ...p, nama_santri: e.target.value }))}
-              className="w-full text-sm outline-none px-3.5 py-2.5 rounded-xl bg-white"
-              style={{ border: `1px solid ${C.line}` }}
-            >
-              <option value="">— Pilih santri —</option>
-              {roster.map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
+            <PickerCard
+              items={roster.map((n) => ({ label: n }))}
+              value={(() => {
+                const i = roster.findIndex((n) => n === form.nama_santri);
+                return i >= 0 ? i : null;
+              })()}
+              onChange={(i) => setForm((p) => ({ ...p, nama_santri: i == null ? "" : roster[i] }))}
+              placeholderLabel="Pilih santri"
+              selectedLabel="Santri"
+              countText={`${roster.length} santri`}
+              numbered={false}
+            />
           ) : (
             <input
               value={form.nama_santri}
@@ -262,7 +264,7 @@ function TasmiForm({
           <input
             value={form.nama_ayah}
             onChange={(e) => setForm((p) => ({ ...p, nama_ayah: e.target.value }))}
-            placeholder="mis. Ja'far Hidayatullah"
+            placeholder="Nama ayah/wali"
             className="w-full text-sm outline-none px-3.5 py-2.5 rounded-xl"
             style={{ border: `1px solid ${C.line}` }}
           />
