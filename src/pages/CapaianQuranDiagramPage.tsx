@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { C, capaianQuranFileId, capaianRoster, isMonthOpen, pekanCountForBulan } from "../data";
 import { useAuth } from "../contexts/AuthContext";
-import { readCapaianQuran, type CapaianQuranData } from "../lib/capaianQuranSheet";
+import { readCapaianQuran, findStudentIndexByName, type CapaianQuranData } from "../lib/capaianQuranSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { MonthGrid } from "../components/MonthGrid";
 
@@ -72,9 +72,10 @@ function isFilled(v: string | undefined): boolean {
  *  keliatan ke management, bukan disembunyikan.
  *  - section "pertemuan": pekan k = jumlah pertemuan (5k-4 .. 5k).
  *  - section "pekan" (Wirid): pekan k = nilai slot ke-k langsung. */
-function seriesForStudent(data: CapaianQuranData, studentIndex: number, weeksInMonth: number): Series[] {
+function seriesForStudent(data: CapaianQuranData, rosterName: string, weeksInMonth: number): Series[] {
   return data.sections.map((sec, i) => {
-    const vals = sec.students[studentIndex]?.values ?? [];
+    const studentIndex = findStudentIndexByName(sec, rosterName);
+    const vals = studentIndex >= 0 ? sec.students[studentIndex]?.values ?? [] : [];
     const hasData = vals.some(isFilled);
     const weeks: number[] =
       sec.type === "pekan"
@@ -193,7 +194,7 @@ export default function CapaianQuranDiagramPage() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {roster.map((nama, i) => {
-                  const series = seriesForStudent(data, i, weeksInMonth).filter((s) => s.hasData);
+                  const series = seriesForStudent(data, nama, weeksInMonth).filter((s) => s.hasData);
                   return (
                     <div key={i} className="rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
                       <div className="text-sm font-semibold mb-3" style={{ color: C.ink }}>

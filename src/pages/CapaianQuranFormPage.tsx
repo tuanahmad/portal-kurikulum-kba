@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import {
   readCapaianQuran,
   writeCapaianQuranSlot,
+  findStudentIndexByName,
   type CapaianQuranData,
   type CapaianQuranSection,
 } from "../lib/capaianQuranSheet";
@@ -74,7 +75,10 @@ export default function CapaianQuranFormPage() {
       return;
     }
     setValues(
-      roster.map((_, i) => section.students[i]?.values?.[slot - 1] ?? "")
+      roster.map((nama) => {
+        const idx = findStudentIndexByName(section, nama);
+        return idx >= 0 ? section.students[idx]?.values?.[slot - 1] ?? "" : "";
+      })
     );
     setSaveMsg(null);
   }, [section, slot, roster]);
@@ -381,7 +385,10 @@ function WeekRekapAccordion({
   const isPekan = section.type === "pekan";
   const slots = isPekan ? [week] : [1, 2, 3, 4, 5].map((d) => (week - 1) * 5 + d);
   const validSlots = slots.filter((s) => s <= section.slotCount);
-  const hasAny = roster.some((_, i) => validSlots.some((s) => isFilled(section.students[i]?.values?.[s - 1])));
+  const hasAny = roster.some((nama) => {
+    const idx = findStudentIndexByName(section, nama);
+    return idx >= 0 && validSlots.some((s) => isFilled(section.students[idx]?.values?.[s - 1]));
+  });
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
@@ -423,11 +430,13 @@ function WeekRekapAccordion({
                 </tr>
               </thead>
               <tbody>
-                {roster.map((nama, i) => (
+                {roster.map((nama, i) => {
+                  const idx = findStudentIndexByName(section, nama);
+                  return (
                   <tr key={i} style={{ borderTop: `1px solid ${C.line}` }}>
                     <td className="py-2 pr-2 truncate" style={{ color: C.ink, maxWidth: 120 }}>{nama}</td>
                     {validSlots.map((s) => {
-                      const v = section.students[i]?.values?.[s - 1];
+                      const v = idx >= 0 ? section.students[idx]?.values?.[s - 1] : undefined;
                       return (
                         <td key={s} className="text-center py-2 px-1" style={{ color: isFilled(v) ? C.ink : C.muted }}>
                           {isFilled(v) ? v : "—"}
@@ -435,7 +444,8 @@ function WeekRekapAccordion({
                       );
                     })}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           )}
