@@ -126,7 +126,7 @@ function CapaianLinks({
       />
       <AccentCard
         title="Tasmi'"
-        desc={guru ? "Catat tiap kali ada santri tasmi'" : "Riwayat tasmi' santri di kelas ini"}
+        desc={guru ? "Data Tasmi' Santri" : "Riwayat tasmi' santri di kelas ini"}
         icon={<TasmiIcon />}
         gradient="linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)"
         to={tasmiTo}

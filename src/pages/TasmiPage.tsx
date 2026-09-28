@@ -275,7 +275,7 @@ function TasmiForm({
             />
           </Field>
         </div>
-        <Field label="Juz yang Ditasmi'kan">
+        <Field label="Juz">
           <input
             value={form.juz}
             onChange={(e) => setForm((p) => ({ ...p, juz: e.target.value }))}
