@@ -14,27 +14,29 @@ function parseJuzNumber(juz: string): number | null {
   return m ? parseInt(m[0], 10) : null;
 }
 
-type KelasStat = {
-  kelas: string;
-  jumlahSantri: number;
-  rataJuz: number | null;
-  juzList: string[];
-};
+type SantriStat = { nama: string; juzList: string[] };
+type KelasStat = { kelas: string; santriList: SantriStat[] };
 
 function computeStats(rows: TasmiRekapRow[]): KelasStat[] {
   return KELAS_LIST.map(({ name }) => {
     const rowsKelas = rows.filter((r) => r.kelas === name);
-    const juzNums = rowsKelas.map((r) => parseJuzNumber(r.juz)).filter((n): n is number => n != null);
-    const santriUnik = new Set(rowsKelas.map((r) => r.nama_santri));
-    const juzUnik = Array.from(new Set(rowsKelas.map((r) => r.juz.trim()).filter(Boolean))).sort(
-      (a, b) => (parseJuzNumber(a) ?? 0) - (parseJuzNumber(b) ?? 0)
-    );
-    return {
-      kelas: name,
-      jumlahSantri: santriUnik.size,
-      rataJuz: juzNums.length ? juzNums.reduce((a, b) => a + b, 0) / juzNums.length : null,
-      juzList: juzUnik,
-    };
+    const byNama = new Map<string, string[]>();
+    for (const r of rowsKelas) {
+      const juz = r.juz.trim();
+      const existing = byNama.get(r.nama_santri);
+      if (existing) {
+        if (juz && !existing.includes(juz)) existing.push(juz);
+      } else {
+        byNama.set(r.nama_santri, juz ? [juz] : []);
+      }
+    }
+    const santriList = Array.from(byNama.entries())
+      .map(([nama, juzList]) => ({
+        nama,
+        juzList: juzList.sort((a, b) => (parseJuzNumber(a) ?? 0) - (parseJuzNumber(b) ?? 0)),
+      }))
+      .sort((a, b) => a.nama.localeCompare(b.nama));
+    return { kelas: name, santriList };
   });
 }
 
@@ -59,7 +61,7 @@ export default function TasmiRekapPage() {
   }, [year]);
 
   const stats = useMemo(() => computeStats(rows), [rows]);
-  const kelasKosong = stats.filter((s) => s.jumlahSantri === 0);
+  const kelasKosong = stats.filter((s) => s.santriList.length === 0);
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
@@ -147,39 +149,33 @@ export default function TasmiRekapPage() {
               )}
             </div>
 
-            {/* Tabel per kelas */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ background: C.leaf }}>
-                    <th className="text-left font-semibold px-3.5 py-2.5" style={{ color: C.muted }}>Kelas</th>
-                    <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Santri</th>
-                    <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Rata² Juz</th>
-                    <th className="text-left font-semibold px-2 py-2.5" style={{ color: C.muted }}>Juz</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.map((s) => (
-                    <tr key={s.kelas} style={{ borderTop: `1px solid ${C.line}` }}>
-                      <td className="px-3.5 py-2.5 truncate" style={{ color: s.jumlahSantri === 0 ? C.muted : C.ink }}>
-                        {s.kelas}
-                      </td>
-                      <td className="text-center px-2 py-2.5 font-semibold" style={{ color: s.jumlahSantri === 0 ? C.muted : C.green }}>
-                        {s.jumlahSantri}
-                      </td>
-                      <td className="text-center px-2 py-2.5" style={{ color: C.muted }}>
-                        {s.rataJuz != null ? s.rataJuz.toFixed(1) : "—"}
-                      </td>
-                      <td className="px-2 py-2.5" style={{ color: C.muted }}>
-                        {s.juzList.length ? s.juzList.join(", ") : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Daftar santri per kelas */}
+            <div className="space-y-3">
+              {stats
+                .filter((s) => s.santriList.length > 0)
+                .map((s) => (
+                  <div key={s.kelas} className="rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-sm font-bold" style={{ color: C.green }}>{s.kelas}</span>
+                      <span className="text-xs shrink-0" style={{ color: C.muted }}>
+                        {s.santriList.length} santri
+                      </span>
+                    </div>
+                    <ul className="mt-2.5 space-y-1.5">
+                      {s.santriList.map((st) => (
+                        <li key={st.nama} className="flex items-baseline justify-between gap-3 text-sm">
+                          <span style={{ color: C.ink }}>{st.nama}</span>
+                          <span className="text-right shrink-0" style={{ color: "#B3801E", fontWeight: 600 }}>
+                            {st.juzList.length ? st.juzList.join(", ") : "—"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
             </div>
             <p className="text-[11px]" style={{ color: C.muted }}>
-              "Santri" = jumlah santri berbeda yang sudah tasmi' di tahun ini (bukan jumlah catatan). "Juz" = daftar juz yang pernah ditasmi'kan di kelas itu. Rata² Juz dihitung dari angka yang ketemu di teks juz tiap catatan (mis. "Juz 29" → 29).
+              Kalau ada santri yang tasmi' lebih dari 1x di tahun ini, semua juz yang pernah ditasmi'kannya ditampilkan di baris yang sama.
             </p>
           </div>
         )}
