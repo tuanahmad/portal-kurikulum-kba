@@ -149,30 +149,47 @@ export default function TasmiRekapPage() {
               )}
             </div>
 
-            {/* Daftar santri per kelas */}
-            <div className="space-y-3">
-              {stats
-                .filter((s) => s.santriList.length > 0)
-                .map((s) => (
-                  <div key={s.kelas} className="rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-sm font-bold" style={{ color: C.green }}>{s.kelas}</span>
-                      <span className="text-xs shrink-0" style={{ color: C.muted }}>
-                        {s.santriList.length} santri
-                      </span>
-                    </div>
-                    <ul className="mt-2.5 space-y-1.5">
-                      {s.santriList.map((st) => (
-                        <li key={st.nama} className="flex items-baseline justify-between gap-3 text-sm">
-                          <span style={{ color: C.ink }}>{st.nama}</span>
-                          <span className="text-right shrink-0" style={{ color: "#B3801E", fontWeight: 600 }}>
-                            {st.juzList.length ? st.juzList.join(", ") : "—"}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+            {/* Tabel per kelas */}
+            <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ background: C.leaf }}>
+                    <th className="text-left font-semibold px-3.5 py-2.5 align-top" style={{ color: C.muted }}>Kelas</th>
+                    <th className="text-left font-semibold px-2 py-2.5 align-top" style={{ color: C.muted }}>Santri</th>
+                    <th className="text-left font-semibold px-2 py-2.5 align-top" style={{ color: C.muted }}>Juz</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.map((s) => (
+                    <tr key={s.kelas} style={{ borderTop: `1px solid ${C.line}` }}>
+                      <td className="px-3.5 py-2.5 align-top" style={{ color: s.santriList.length === 0 ? C.muted : C.ink }}>
+                        {s.kelas}
+                      </td>
+                      {s.santriList.length === 0 ? (
+                        <>
+                          <td className="px-2 py-2.5 align-top" style={{ color: C.muted }}>—</td>
+                          <td className="px-2 py-2.5 align-top" style={{ color: C.muted }}>—</td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-2 py-2.5 align-top">
+                            {s.santriList.map((st) => (
+                              <div key={st.nama} style={{ color: C.ink }}>{st.nama}</div>
+                            ))}
+                          </td>
+                          <td className="px-2 py-2.5 align-top">
+                            {s.santriList.map((st) => (
+                              <div key={st.nama} style={{ color: "#B3801E", fontWeight: 600 }}>
+                                {st.juzList.length ? st.juzList.join(", ") : "—"}
+                              </div>
+                            ))}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
