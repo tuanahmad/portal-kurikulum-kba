@@ -174,9 +174,6 @@ export default function TasmiRekapPage() {
                   </div>
                 ))}
             </div>
-            <p className="text-[11px]" style={{ color: C.muted }}>
-              Kalau ada santri yang tasmi' lebih dari 1x di tahun ini, semua juz yang pernah ditasmi'kannya ditampilkan di baris yang sama.
-            </p>
           </div>
         )}
       </div>
