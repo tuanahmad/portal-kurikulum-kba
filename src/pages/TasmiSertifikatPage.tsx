@@ -145,7 +145,6 @@ function Certificate({
       className="cert-page relative overflow-hidden shrink-0"
       style={{
         width: "297mm",
-        height: "210mm",
         maxWidth: "100%",
         aspectRatio: "297 / 210",
         background: "linear-gradient(180deg, #FFFDF7 0%, #FFF8EA 100%)",
@@ -261,32 +260,34 @@ function Certificate({
           </div>
         )}
 
-        {/* Paragraf capaian */}
+        {/* Intro singkat */}
         <p
           style={{
-            fontSize: "clamp(13px, 1.6vw, 17px)",
+            fontSize: "clamp(12px, 1.5vw, 16px)",
             color: "#3A3226",
-            marginTop: "2.4%",
-            maxWidth: "82%",
-            lineHeight: 2,
+            marginTop: "2%",
             fontWeight: 600,
           }}
         >
-          قد {atamma} تسميع <span style={{ color: "#B3801E", fontWeight: 700 }}>{record.juz || "—"}</span> بإشراف {ustadz}{" "}
-          <span style={{ color: C.green, fontWeight: 700 }} dir="ltr">{record.nama_guru || "—"}</span> بتاريخ{" "}
-          {labelTanggalArab(record.tanggal)}، في مدة{" "}
-          <span style={{ color: "#B3801E", fontWeight: 700 }} dir="ltr">{record.durasi || "—"}</span> وبعدد الأخطاء:{" "}
-          <span style={{ color: "#B3801E", fontWeight: 700 }}>{record.jumlah_kesalahan}</span>.
+          قد {atamma} تسميع القرآن الكريم بإشراف {ustadz} بتاريخ {labelTanggalArab(record.tanggal)}
         </p>
+
+        {/* Juz / Ustadz / Waktu / Kesalahan -- baris sendiri-sendiri */}
+        <div className="grid grid-cols-2" style={{ gap: "1.4% 6%", marginTop: "1.6%", width: "70%" }}>
+          <StatRow label="الجزء" value={record.juz || "—"} />
+          <StatRow label="الأستاذ" value={record.nama_guru || "—"} ltr />
+          <StatRow label="المدة" value={record.durasi || "—"} ltr />
+          <StatRow label="عدد الأخطاء" value={String(record.jumlah_kesalahan)} />
+        </div>
 
         {/* Doa */}
         <p
           style={{
             fontSize: "clamp(12px, 1.5vw, 16px)",
             color: C.muted,
-            marginTop: "2%",
+            marginTop: "1.6%",
             maxWidth: "64%",
-            lineHeight: 1.9,
+            lineHeight: 1.7,
             fontStyle: "italic",
           }}
         >
@@ -294,27 +295,43 @@ function Certificate({
         </p>
 
         {/* Footer */}
-        <div className="w-full flex items-end justify-between mt-auto" style={{ maxWidth: "84%" }}>
+        <div className="w-full flex items-end justify-between" style={{ maxWidth: "88%", marginTop: "1.6%" }}>
           <FooterBlock label="التاريخ">
-            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(11px, 1.3vw, 14px)", color: C.ink }}>
+            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(14px, 1.7vw, 19px)", color: C.ink }}>
               {labelTanggalArab(record.tanggal)}
             </div>
           </FooterBlock>
           <FooterBlock label={ustadz}>
-            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(11px, 1.3vw, 14px)", color: C.ink }}>
+            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(14px, 1.7vw, 19px)", color: C.ink }}>
               {record.nama_guru || "—"}
             </div>
           </FooterBlock>
           <FooterBlock label="ختم المؤسسة">
             <div
-              className="rounded-full flex items-center justify-center mx-auto"
-              style={{ width: 46, height: 46, border: `2px dashed #B3801E` }}
+              className="rounded-2xl flex items-center justify-center mx-auto"
+              style={{ padding: "3% 6%", border: `2px dashed #B3801E` }}
             >
-              <img src={LOGO} alt="" style={{ width: "70%", mixBlendMode: "multiply" }} />
+              <div style={{ fontWeight: 700, fontSize: "clamp(11px, 1.3vw, 14px)", color: "#B3801E" }}>
+                كُتّاب بودي أشعري
+              </div>
             </div>
           </FooterBlock>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatRow({ label, value, ltr }: { label: string; value: string; ltr?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between" style={{ borderBottom: `1px dashed ${C.line}`, paddingBottom: "2%" }}>
+      <span style={{ fontSize: "clamp(11px, 1.3vw, 14px)", color: C.muted, fontWeight: 700 }}>{label}</span>
+      <span
+        dir={ltr ? "ltr" : undefined}
+        style={{ fontSize: "clamp(13px, 1.6vw, 17px)", color: "#B3801E", fontWeight: 700 }}
+      >
+        {value}
+      </span>
     </div>
   );
 }
@@ -325,13 +342,13 @@ function FooterBlock({ label, children }: { label: string; children: React.React
       {children}
       <div
         style={{
-          fontSize: "clamp(9px, 1vw, 11px)",
+          fontSize: "clamp(11px, 1.3vw, 14px)",
           color: C.muted,
           fontWeight: 700,
-          marginTop: "3%",
+          marginTop: "4%",
           borderTop: `1px solid ${C.line}`,
-          paddingTop: "2%",
-          width: "80%",
+          paddingTop: "3%",
+          width: "85%",
         }}
       >
         {label}
