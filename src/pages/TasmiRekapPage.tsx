@@ -16,21 +16,24 @@ function parseJuzNumber(juz: string): number | null {
 
 type KelasStat = {
   kelas: string;
-  jumlah: number;
+  jumlahSantri: number;
   rataJuz: number | null;
-  rataKesalahan: number | null;
+  juzList: string[];
 };
 
 function computeStats(rows: TasmiRekapRow[]): KelasStat[] {
   return KELAS_LIST.map(({ name }) => {
     const rowsKelas = rows.filter((r) => r.kelas === name);
     const juzNums = rowsKelas.map((r) => parseJuzNumber(r.juz)).filter((n): n is number => n != null);
-    const kesalahanNums = rowsKelas.map((r) => r.jumlah_kesalahan).filter((n) => Number.isFinite(n));
+    const santriUnik = new Set(rowsKelas.map((r) => r.nama_santri));
+    const juzUnik = Array.from(new Set(rowsKelas.map((r) => r.juz.trim()).filter(Boolean))).sort(
+      (a, b) => (parseJuzNumber(a) ?? 0) - (parseJuzNumber(b) ?? 0)
+    );
     return {
       kelas: name,
-      jumlah: rowsKelas.length,
+      jumlahSantri: santriUnik.size,
       rataJuz: juzNums.length ? juzNums.reduce((a, b) => a + b, 0) / juzNums.length : null,
-      rataKesalahan: kesalahanNums.length ? kesalahanNums.reduce((a, b) => a + b, 0) / kesalahanNums.length : null,
+      juzList: juzUnik,
     };
   });
 }
@@ -56,7 +59,7 @@ export default function TasmiRekapPage() {
   }, [year]);
 
   const stats = useMemo(() => computeStats(rows), [rows]);
-  const kelasKosong = stats.filter((s) => s.jumlah === 0);
+  const kelasKosong = stats.filter((s) => s.jumlahSantri === 0);
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
@@ -150,25 +153,25 @@ export default function TasmiRekapPage() {
                 <thead>
                   <tr style={{ background: C.leaf }}>
                     <th className="text-left font-semibold px-3.5 py-2.5" style={{ color: C.muted }}>Kelas</th>
-                    <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Tasmi'</th>
+                    <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Santri</th>
                     <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Rata² Juz</th>
-                    <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Rata² Salah</th>
+                    <th className="text-left font-semibold px-2 py-2.5" style={{ color: C.muted }}>Juz</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stats.map((s) => (
                     <tr key={s.kelas} style={{ borderTop: `1px solid ${C.line}` }}>
-                      <td className="px-3.5 py-2.5 truncate" style={{ color: s.jumlah === 0 ? C.muted : C.ink }}>
+                      <td className="px-3.5 py-2.5 truncate" style={{ color: s.jumlahSantri === 0 ? C.muted : C.ink }}>
                         {s.kelas}
                       </td>
-                      <td className="text-center px-2 py-2.5 font-semibold" style={{ color: s.jumlah === 0 ? C.muted : C.green }}>
-                        {s.jumlah}
+                      <td className="text-center px-2 py-2.5 font-semibold" style={{ color: s.jumlahSantri === 0 ? C.muted : C.green }}>
+                        {s.jumlahSantri}
                       </td>
                       <td className="text-center px-2 py-2.5" style={{ color: C.muted }}>
                         {s.rataJuz != null ? s.rataJuz.toFixed(1) : "—"}
                       </td>
-                      <td className="text-center px-2 py-2.5" style={{ color: C.muted }}>
-                        {s.rataKesalahan != null ? s.rataKesalahan.toFixed(1) : "—"}
+                      <td className="px-2 py-2.5" style={{ color: C.muted }}>
+                        {s.juzList.length ? s.juzList.join(", ") : "—"}
                       </td>
                     </tr>
                   ))}
@@ -176,7 +179,7 @@ export default function TasmiRekapPage() {
               </table>
             </div>
             <p className="text-[11px]" style={{ color: C.muted }}>
-              Rata² Juz dihitung dari angka yang ketemu di teks juz tiap catatan (mis. "Juz 29" → 29) — kelas yang belum ada catatannya tampil "—".
+              "Santri" = jumlah santri berbeda yang sudah tasmi' di tahun ini (bukan jumlah catatan). "Juz" = daftar juz yang pernah ditasmi'kan di kelas itu. Rata² Juz dihitung dari angka yang ketemu di teks juz tiap catatan (mis. "Juz 29" → 29).
             </p>
           </div>
         )}

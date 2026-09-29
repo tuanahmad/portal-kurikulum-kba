@@ -102,7 +102,7 @@ export async function deleteTasmiRecord(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-export type TasmiRekapRow = { kelas: string; juz: string; jumlah_kesalahan: number };
+export type TasmiRekapRow = { kelas: string; nama_santri: string; juz: string };
 
 /** Baca SEMUA catatan tasmi' (semua kelas) dalam 1 tahun kalender -- buat rekap management.
  *  Cuma kolom yang perlu diagregasi (bukan SELECT_COLS lengkap) biar ringan. RLS: cuma
@@ -111,7 +111,7 @@ export type TasmiRekapRow = { kelas: string; juz: string; jumlah_kesalahan: numb
 export async function readTasmiRekapTahun(year: number): Promise<TasmiRekapRow[]> {
   const { data, error } = await supabase
     .from("tasmi_records")
-    .select("kelas, juz, jumlah_kesalahan")
+    .select("kelas, nama_santri, juz")
     .gte("tanggal", `${year}-01-01`)
     .lte("tanggal", `${year}-12-31`);
   if (error) throw new Error(error.message);
