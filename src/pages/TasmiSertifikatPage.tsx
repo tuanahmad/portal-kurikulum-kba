@@ -176,7 +176,7 @@ function Certificate({
               style={{ width: "70%", mixBlendMode: "multiply", filter: "brightness(1.04)" }}
             />
             <div style={{ fontFamily: "'Tajawal', sans-serif", fontWeight: 700, fontSize: "clamp(10px, 1.1vw, 13px)", color: C.green, marginTop: "4%" }}>
-              كُتّاب بودي أشعري
+              كُتّاب بودي أزهري
             </div>
             <div style={{ fontSize: "clamp(8px, 0.85vw, 10px)", color: C.muted, fontWeight: 600 }} dir="ltr">
               Kuttab Budi Ashari
@@ -221,7 +221,7 @@ function Certificate({
             color: C.green,
           }}
         >
-          تشهد كُتّاب بودي أشعري بأنّ {talib}
+          تشهد كُتّاب بودي أزهري بأنّ {talib}
         </div>
 
         {/* Nama santri */}
@@ -312,7 +312,7 @@ function Certificate({
               style={{ padding: "3% 6%", border: `2px dashed #B3801E` }}
             >
               <div style={{ fontWeight: 700, fontSize: "clamp(11px, 1.3vw, 14px)", color: "#B3801E" }}>
-                كُتّاب بودي أشعري
+                كُتّاب بودي أزهري
               </div>
             </div>
           </FooterBlock>
