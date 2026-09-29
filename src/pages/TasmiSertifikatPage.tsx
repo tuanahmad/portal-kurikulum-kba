@@ -166,7 +166,7 @@ function Certificate({
       />
 
       {/* Konten */}
-      <div className="absolute inset-0 flex flex-col items-center text-center px-[8%]" style={{ paddingTop: "6.5%", paddingBottom: "4%" }}>
+      <div className="absolute inset-0 flex flex-col items-center text-center px-[8%]" style={{ paddingTop: "5%", paddingBottom: "6%" }}>
         {/* Header 2 kolom: logo+nama di kanan (awal teks RTL), lambang di kiri */}
         <div className="w-full flex items-start justify-between" style={{ maxWidth: "88%" }}>
           <div className="flex flex-col items-center" style={{ width: "22%" }}>
@@ -184,12 +184,11 @@ function Certificate({
           </div>
 
           <div className="flex flex-col items-center" style={{ width: "22%" }}>
-            <CrownIcon />
             <div
               className="rounded-full flex items-center justify-center"
-              style={{ width: "58%", aspectRatio: "1/1", marginTop: "6%", border: "2px solid #E7CE96", background: "rgba(217,185,104,0.12)" }}
+              style={{ width: "62%", aspectRatio: "1/1", border: "2px solid #E7CE96", background: "rgba(217,185,104,0.12)" }}
             >
-              <StarBadgeIcon />
+              <QuranIcon />
             </div>
           </div>
         </div>
@@ -357,16 +356,17 @@ function FooterBlock({ label, children }: { label: string; children: React.React
   );
 }
 
-function StarBadgeIcon() {
+function QuranIcon() {
   return (
-    <svg width="60%" height="60%" viewBox="0 0 24 24" fill="none">
+    <svg width="58%" height="58%" viewBox="0 0 24 24" fill="none">
       <path
-        d="M12 2l2.6 6.2L21 9l-5 4.4L17.4 20 12 16.6 6.6 20 8 13.4 3 9l6.4-0.8L12 2Z"
-        fill="#F0C670"
+        d="M12 5.2c-1.8-1.1-4.3-1.6-6.6-1.2-.7.1-1.2.7-1.2 1.4v11.8c0 .9.8 1.5 1.6 1.4 2-.3 4.3.1 6.2 1.2 1.9-1.1 4.2-1.5 6.2-1.2.9.1 1.6-.5 1.6-1.4V5.4c0-.7-.5-1.3-1.2-1.4-2.3-.4-4.8.1-6.6 1.2Z"
         stroke="#B3801E"
-        strokeWidth="1"
+        strokeWidth="1.5"
         strokeLinejoin="round"
       />
+      <path d="M12 5.2v13.4" stroke="#B3801E" strokeWidth="1.5" />
+      <path d="M7.4 8h3M7.4 10.6h3M14.6 8h2.8M14.6 10.6h2.8" stroke="#F0C670" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }
@@ -470,19 +470,3 @@ function Flower({ x, y, scale, color }: { x: number; y: number; scale: number; c
   );
 }
 
-function CrownIcon() {
-  return (
-    <svg width="46" height="34" viewBox="0 0 46 34" fill="none">
-      <path
-        d="M4 30h38l-3-17-9 9-7-15-7 15-9-9-3 17Z"
-        fill="#F0C670"
-        stroke="#B3801E"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      <circle cx="23" cy="8" r="2.4" fill="#E48FA0" />
-      <circle cx="10" cy="17" r="1.8" fill="#8FB6E4" />
-      <circle cx="36" cy="17" r="1.8" fill="#8FB6E4" />
-    </svg>
-  );
-}
