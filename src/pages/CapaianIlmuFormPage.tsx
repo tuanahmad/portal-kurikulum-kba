@@ -174,7 +174,7 @@ export default function CapaianIlmuFormPage() {
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-28">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/capaian")}
+            onClick={() => navigate(isGuru ? "/capaian" : `/capaian?kelas=${encodeURIComponent(kelas ?? "")}`)}
             aria-label="Kembali"
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}

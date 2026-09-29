@@ -159,7 +159,9 @@ export default function CapaianQuranDiagramPage() {
       <div className="max-w-3xl mx-auto px-4 pt-6 sm:pt-9 pb-28">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate(role === "guru" ? "/capaian/quran" : "/capaian")}
+            onClick={() =>
+              navigate(role === "guru" ? "/capaian/quran" : `/capaian?kelas=${encodeURIComponent(kelas ?? "")}`)
+            }
             aria-label="Kembali"
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}

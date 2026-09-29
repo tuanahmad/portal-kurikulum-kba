@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { C, KELAS_LIST } from "../data";
 import { AccentCard } from "../components/PortalComponents";
 import { PickerCard } from "../components/PickerCard";
@@ -49,7 +49,10 @@ function GuruCapaian({ kelasName }: { kelasName: string | null }) {
 /* ————————————————————— Management: pilih dari 12 kelas ————————————————————— */
 
 function ManagementCapaian() {
-  const [selectedI, setSelectedI] = useState<number | null>(null);
+  const [sp] = useSearchParams();
+  const kelasFromUrl = sp.get("kelas");
+  const initialI = kelasFromUrl ? KELAS_LIST.findIndex((k) => k.name === kelasFromUrl) : -1;
+  const [selectedI, setSelectedI] = useState<number | null>(initialI >= 0 ? initialI : null);
   const kelas = selectedI != null ? KELAS_LIST[selectedI] : null;
 
   return (
