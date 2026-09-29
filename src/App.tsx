@@ -19,6 +19,7 @@ import CapaianQuranDiagramPage from "./pages/CapaianQuranDiagramPage";
 import CapaianIlmuFormPage from "./pages/CapaianIlmuFormPage";
 import TasmiPage from "./pages/TasmiPage";
 import TasmiSertifikatPage from "./pages/TasmiSertifikatPage";
+import TasmiRekapPage from "./pages/TasmiRekapPage";
 
 export default function App() {
   return (
@@ -119,6 +120,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["guru", "management"]}>
                 <TasmiSertifikatPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/capaian/tasmi-rekap"
+            element={
+              <ProtectedRoute allowedRoles={["management"]}>
+                <TasmiRekapPage />
               </ProtectedRoute>
             }
           />
