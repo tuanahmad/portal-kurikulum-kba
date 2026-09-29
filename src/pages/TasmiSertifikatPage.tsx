@@ -115,7 +115,13 @@ export default function TasmiSertifikatPage() {
         </button>
       </div>
 
-      <div className="flex justify-center px-4 pb-10">
+      {/* Layar sempit (HP): sertifikatnya landscape, gak bakal muat pas di lebar layar tanpa
+          teksnya keremes kekecilan -- daripada dipaksa nyusut (jadi kepotong, kayak yang kejadian
+          sebelumnya), dikasih min-width + scroll horizontal, sama kayak liat PDF di HP. */}
+      <p className="no-print text-center text-xs sm:hidden mb-2" style={{ color: C.muted }}>
+        Geser ke samping buat lihat semua ↔
+      </p>
+      <div className="flex justify-center px-4 pb-10 overflow-x-auto">
         <Certificate record={record} namaLengkap={namaLengkap} male={male} kelas={kelas} />
       </div>
     </div>
@@ -146,6 +152,7 @@ function Certificate({
       style={{
         width: "297mm",
         maxWidth: "100%",
+        minWidth: 700,
         aspectRatio: "297 / 210",
         background: "linear-gradient(180deg, #FFFDF7 0%, #FFF8EA 100%)",
         boxShadow: "0 12px 40px rgba(28,74,51,0.18)",
@@ -356,17 +363,20 @@ function FooterBlock({ label, children }: { label: string; children: React.React
   );
 }
 
+/** Mushaf (Al-Qur'an tertutup) bernuansa Timur Tengah -- sampul ijo tua + list emas, rosette
+ *  geometris 8 sudut di tengah (motif khas ornamen Islami) ketimbang buku generik biasa. */
 function QuranIcon() {
   return (
-    <svg width="58%" height="58%" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 5.2c-1.8-1.1-4.3-1.6-6.6-1.2-.7.1-1.2.7-1.2 1.4v11.8c0 .9.8 1.5 1.6 1.4 2-.3 4.3.1 6.2 1.2 1.9-1.1 4.2-1.5 6.2-1.2.9.1 1.6-.5 1.6-1.4V5.4c0-.7-.5-1.3-1.2-1.4-2.3-.4-4.8.1-6.6 1.2Z"
-        stroke="#B3801E"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <path d="M12 5.2v13.4" stroke="#B3801E" strokeWidth="1.5" />
-      <path d="M7.4 8h3M7.4 10.6h3M14.6 8h2.8M14.6 10.6h2.8" stroke="#F0C670" strokeWidth="1.3" strokeLinecap="round" />
+    <svg width="60%" height="60%" viewBox="0 0 24 24" fill="none">
+      <rect x="4" y="3.5" width="16" height="17" rx="1.4" fill="#1C4A33" stroke="#B3801E" strokeWidth="1.3" />
+      <rect x="5.3" y="4.8" width="13.4" height="14.4" rx="0.8" stroke="#F0C670" strokeWidth="0.6" />
+      <g transform="translate(12,12)" stroke="#F0C670" strokeWidth="0.9" strokeLinejoin="round">
+        <path d="M0 -3.4L0.9 -0.9L3.4 0L0.9 0.9L0 3.4L-0.9 0.9L-3.4 0L-0.9 -0.9Z" fill="#F0C670" opacity="0.15" />
+        <path d="M0 -3.4L0.9 -0.9L3.4 0L0.9 0.9L0 3.4L-0.9 0.9L-3.4 0L-0.9 -0.9Z" />
+        <path d="M0 -2.4L0.65 -0.65L2.4 0L0.65 0.65L0 2.4L-0.65 0.65L-2.4 0L-0.65 -0.65Z" transform="rotate(22.5)" />
+      </g>
+      <path d="M8 7h1.6M8 17.2h1.6" stroke="#F0C670" strokeWidth="0.8" strokeLinecap="round" />
+      <path d="M14.4 7H16M14.4 17.2H16" stroke="#F0C670" strokeWidth="0.8" strokeLinecap="round" />
     </svg>
   );
 }
