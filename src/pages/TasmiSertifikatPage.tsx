@@ -115,11 +115,13 @@ export default function TasmiSertifikatPage() {
         </button>
       </div>
 
-      {/* Layar sempit (HP): sertifikatnya landscape, gak bakal muat pas di lebar layar tanpa
-          teksnya keremes kekecilan -- daripada dipaksa nyusut (jadi kepotong, kayak yang kejadian
-          sebelumnya), dikasih min-width + scroll horizontal, sama kayak liat PDF di HP. */}
+      {/* Layar sempit (HP): sertifikatnya SELALU dirender di ukuran penuh (297mm), gak disusutkan
+          sama sekali -- kalau disusutkan (maxWidth:100%), font clamp()-nya yang berbasis vw (lebar
+          viewport HP, bukan lebar kotak sertifikat) jadi kegedean dibanding kotaknya sendiri, jadi
+          overflow dan kepotong overflow:hidden. Solusinya: biarin penuh, scroll aja kayak liat PDF
+          di HP (horizontal manual, vertical ngikut scroll halaman). */}
       <p className="no-print text-center text-xs sm:hidden mb-2" style={{ color: C.muted }}>
-        Geser ke samping buat lihat semua ↔
+        Geser ke samping &amp; scroll ke bawah buat lihat semua ↔
       </p>
       <div className="flex justify-center px-4 pb-10 overflow-x-auto">
         <Certificate record={record} namaLengkap={namaLengkap} male={male} kelas={kelas} />
@@ -151,8 +153,6 @@ function Certificate({
       className="cert-page relative overflow-hidden shrink-0"
       style={{
         width: "297mm",
-        maxWidth: "100%",
-        minWidth: 700,
         aspectRatio: "297 / 210",
         background: "linear-gradient(180deg, #FFFDF7 0%, #FFF8EA 100%)",
         boxShadow: "0 12px 40px rgba(28,74,51,0.18)",
