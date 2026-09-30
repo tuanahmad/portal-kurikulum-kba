@@ -845,14 +845,6 @@ function GuruAbsenSantri() {
     setMsg(null);
   }
 
-  function markHadirDuaSesi(nama: string) {
-    setForm((p) => ({
-      ...p,
-      [nama]: { nama_santri: nama, pagi: { status: "hadir", keterangan: "" }, siang: { status: "hadir", keterangan: "" } },
-    }));
-    setMsg(null);
-  }
-
   async function handleSave() {
     if (!kelas) return;
     setSaving(true);
@@ -911,7 +903,6 @@ function GuruAbsenSantri() {
               nama={nama}
               entry={form[nama] ?? emptySantriEntry(nama)}
               onChangeSesi={(sesi, v) => setSesi(nama, sesi, v)}
-              onHadirDuaSesi={() => markHadirDuaSesi(nama)}
             />
           ))}
 
@@ -935,29 +926,14 @@ function SantriRow({
   nama,
   entry,
   onChangeSesi,
-  onHadirDuaSesi,
 }: {
   nama: string;
   entry: SantriAbsenEntry;
   onChangeSesi: (sesi: "pagi" | "siang", v: SantriSesiEntry) => void;
-  onHadirDuaSesi: () => void;
 }) {
-  const bothHadir = entry.pagi.status === "hadir" && entry.siang.status === "hadir";
-
   return (
     <div className="rounded-xl p-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold min-w-0 truncate" style={{ color: C.ink }}>{nama}</span>
-        <button
-          type="button"
-          onClick={onHadirDuaSesi}
-          disabled={bothHadir}
-          className="text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 transition-opacity"
-          style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}`, opacity: bothHadir ? 0.5 : 1 }}
-        >
-          Hadir 2 sesi
-        </button>
-      </div>
+      <span className="text-sm font-semibold block truncate" style={{ color: C.ink }}>{nama}</span>
 
       <div className="mt-2.5 grid grid-cols-2 gap-2.5">
         <SantriSesiToggle label="Pagi" value={entry.pagi} onChange={(v) => onChangeSesi("pagi", v)} />
