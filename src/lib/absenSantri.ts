@@ -89,37 +89,21 @@ export async function saveAbsenSantriDay(kelas: string, tanggal: string, entries
   if (error) throw new Error(error.message);
 }
 
-export type SantriRekapBulanRow = {
-  nama_santri: string;
-  hadirPagi: number;
-  tidakHadirPagi: number;
-  hadirSiang: number;
-  tidakHadirSiang: number;
-};
+export type AbsenSantriRekapRow = { kelas: string; nama_santri: string; status_pagi: SantriStatus; status_siang: SantriStatus };
 
-/** Rekap 1 kelas 1 bulan -- total hadir/tidak-hadir tiap santri, per sesi. Dipakai management. */
-export async function readAbsenSantriRekapBulan(kelas: string, year: number, month1to12: number): Promise<SantriRekapBulanRow[]> {
+/** Rekap SEMUA kelas 1 bulan sekaligus -- buat rekap management (kayak readTasmiRekapTahun),
+ *  dikelompokkan per kelas di sisi page, bukan di sini, biar page bisa nampilin ringkasan semua
+ *  kelas dulu baru rincian per kelas pas di-expand. */
+export async function readAbsenSantriRekapBulanSemua(year: number, month1to12: number): Promise<AbsenSantriRekapRow[]> {
   const from = `${year}-${String(month1to12).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month1to12, 0).getDate();
   const to = `${year}-${String(month1to12).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   const { data, error } = await supabase
     .from("absen_santri")
-    .select("nama_santri, status_pagi, status_siang")
-    .eq("kelas", kelas)
+    .select("kelas, nama_santri, status_pagi, status_siang")
     .gte("tanggal", from)
     .lte("tanggal", to);
   if (error) throw new Error(error.message);
-
-  const byNama = new Map<string, SantriRekapBulanRow>();
-  for (const row of data ?? []) {
-    const nama = row.nama_santri as string;
-    if (!byNama.has(nama)) byNama.set(nama, { nama_santri: nama, hadirPagi: 0, tidakHadirPagi: 0, hadirSiang: 0, tidakHadirSiang: 0 });
-    const r = byNama.get(nama)!;
-    if (row.status_pagi === "hadir") r.hadirPagi++;
-    else r.tidakHadirPagi++;
-    if (row.status_siang === "hadir") r.hadirSiang++;
-    else r.tidakHadirSiang++;
-  }
-  return Array.from(byNama.values()).sort((a, b) => a.nama_santri.localeCompare(b.nama_santri));
+  return (data ?? []) as AbsenSantriRekapRow[];
 }

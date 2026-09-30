@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
@@ -29,15 +29,15 @@ import {
   type SesiKey,
   type AbsenStatus,
 } from "../lib/absen";
-import { capaianRoster } from "../data";
+import { capaianRoster, KELAS_LIST } from "../data";
 import {
   readAbsenSantriDay,
   saveAbsenSantriDay,
-  readAbsenSantriRekapBulan,
+  readAbsenSantriRekapBulanSemua,
   SANTRI_STATUS_LABEL,
   type SantriAbsenEntry,
   type SantriStatus,
-  type SantriRekapBulanRow,
+  type AbsenSantriRekapRow,
 } from "../lib/absenSantri";
 
 const STATUSES: AbsenStatus[] = ["hadir", "izin", "sakit", "cuti"];
@@ -1023,43 +1023,59 @@ function SantriSesiToggle({
 
 const BULAN_LABEL = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
+type SantriRekapBulanRow = { nama_santri: string; hadirPagi: number; tidakHadirPagi: number; hadirSiang: number; tidakHadirSiang: number };
+type KelasAbsenStat = { kelas: string; santriTidakHadir: number; kejadianTidakHadir: number; perSantri: SantriRekapBulanRow[] };
+
+function computeAbsenSantriStats(rows: AbsenSantriRekapRow[]): KelasAbsenStat[] {
+  return KELAS_LIST.map(({ name }) => {
+    const rowsKelas = rows.filter((r) => r.kelas === name);
+    const byNama = new Map<string, SantriRekapBulanRow>();
+    for (const r of rowsKelas) {
+      if (!byNama.has(r.nama_santri)) {
+        byNama.set(r.nama_santri, { nama_santri: r.nama_santri, hadirPagi: 0, tidakHadirPagi: 0, hadirSiang: 0, tidakHadirSiang: 0 });
+      }
+      const s = byNama.get(r.nama_santri)!;
+      if (r.status_pagi === "hadir") s.hadirPagi++; else s.tidakHadirPagi++;
+      if (r.status_siang === "hadir") s.hadirSiang++; else s.tidakHadirSiang++;
+    }
+    const perSantri = Array.from(byNama.values()).sort((a, b) => a.nama_santri.localeCompare(b.nama_santri));
+    const santriTidakHadir = perSantri.filter((s) => s.tidakHadirPagi > 0 || s.tidakHadirSiang > 0).length;
+    const kejadianTidakHadir = perSantri.reduce((sum, s) => sum + s.tidakHadirPagi + s.tidakHadirSiang, 0);
+    return { kelas: name, santriTidakHadir, kejadianTidakHadir, perSantri };
+  });
+}
+
 function ManagementAbsenSantri() {
-  const [kelasList, setKelasList] = useState<string[]>([]);
-  const [kelasI, setKelasI] = useState<number | null>(null);
   const now = useMemo(() => new Date(), []);
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [monthDate, setMonthDate] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth() + 1;
+  const atThisMonth = year === now.getFullYear() && month === now.getMonth() + 1;
 
-  const [rows, setRows] = useState<SantriRekapBulanRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [rows, setRows] = useState<AbsenSantriRekapRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const kelas = kelasI != null ? kelasList[kelasI] : null;
-
-  useEffect(() => {
-    supabase
-      .from("profiles")
-      .select("kelas")
-      .eq("role", "guru")
-      .then(({ data, error }) => {
-        if (error) return setError(error.message);
-        setKelasList((data ?? []).map((r) => r.kelas as string).filter(Boolean).sort());
-      });
-  }, []);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!kelas) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
-    readAbsenSantriRekapBulan(kelas, year, month)
+    readAbsenSantriRekapBulanSemua(year, month)
       .then((r) => !cancelled && setRows(r))
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [kelas, year, month]);
+  }, [year, month]);
+
+  const stats = useMemo(() => computeAbsenSantriStats(rows), [rows]);
+  const kelasKosong = stats.filter((s) => s.perSantri.length === 0);
+
+  function shiftMonth(n: number) {
+    setMonthDate((d) => new Date(d.getFullYear(), d.getMonth() + n, 1));
+  }
 
   return (
     <>
@@ -1070,90 +1086,123 @@ function ManagementAbsenSantri() {
         >
           Absen Santri
         </h1>
-        <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap kehadiran santri per bulan</p>
+        <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap kehadiran santri per bulan — semua kelas</p>
       </header>
 
-      <div className="mt-5">
-        <PickerCard
-          items={kelasList.map((k) => ({ label: k }))}
-          value={kelasI}
-          onChange={setKelasI}
-          placeholderLabel="Pilih kelas"
-          selectedLabel="Kelas"
-          countText={`${kelasList.length} kelas`}
-          numbered={false}
-        />
-      </div>
+      <WeekNav
+        label={`${BULAN_LABEL[month - 1]} ${year}`}
+        sub={atThisMonth ? "Bulan ini" : undefined}
+        onPrev={() => shiftMonth(-1)}
+        onNext={atThisMonth ? undefined : () => shiftMonth(1)}
+      />
 
-      {kelas && (
-        <>
-          <div className="mt-4 flex items-center gap-2">
-            <select
-              value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
-              className="flex-1 text-sm px-3 py-2.5 rounded-xl outline-none"
-              style={{ border: `1px solid ${C.line}`, background: "#FFF", color: C.ink }}
-            >
-              {BULAN_LABEL.map((b, i) => (
-                <option key={b} value={i + 1}>{b}</option>
-              ))}
-            </select>
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="text-sm px-3 py-2.5 rounded-xl outline-none"
-              style={{ border: `1px solid ${C.line}`, background: "#FFF", color: C.ink }}
-            >
-              {[now.getFullYear(), now.getFullYear() - 1].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+      {error && (
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="mt-5"><PageLoadingSkeleton /></div>
+      ) : (
+        <div className="mt-5 space-y-5">
+          <div
+            className="rounded-2xl p-4 sm:p-5"
+            style={{
+              background: kelasKosong.length > 0 ? "#FDEBEA" : C.leaf,
+              border: `1px solid ${kelasKosong.length > 0 ? "#E8A6A0" : C.green}`,
+            }}
+          >
+            <div className="text-sm font-bold" style={{ color: kelasKosong.length > 0 ? "#8A2A20" : C.green }}>
+              {kelasKosong.length > 0
+                ? `${kelasKosong.length} dari ${KELAS_LIST.length} kelas belum ada absen santri di ${BULAN_LABEL[month - 1]} ${year}`
+                : `Semua ${KELAS_LIST.length} kelas sudah ada absen santri di ${BULAN_LABEL[month - 1]} ${year} 🎉`}
+            </div>
+            {kelasKosong.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {kelasKosong.map((s) => (
+                  <span
+                    key={s.kelas}
+                    className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                    style={{ background: "#FFF", color: "#8A2A20", border: "1px solid #E8A6A0" }}
+                  >
+                    {s.kelas}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
-          {error && (
-            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-              {error}
-            </div>
-          )}
-
-          {loading ? (
-            <div className="mt-5"><PageLoadingSkeleton /></div>
-          ) : rows.length === 0 ? (
-            <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Belum ada absen santri di bulan ini.</p>
-          ) : (
-            <div className="mt-5 rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ background: C.leaf }}>
-                    <th className="text-left font-semibold px-3.5 py-2.5" style={{ color: C.muted }}>Santri</th>
-                    <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Pagi</th>
-                    <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Siang</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.nama_santri} style={{ borderTop: `1px solid ${C.line}` }}>
-                      <td className="px-3.5 py-2.5" style={{ color: C.ink }}>{r.nama_santri}</td>
-                      <td className="text-center px-2 py-2.5" style={{ color: C.muted }}>
-                        <span style={{ color: C.green, fontWeight: 700 }}>{r.hadirPagi}</span> / {r.tidakHadirPagi > 0 && (
-                          <span style={{ color: "#C0524A", fontWeight: 700 }}>{r.tidakHadirPagi}</span>
-                        )}{r.tidakHadirPagi === 0 && "0"}
-                      </td>
-                      <td className="text-center px-2 py-2.5" style={{ color: C.muted }}>
-                        <span style={{ color: C.green, fontWeight: 700 }}>{r.hadirSiang}</span> / {r.tidakHadirSiang > 0 && (
-                          <span style={{ color: "#C0524A", fontWeight: 700 }}>{r.tidakHadirSiang}</span>
-                        )}{r.tidakHadirSiang === 0 && "0"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="text-[11px] px-3.5 py-2.5" style={{ color: C.muted, borderTop: `1px solid ${C.line}` }}>
-                Format: Hadir / Tidak Hadir.
-              </p>
-            </div>
-          )}
-        </>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background: C.leaf }}>
+                  <th className="text-left font-semibold px-3.5 py-2.5" style={{ color: C.muted }}>Kelas</th>
+                  <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Santri Tdk Hadir</th>
+                  <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Kejadian</th>
+                  <th className="w-8" />
+                </tr>
+              </thead>
+              <tbody>
+                {stats.map((s) => {
+                  const isOpen = expanded === s.kelas;
+                  const hasData = s.perSantri.length > 0;
+                  return (
+                    <Fragment key={s.kelas}>
+                      <tr
+                        onClick={() => hasData && setExpanded(isOpen ? null : s.kelas)}
+                        style={{ borderTop: `1px solid ${C.line}`, cursor: hasData ? "pointer" : "default" }}
+                      >
+                        <td className="px-3.5 py-2.5" style={{ color: hasData ? C.ink : C.muted }}>{s.kelas}</td>
+                        <td className="text-center px-2 py-2.5 font-semibold" style={{ color: s.santriTidakHadir > 0 ? "#C0524A" : C.muted }}>
+                          {hasData ? s.santriTidakHadir : "—"}
+                        </td>
+                        <td className="text-center px-2 py-2.5" style={{ color: C.muted }}>
+                          {hasData ? s.kejadianTidakHadir : "—"}
+                        </td>
+                        <td className="px-2 py-2.5 text-center" style={{ color: C.muted }}>
+                          {hasData && (isOpen ? "▲" : "▼")}
+                        </td>
+                      </tr>
+                      {isOpen && hasData && (
+                        <tr style={{ background: C.mist }}>
+                          <td colSpan={4} className="px-3.5 py-3">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr>
+                                  <th className="text-left font-semibold pb-1.5" style={{ color: C.muted }}>Santri</th>
+                                  <th className="text-center font-semibold pb-1.5" style={{ color: C.muted }}>Pagi (H/TH)</th>
+                                  <th className="text-center font-semibold pb-1.5" style={{ color: C.muted }}>Siang (H/TH)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {s.perSantri.map((r) => (
+                                  <tr key={r.nama_santri} style={{ borderTop: `1px solid ${C.line}` }}>
+                                    <td className="py-1.5" style={{ color: C.ink }}>{r.nama_santri}</td>
+                                    <td className="text-center py-1.5" style={{ color: C.muted }}>
+                                      <span style={{ color: C.green, fontWeight: 700 }}>{r.hadirPagi}</span>
+                                      {" / "}
+                                      <span style={{ color: r.tidakHadirPagi > 0 ? "#C0524A" : C.muted, fontWeight: 700 }}>{r.tidakHadirPagi}</span>
+                                    </td>
+                                    <td className="text-center py-1.5" style={{ color: C.muted }}>
+                                      <span style={{ color: C.green, fontWeight: 700 }}>{r.hadirSiang}</span>
+                                      {" / "}
+                                      <span style={{ color: r.tidakHadirSiang > 0 ? "#C0524A" : C.muted, fontWeight: 700 }}>{r.tidakHadirSiang}</span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </>
   );
