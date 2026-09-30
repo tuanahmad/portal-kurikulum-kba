@@ -29,8 +29,21 @@ import {
   type SesiKey,
   type AbsenStatus,
 } from "../lib/absen";
+import { capaianRoster } from "../data";
+import {
+  readAbsenSantriDay,
+  saveAbsenSantriDay,
+  readAbsenSantriRekapBulan,
+  emptySantriEntry,
+  SANTRI_STATUS_LABEL,
+  type SantriAbsenEntry,
+  type SantriSesiEntry,
+  type SantriStatus,
+  type SantriRekapBulanRow,
+} from "../lib/absenSantri";
 
 const STATUSES: AbsenStatus[] = ["hadir", "izin", "sakit", "cuti"];
+const SANTRI_STATUSES: SantriStatus[] = ["hadir", "tidak_hadir"];
 
 const PERATURAN = [
   "Absen 2 sesi tiap hari kerja (Senin–Jumat): kelas pagi & kelas siang — masing-masing punya jam datang & jam pulang sendiri.",
@@ -41,7 +54,33 @@ const PERATURAN = [
 
 export default function AbsenPage() {
   const { role } = useAuth();
-  return role === "management" ? <ManagementAbsen /> : <GuruAbsen />;
+  const [tab, setTab] = useState<"guru" | "santri">("guru");
+
+  return (
+    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
+      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-xl" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+          {(["guru", "santri"] as const).map((t) => {
+            const active = tab === t;
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className="py-2.5 rounded-lg text-sm font-semibold transition-colors"
+                style={{ background: active ? C.green : "transparent", color: active ? "#FFF" : C.muted }}
+              >
+                {t === "guru" ? "Absen Guru" : "Absen Santri"}
+              </button>
+            );
+          })}
+        </div>
+
+        {tab === "guru"
+          ? role === "management" ? <ManagementAbsen /> : <GuruAbsen />
+          : role === "management" ? <ManagementAbsenSantri /> : <GuruAbsenSantri />}
+      </div>
+    </div>
+  );
 }
 
 /* ═══════════════════════ Guru ═══════════════════════ */
@@ -81,65 +120,61 @@ function GuruAbsen() {
 
   if (!kelas) {
     return (
-      <div className="min-h-dvh flex items-center justify-center" style={{ background: C.mist }}>
-        <p className="text-sm" style={{ color: C.muted }}>Kelas belum diset untuk akun ini.</p>
-      </div>
+      <p className="text-sm text-center mt-8" style={{ color: C.muted }}>Kelas belum diset untuk akun ini.</p>
     );
   }
 
   return (
-    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <header>
-          <h1
-            className="text-xl sm:text-2xl font-semibold"
-            style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Absen Guru
-          </h1>
-          <p className="text-sm mt-1" style={{ color: C.muted }}>{kelas}</p>
-        </header>
+    <>
+      <header className="mt-5">
+        <h1
+          className="text-xl sm:text-2xl font-semibold"
+          style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
+        >
+          Absen Guru
+        </h1>
+        <p className="text-sm mt-1" style={{ color: C.muted }}>{kelas}</p>
+      </header>
 
-        <RuleCard title="Peraturan mengisi absen" rules={PERATURAN} icon={<AbsenRuleIcon />} />
+      <RuleCard title="Peraturan mengisi absen" rules={PERATURAN} icon={<AbsenRuleIcon />} />
 
-        <WeekNav
-          label={labelRentangPekan(days)}
-          sub={atThisWeek ? "Pekan ini" : undefined}
-          onPrev={() => setMonday(shiftWeek(monday, -1))}
-          onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
-        />
+      <WeekNav
+        label={labelRentangPekan(days)}
+        sub={atThisWeek ? "Pekan ini" : undefined}
+        onPrev={() => setMonday(shiftWeek(monday, -1))}
+        onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
+      />
 
-        {error && (
-          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-            {error}
-          </div>
-        )}
-        {loading ? (
-          <div className="mt-5">
-            <PageLoadingSkeleton />
-          </div>
-        ) : (
-          <div className="mt-5 space-y-3">
-            {days.map((d) => {
-              const key = ymd(d);
-              return (
-                <AbsenDayCard
-                  key={key}
-                  date={d}
-                  isToday={key === todayYmd}
-                  editable={key <= todayYmd}
-                  entry={entries[key] ?? emptyAbsen(key)}
-                  open={openDay === key}
-                  onToggle={() => setOpenDay((o) => (o === key ? null : key))}
-                  onSaved={(saved) => setEntries((prev) => ({ ...prev, [key]: saved }))}
-                  kelas={kelas}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+      {error && (
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          {error}
+        </div>
+      )}
+      {loading ? (
+        <div className="mt-5">
+          <PageLoadingSkeleton />
+        </div>
+      ) : (
+        <div className="mt-5 space-y-3">
+          {days.map((d) => {
+            const key = ymd(d);
+            return (
+              <AbsenDayCard
+                key={key}
+                date={d}
+                isToday={key === todayYmd}
+                editable={key <= todayYmd}
+                entry={entries[key] ?? emptyAbsen(key)}
+                open={openDay === key}
+                onToggle={() => setOpenDay((o) => (o === key ? null : key))}
+                onSaved={(saved) => setEntries((prev) => ({ ...prev, [key]: saved }))}
+                kelas={kelas}
+              />
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -444,43 +479,41 @@ function ManagementAbsen() {
   }, []);
 
   return (
-    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
-      <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <header>
-          <h1
-            className="text-xl sm:text-2xl font-semibold"
-            style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Absen Guru
-          </h1>
-          <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap kehadiran harian guru</p>
-        </header>
+    <>
+      <header className="mt-5">
+        <h1
+          className="text-xl sm:text-2xl font-semibold"
+          style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
+        >
+          Absen Guru
+        </h1>
+        <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap kehadiran harian guru</p>
+      </header>
 
-        <div className="mt-5 grid grid-cols-2 gap-1 p-1 rounded-xl" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-          {(["kelas", "hari"] as const).map((t) => {
-            const active = tab === t;
-            return (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className="py-2 rounded-lg text-sm font-semibold transition-colors"
-                style={{ background: active ? C.green : "transparent", color: active ? "#FFF" : C.muted }}
-              >
-                {t === "kelas" ? "Per Kelas" : "Per Hari"}
-              </button>
-            );
-          })}
-        </div>
-
-        {error && (
-          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-            {error}
-          </div>
-        )}
-
-        {tab === "kelas" ? <ManagementAbsenPerKelas kelasList={kelasList} /> : <ManagementAbsenPerHari kelasList={kelasList} />}
+      <div className="mt-5 grid grid-cols-2 gap-1 p-1 rounded-xl" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        {(["kelas", "hari"] as const).map((t) => {
+          const active = tab === t;
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className="py-2 rounded-lg text-sm font-semibold transition-colors"
+              style={{ background: active ? C.green : "transparent", color: active ? "#FFF" : C.muted }}
+            >
+              {t === "kelas" ? "Per Kelas" : "Per Hari"}
+            </button>
+          );
+        })}
       </div>
-    </div>
+
+      {error && (
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          {error}
+        </div>
+      )}
+
+      {tab === "kelas" ? <ManagementAbsenPerKelas kelasList={kelasList} /> : <ManagementAbsenPerHari kelasList={kelasList} />}
+    </>
   );
 }
 
@@ -767,6 +800,356 @@ function ArrowBtn({ dir, disabled, onClick }: { dir: "prev" | "next"; disabled?:
         <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
+  );
+}
+
+/* ═══════════════════════ Absen Santri — Guru ═══════════════════════ */
+
+function GuruAbsenSantri() {
+  const { kelas } = useAuth();
+  const roster = useMemo(() => (kelas ? capaianRoster(kelas) : []), [kelas]);
+  const todayYmd = ymd(new Date());
+  const [date, setDate] = useState(() => new Date());
+  const dateYmd = ymd(date);
+  const editable = dateYmd <= todayYmd;
+
+  const [form, setForm] = useState<Record<string, SantriAbsenEntry>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!kelas) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setMsg(null);
+    readAbsenSantriDay(kelas, dateYmd)
+      .then((saved) => {
+        if (cancelled) return;
+        const next: Record<string, SantriAbsenEntry> = {};
+        for (const nama of roster) next[nama] = saved[nama] ?? emptySantriEntry(nama);
+        setForm(next);
+      })
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kelas, dateYmd]);
+
+  function setSesi(nama: string, sesi: "pagi" | "siang", next: SantriSesiEntry) {
+    setForm((p) => ({ ...p, [nama]: { ...p[nama], [sesi]: next } }));
+    setMsg(null);
+  }
+
+  function markHadirDuaSesi(nama: string) {
+    setForm((p) => ({
+      ...p,
+      [nama]: { nama_santri: nama, pagi: { status: "hadir", keterangan: "" }, siang: { status: "hadir", keterangan: "" } },
+    }));
+    setMsg(null);
+  }
+
+  async function handleSave() {
+    if (!kelas) return;
+    setSaving(true);
+    setError(null);
+    setMsg(null);
+    try {
+      await saveAbsenSantriDay(kelas, dateYmd, roster.map((nama) => form[nama] ?? emptySantriEntry(nama)));
+      setMsg("Tersimpan.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!kelas) {
+    return <p className="text-sm text-center mt-8" style={{ color: C.muted }}>Kelas belum diset untuk akun ini.</p>;
+  }
+
+  return (
+    <>
+      <header className="mt-5">
+        <h1
+          className="text-xl sm:text-2xl font-semibold"
+          style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
+        >
+          Absen Santri
+        </h1>
+        <p className="text-sm mt-1" style={{ color: C.muted }}>{kelas}</p>
+      </header>
+
+      <WeekNav
+        label={`${labelHari(date)}, ${labelTanggal(date)}`}
+        sub={dateYmd === todayYmd ? "Hari ini" : undefined}
+        onPrev={() => setDate(addDays(date, -1))}
+        onNext={dateYmd >= todayYmd ? undefined : () => setDate(addDays(date, 1))}
+      />
+
+      {error && (
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          {error}
+        </div>
+      )}
+
+      {!editable ? (
+        <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Tanggal ini belum tiba.</p>
+      ) : loading ? (
+        <div className="mt-5"><PageLoadingSkeleton /></div>
+      ) : roster.length === 0 ? (
+        <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Roster santri kelas ini belum ada.</p>
+      ) : (
+        <div className="mt-5 space-y-2.5">
+          {roster.map((nama) => (
+            <SantriRow
+              key={nama}
+              nama={nama}
+              entry={form[nama] ?? emptySantriEntry(nama)}
+              onChangeSesi={(sesi, v) => setSesi(nama, sesi, v)}
+              onHadirDuaSesi={() => markHadirDuaSesi(nama)}
+            />
+          ))}
+
+          {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="mt-2 w-full py-2.5 rounded-xl text-sm font-bold transition-opacity sticky bottom-3"
+            style={{ background: C.green, color: "#FFF", opacity: saving ? 0.5 : 1 }}
+          >
+            {saving ? "Menyimpan…" : "Simpan Absen Santri"}
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function SantriRow({
+  nama,
+  entry,
+  onChangeSesi,
+  onHadirDuaSesi,
+}: {
+  nama: string;
+  entry: SantriAbsenEntry;
+  onChangeSesi: (sesi: "pagi" | "siang", v: SantriSesiEntry) => void;
+  onHadirDuaSesi: () => void;
+}) {
+  const bothHadir = entry.pagi.status === "hadir" && entry.siang.status === "hadir";
+
+  return (
+    <div className="rounded-xl p-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold min-w-0 truncate" style={{ color: C.ink }}>{nama}</span>
+        <button
+          type="button"
+          onClick={onHadirDuaSesi}
+          disabled={bothHadir}
+          className="text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 transition-opacity"
+          style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}`, opacity: bothHadir ? 0.5 : 1 }}
+        >
+          Hadir 2 sesi
+        </button>
+      </div>
+
+      <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+        <SantriSesiToggle label="Pagi" value={entry.pagi} onChange={(v) => onChangeSesi("pagi", v)} />
+        <SantriSesiToggle label="Siang" value={entry.siang} onChange={(v) => onChangeSesi("siang", v)} />
+      </div>
+    </div>
+  );
+}
+
+function SantriSesiToggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: SantriSesiEntry;
+  onChange: (v: SantriSesiEntry) => void;
+}) {
+  return (
+    <div>
+      <span className="block text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: C.muted }}>{label}</span>
+      <div className="flex gap-1.5">
+        {SANTRI_STATUSES.map((s) => {
+          const on = value.status === s;
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onChange({ status: s, keterangan: s === "hadir" ? "" : value.keterangan })}
+              className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
+              style={{
+                background: on ? (s === "hadir" ? C.green : "#C0524A") : "#FFF",
+                color: on ? "#FFF" : C.ink,
+                border: `1px solid ${on ? (s === "hadir" ? C.green : "#C0524A") : C.line}`,
+              }}
+            >
+              {SANTRI_STATUS_LABEL[s]}
+            </button>
+          );
+        })}
+      </div>
+      {value.status === "tidak_hadir" && (
+        <input
+          type="text"
+          value={value.keterangan}
+          onChange={(e) => onChange({ ...value, keterangan: e.target.value })}
+          placeholder="Keterangan (opsional)"
+          className="mt-1.5 w-full text-xs outline-none px-2 py-1.5 rounded-lg"
+          style={{ border: `1px solid ${C.line}` }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════ Absen Santri — Management ═══════════════════════ */
+
+const BULAN_LABEL = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+function ManagementAbsenSantri() {
+  const [kelasList, setKelasList] = useState<string[]>([]);
+  const [kelasI, setKelasI] = useState<number | null>(null);
+  const now = useMemo(() => new Date(), []);
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+
+  const [rows, setRows] = useState<SantriRekapBulanRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const kelas = kelasI != null ? kelasList[kelasI] : null;
+
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("kelas")
+      .eq("role", "guru")
+      .then(({ data, error }) => {
+        if (error) return setError(error.message);
+        setKelasList((data ?? []).map((r) => r.kelas as string).filter(Boolean).sort());
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!kelas) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    readAbsenSantriRekapBulan(kelas, year, month)
+      .then((r) => !cancelled && setRows(r))
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [kelas, year, month]);
+
+  return (
+    <>
+      <header className="mt-5">
+        <h1
+          className="text-xl sm:text-2xl font-semibold"
+          style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
+        >
+          Absen Santri
+        </h1>
+        <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap kehadiran santri per bulan</p>
+      </header>
+
+      <div className="mt-5">
+        <PickerCard
+          items={kelasList.map((k) => ({ label: k }))}
+          value={kelasI}
+          onChange={setKelasI}
+          placeholderLabel="Pilih kelas"
+          selectedLabel="Kelas"
+          countText={`${kelasList.length} kelas`}
+          numbered={false}
+        />
+      </div>
+
+      {kelas && (
+        <>
+          <div className="mt-4 flex items-center gap-2">
+            <select
+              value={month}
+              onChange={(e) => setMonth(Number(e.target.value))}
+              className="flex-1 text-sm px-3 py-2.5 rounded-xl outline-none"
+              style={{ border: `1px solid ${C.line}`, background: "#FFF", color: C.ink }}
+            >
+              {BULAN_LABEL.map((b, i) => (
+                <option key={b} value={i + 1}>{b}</option>
+              ))}
+            </select>
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="text-sm px-3 py-2.5 rounded-xl outline-none"
+              style={{ border: `1px solid ${C.line}`, background: "#FFF", color: C.ink }}
+            >
+              {[now.getFullYear(), now.getFullYear() - 1].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+
+          {error && (
+            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="mt-5"><PageLoadingSkeleton /></div>
+          ) : rows.length === 0 ? (
+            <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Belum ada absen santri di bulan ini.</p>
+          ) : (
+            <div className="mt-5 rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ background: C.leaf }}>
+                    <th className="text-left font-semibold px-3.5 py-2.5" style={{ color: C.muted }}>Santri</th>
+                    <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Pagi</th>
+                    <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Siang</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.nama_santri} style={{ borderTop: `1px solid ${C.line}` }}>
+                      <td className="px-3.5 py-2.5" style={{ color: C.ink }}>{r.nama_santri}</td>
+                      <td className="text-center px-2 py-2.5" style={{ color: C.muted }}>
+                        <span style={{ color: C.green, fontWeight: 700 }}>{r.hadirPagi}</span> / {r.tidakHadirPagi > 0 && (
+                          <span style={{ color: "#C0524A", fontWeight: 700 }}>{r.tidakHadirPagi}</span>
+                        )}{r.tidakHadirPagi === 0 && "0"}
+                      </td>
+                      <td className="text-center px-2 py-2.5" style={{ color: C.muted }}>
+                        <span style={{ color: C.green, fontWeight: 700 }}>{r.hadirSiang}</span> / {r.tidakHadirSiang > 0 && (
+                          <span style={{ color: "#C0524A", fontWeight: 700 }}>{r.tidakHadirSiang}</span>
+                        )}{r.tidakHadirSiang === 0 && "0"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-[11px] px-3.5 py-2.5" style={{ color: C.muted, borderTop: `1px solid ${C.line}` }}>
+                Format: Hadir / Tidak Hadir.
+              </p>
+            </div>
+          )}
+        </>
+      )}
+    </>
   );
 }
 
