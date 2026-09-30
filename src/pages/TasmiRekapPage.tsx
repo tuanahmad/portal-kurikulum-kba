@@ -7,36 +7,16 @@ import { PageLoadingSkeleton } from "../components/Skeleton";
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2];
 
-/** Angka pertama yang ketemu di teks juz (mis. "Juz 29" -> 29, "5 (Al-Maidah)" -> 5) -- guru
- *  nulis juz bebas teks, bukan angka murni, jadi diparsing longgar buat dirata-ratakan. */
-function parseJuzNumber(juz: string): number | null {
-  const m = juz.match(/\d+/);
-  return m ? parseInt(m[0], 10) : null;
-}
-
-type SantriStat = { nama: string; juzList: string[] };
-type KelasStat = { kelas: string; santriList: SantriStat[] };
+type TasmiEntry = { nama: string; juz: string; guru: string; kesalahan: number };
+type KelasStat = { kelas: string; entries: TasmiEntry[] };
 
 function computeStats(rows: TasmiRekapRow[]): KelasStat[] {
   return KELAS_LIST.map(({ name }) => {
-    const rowsKelas = rows.filter((r) => r.kelas === name);
-    const byNama = new Map<string, string[]>();
-    for (const r of rowsKelas) {
-      const juz = r.juz.trim();
-      const existing = byNama.get(r.nama_santri);
-      if (existing) {
-        if (juz && !existing.includes(juz)) existing.push(juz);
-      } else {
-        byNama.set(r.nama_santri, juz ? [juz] : []);
-      }
-    }
-    const santriList = Array.from(byNama.entries())
-      .map(([nama, juzList]) => ({
-        nama,
-        juzList: juzList.sort((a, b) => (parseJuzNumber(a) ?? 0) - (parseJuzNumber(b) ?? 0)),
-      }))
+    const entries = rows
+      .filter((r) => r.kelas === name)
+      .map((r) => ({ nama: r.nama_santri, juz: r.juz.trim() || "—", guru: r.nama_guru, kesalahan: r.jumlah_kesalahan }))
       .sort((a, b) => a.nama.localeCompare(b.nama));
-    return { kelas: name, santriList };
+    return { kelas: name, entries };
   });
 }
 
@@ -61,7 +41,7 @@ export default function TasmiRekapPage() {
   }, [year]);
 
   const stats = useMemo(() => computeStats(rows), [rows]);
-  const kelasKosong = stats.filter((s) => s.santriList.length === 0);
+  const kelasKosong = stats.filter((s) => s.entries.length === 0);
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
@@ -150,38 +130,50 @@ export default function TasmiRekapPage() {
             </div>
 
             {/* Tabel per kelas */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-              <table className="w-full text-sm">
+            <div className="rounded-2xl overflow-x-auto" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+              <table className="w-full text-sm" style={{ minWidth: 560 }}>
                 <thead>
                   <tr style={{ background: C.leaf }}>
                     <th className="text-left font-semibold px-3.5 py-2.5 align-top" style={{ color: C.muted }}>Kelas</th>
                     <th className="text-left font-semibold px-2 py-2.5 align-top" style={{ color: C.muted }}>Santri</th>
                     <th className="text-left font-semibold px-2 py-2.5 align-top" style={{ color: C.muted }}>Juz</th>
+                    <th className="text-left font-semibold px-2 py-2.5 align-top" style={{ color: C.muted }}>Penyimak</th>
+                    <th className="text-center font-semibold px-2 py-2.5 align-top" style={{ color: C.muted }}>Salah</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stats.map((s) => (
                     <tr key={s.kelas} style={{ borderTop: `1px solid ${C.line}` }}>
-                      <td className="px-3.5 py-2.5 align-top" style={{ color: s.santriList.length === 0 ? C.muted : C.ink }}>
+                      <td className="px-3.5 py-2.5 align-top" style={{ color: s.entries.length === 0 ? C.muted : C.ink }}>
                         {s.kelas}
                       </td>
-                      {s.santriList.length === 0 ? (
+                      {s.entries.length === 0 ? (
                         <>
                           <td className="px-2 py-2.5 align-top" style={{ color: C.muted }}>—</td>
                           <td className="px-2 py-2.5 align-top" style={{ color: C.muted }}>—</td>
+                          <td className="px-2 py-2.5 align-top" style={{ color: C.muted }}>—</td>
+                          <td className="text-center px-2 py-2.5 align-top" style={{ color: C.muted }}>—</td>
                         </>
                       ) : (
                         <>
                           <td className="px-2 py-2.5 align-top">
-                            {s.santriList.map((st) => (
-                              <div key={st.nama} style={{ color: C.ink }}>{st.nama}</div>
+                            {s.entries.map((e, i) => (
+                              <div key={i} style={{ color: C.ink }}>{e.nama}</div>
                             ))}
                           </td>
                           <td className="px-2 py-2.5 align-top">
-                            {s.santriList.map((st) => (
-                              <div key={st.nama} style={{ color: "#B3801E", fontWeight: 600 }}>
-                                {st.juzList.length ? st.juzList.join(", ") : "—"}
-                              </div>
+                            {s.entries.map((e, i) => (
+                              <div key={i} style={{ color: "#B3801E", fontWeight: 600 }}>{e.juz}</div>
+                            ))}
+                          </td>
+                          <td className="px-2 py-2.5 align-top">
+                            {s.entries.map((e, i) => (
+                              <div key={i} style={{ color: C.muted }}>{e.guru || "—"}</div>
+                            ))}
+                          </td>
+                          <td className="text-center px-2 py-2.5 align-top">
+                            {s.entries.map((e, i) => (
+                              <div key={i} style={{ color: C.muted }}>{e.kesalahan}</div>
                             ))}
                           </td>
                         </>
