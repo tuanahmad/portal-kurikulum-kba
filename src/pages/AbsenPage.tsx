@@ -34,10 +34,8 @@ import {
   readAbsenSantriDay,
   saveAbsenSantriDay,
   readAbsenSantriRekapBulan,
-  emptySantriEntry,
   SANTRI_STATUS_LABEL,
   type SantriAbsenEntry,
-  type SantriSesiEntry,
   type SantriStatus,
   type SantriRekapBulanRow,
 } from "../lib/absenSantri";
@@ -805,6 +803,20 @@ function ArrowBtn({ dir, disabled, onClick }: { dir: "prev" | "next"; disabled?:
 
 /* ═══════════════════════ Absen Santri — Guru ═══════════════════════ */
 
+/** Status "belum" cuma dipakai di FORM (state lokal) -- belum pernah dikirim ke server. Ini
+ *  yang bikin baris santri yang belum disentuh guru tampil netral (bukan Hadir/Tidak Hadir),
+ *  jadi guru gak bisa nyimpen absen sebelum SEMUA santri eksplisit dipilih statusnya --
+ *  daripada diam-diam ke-default "hadir" padahal belum tentu beneran hadir. */
+type FormStatus = SantriStatus | "belum";
+type FormSesiEntry = { status: FormStatus; keterangan: string };
+type FormEntry = { nama_santri: string; pagi: FormSesiEntry; siang: FormSesiEntry };
+
+const emptyFormEntry = (nama: string): FormEntry => ({
+  nama_santri: nama,
+  pagi: { status: "belum", keterangan: "" },
+  siang: { status: "belum", keterangan: "" },
+});
+
 function GuruAbsenSantri() {
   const { kelas } = useAuth();
   const roster = useMemo(() => (kelas ? capaianRoster(kelas) : []), [kelas]);
@@ -813,7 +825,7 @@ function GuruAbsenSantri() {
   const dateYmd = ymd(date);
   const editable = dateYmd <= todayYmd;
 
-  const [form, setForm] = useState<Record<string, SantriAbsenEntry>>({});
+  const [form, setForm] = useState<Record<string, FormEntry>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -828,8 +840,8 @@ function GuruAbsenSantri() {
     readAbsenSantriDay(kelas, dateYmd)
       .then((saved) => {
         if (cancelled) return;
-        const next: Record<string, SantriAbsenEntry> = {};
-        for (const nama of roster) next[nama] = saved[nama] ?? emptySantriEntry(nama);
+        const next: Record<string, FormEntry> = {};
+        for (const nama of roster) next[nama] = saved[nama] ?? emptyFormEntry(nama);
         setForm(next);
       })
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
@@ -840,18 +852,31 @@ function GuruAbsenSantri() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kelas, dateYmd]);
 
-  function setSesi(nama: string, sesi: "pagi" | "siang", next: SantriSesiEntry) {
+  function setSesi(nama: string, sesi: "pagi" | "siang", next: FormSesiEntry) {
     setForm((p) => ({ ...p, [nama]: { ...p[nama], [sesi]: next } }));
     setMsg(null);
   }
 
+  const belumLengkap = roster.some((nama) => {
+    const e = form[nama];
+    return !e || e.pagi.status === "belum" || e.siang.status === "belum";
+  });
+
   async function handleSave() {
-    if (!kelas) return;
+    if (!kelas || belumLengkap) return;
     setSaving(true);
     setError(null);
     setMsg(null);
     try {
-      await saveAbsenSantriDay(kelas, dateYmd, roster.map((nama) => form[nama] ?? emptySantriEntry(nama)));
+      const entries: SantriAbsenEntry[] = roster.map((nama) => {
+        const e = form[nama];
+        return {
+          nama_santri: nama,
+          pagi: { status: e.pagi.status as SantriStatus, keterangan: e.pagi.keterangan },
+          siang: { status: e.siang.status as SantriStatus, keterangan: e.siang.keterangan },
+        };
+      });
+      await saveAbsenSantriDay(kelas, dateYmd, entries);
       setMsg("Tersimpan.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -897,22 +922,31 @@ function GuruAbsenSantri() {
         <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Roster santri kelas ini belum ada.</p>
       ) : (
         <div className="mt-5 space-y-2.5">
+          <p className="text-xs px-1" style={{ color: C.muted }}>
+            Tiap santri wajib dipilih Hadir/Tidak Hadir dulu — belum otomatis Hadir kalau belum disentuh.
+          </p>
+
           {roster.map((nama) => (
             <SantriRow
               key={nama}
               nama={nama}
-              entry={form[nama] ?? emptySantriEntry(nama)}
+              entry={form[nama] ?? emptyFormEntry(nama)}
               onChangeSesi={(sesi, v) => setSesi(nama, sesi, v)}
             />
           ))}
 
           {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
+          {belumLengkap && !msg && (
+            <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>
+              Masih ada santri yang belum dipilih status kehadirannya.
+            </p>
+          )}
 
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || belumLengkap}
             className="mt-2 w-full py-2.5 rounded-xl text-sm font-bold transition-opacity sticky bottom-3"
-            style={{ background: C.green, color: "#FFF", opacity: saving ? 0.5 : 1 }}
+            style={{ background: C.green, color: "#FFF", opacity: saving || belumLengkap ? 0.5 : 1 }}
           >
             {saving ? "Menyimpan…" : "Simpan Absen Santri"}
           </button>
@@ -928,8 +962,8 @@ function SantriRow({
   onChangeSesi,
 }: {
   nama: string;
-  entry: SantriAbsenEntry;
-  onChangeSesi: (sesi: "pagi" | "siang", v: SantriSesiEntry) => void;
+  entry: FormEntry;
+  onChangeSesi: (sesi: "pagi" | "siang", v: FormSesiEntry) => void;
 }) {
   return (
     <div className="rounded-xl p-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
@@ -949,8 +983,8 @@ function SantriSesiToggle({
   onChange,
 }: {
   label: string;
-  value: SantriSesiEntry;
-  onChange: (v: SantriSesiEntry) => void;
+  value: FormSesiEntry;
+  onChange: (v: FormSesiEntry) => void;
 }) {
   return (
     <div>
