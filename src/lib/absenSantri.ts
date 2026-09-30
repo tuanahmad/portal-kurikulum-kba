@@ -89,21 +89,23 @@ export async function saveAbsenSantriDay(kelas: string, tanggal: string, entries
   if (error) throw new Error(error.message);
 }
 
-export type AbsenSantriRekapRow = { kelas: string; nama_santri: string; status_pagi: SantriStatus; status_siang: SantriStatus };
+export type AbsenSantriRekapRow = {
+  kelas: string;
+  tanggal: string;
+  nama_santri: string;
+  status_pagi: SantriStatus;
+  status_siang: SantriStatus;
+};
 
-/** Rekap SEMUA kelas 1 bulan sekaligus -- buat rekap management (kayak readTasmiRekapTahun),
- *  dikelompokkan per kelas di sisi page, bukan di sini, biar page bisa nampilin ringkasan semua
- *  kelas dulu baru rincian per kelas pas di-expand. */
-export async function readAbsenSantriRekapBulanSemua(year: number, month1to12: number): Promise<AbsenSantriRekapRow[]> {
-  const from = `${year}-${String(month1to12).padStart(2, "0")}-01`;
-  const lastDay = new Date(year, month1to12, 0).getDate();
-  const to = `${year}-${String(month1to12).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-
+/** Rekap SEMUA kelas 1 rentang tanggal (biasanya 1 pekan, Senin-Jumat) sekaligus -- buat rekap
+ *  management. Dikelompokkan per kelas & per hari di sisi page, bukan di sini, biar page bisa
+ *  nampilin ringkasan semua kelas dulu (kartu per kelas) baru rincian harian pas di-expand. */
+export async function readAbsenSantriRekapRentang(fromYmd: string, toYmd: string): Promise<AbsenSantriRekapRow[]> {
   const { data, error } = await supabase
     .from("absen_santri")
-    .select("kelas, nama_santri, status_pagi, status_siang")
-    .gte("tanggal", from)
-    .lte("tanggal", to);
+    .select("kelas, tanggal, nama_santri, status_pagi, status_siang")
+    .gte("tanggal", fromYmd)
+    .lte("tanggal", toYmd);
   if (error) throw new Error(error.message);
   return (data ?? []) as AbsenSantriRekapRow[];
 }

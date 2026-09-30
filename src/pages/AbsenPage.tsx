@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
@@ -33,7 +33,7 @@ import { capaianRoster, KELAS_LIST } from "../data";
 import {
   readAbsenSantriDay,
   saveAbsenSantriDay,
-  readAbsenSantriRekapBulanSemua,
+  readAbsenSantriRekapRentang,
   SANTRI_STATUS_LABEL,
   type SantriAbsenEntry,
   type SantriStatus,
@@ -1021,36 +1021,38 @@ function SantriSesiToggle({
 
 /* ═══════════════════════ Absen Santri — Management ═══════════════════════ */
 
-const BULAN_LABEL = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+type TidakHadirEntry = { nama: string; sesi: "Pagi" | "Siang"; keterangan: string };
+type KelasAbsenStat = {
+  kelas: string;
+  hasData: boolean;
+  kejadianTidakHadir: number;
+  perHari: { date: Date; tidakHadir: TidakHadirEntry[]; adaData: boolean }[];
+};
 
-type SantriRekapBulanRow = { nama_santri: string; hadirPagi: number; tidakHadirPagi: number; hadirSiang: number; tidakHadirSiang: number };
-type KelasAbsenStat = { kelas: string; santriTidakHadir: number; kejadianTidakHadir: number; perSantri: SantriRekapBulanRow[] };
-
-function computeAbsenSantriStats(rows: AbsenSantriRekapRow[]): KelasAbsenStat[] {
+function computeAbsenSantriStats(rows: AbsenSantriRekapRow[], days: Date[]): KelasAbsenStat[] {
   return KELAS_LIST.map(({ name }) => {
     const rowsKelas = rows.filter((r) => r.kelas === name);
-    const byNama = new Map<string, SantriRekapBulanRow>();
-    for (const r of rowsKelas) {
-      if (!byNama.has(r.nama_santri)) {
-        byNama.set(r.nama_santri, { nama_santri: r.nama_santri, hadirPagi: 0, tidakHadirPagi: 0, hadirSiang: 0, tidakHadirSiang: 0 });
+    const perHari = days.map((date) => {
+      const key = ymd(date);
+      const rowsHari = rowsKelas.filter((r) => r.tanggal === key);
+      const tidakHadir: TidakHadirEntry[] = [];
+      for (const r of rowsHari) {
+        if (r.status_pagi === "tidak_hadir") tidakHadir.push({ nama: r.nama_santri, sesi: "Pagi", keterangan: "" });
+        if (r.status_siang === "tidak_hadir") tidakHadir.push({ nama: r.nama_santri, sesi: "Siang", keterangan: "" });
       }
-      const s = byNama.get(r.nama_santri)!;
-      if (r.status_pagi === "hadir") s.hadirPagi++; else s.tidakHadirPagi++;
-      if (r.status_siang === "hadir") s.hadirSiang++; else s.tidakHadirSiang++;
-    }
-    const perSantri = Array.from(byNama.values()).sort((a, b) => a.nama_santri.localeCompare(b.nama_santri));
-    const santriTidakHadir = perSantri.filter((s) => s.tidakHadirPagi > 0 || s.tidakHadirSiang > 0).length;
-    const kejadianTidakHadir = perSantri.reduce((sum, s) => sum + s.tidakHadirPagi + s.tidakHadirSiang, 0);
-    return { kelas: name, santriTidakHadir, kejadianTidakHadir, perSantri };
+      return { date, tidakHadir, adaData: rowsHari.length > 0 };
+    });
+    const kejadianTidakHadir = perHari.reduce((sum, h) => sum + h.tidakHadir.length, 0);
+    const hasData = rowsKelas.length > 0;
+    return { kelas: name, hasData, kejadianTidakHadir, perHari };
   });
 }
 
 function ManagementAbsenSantri() {
-  const now = useMemo(() => new Date(), []);
-  const [monthDate, setMonthDate] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
-  const year = monthDate.getFullYear();
-  const month = monthDate.getMonth() + 1;
-  const atThisMonth = year === now.getFullYear() && month === now.getMonth() + 1;
+  const thisMonday = useMemo(() => mondayOf(new Date()), []);
+  const [monday, setMonday] = useState(thisMonday);
+  const days = useMemo(() => weekdaysFrom(monday), [monday]);
+  const atThisWeek = ymd(monday) >= ymd(thisMonday);
 
   const [rows, setRows] = useState<AbsenSantriRekapRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1061,21 +1063,16 @@ function ManagementAbsenSantri() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    readAbsenSantriRekapBulanSemua(year, month)
+    readAbsenSantriRekapRentang(ymd(days[0]), ymd(days[4]))
       .then((r) => !cancelled && setRows(r))
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [year, month]);
+  }, [monday]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const stats = useMemo(() => computeAbsenSantriStats(rows), [rows]);
-  const kelasKosong = stats.filter((s) => s.perSantri.length === 0);
-
-  function shiftMonth(n: number) {
-    setMonthDate((d) => new Date(d.getFullYear(), d.getMonth() + n, 1));
-  }
+  const stats = useMemo(() => computeAbsenSantriStats(rows, days), [rows, days]);
 
   return (
     <>
@@ -1084,16 +1081,16 @@ function ManagementAbsenSantri() {
           className="text-xl sm:text-2xl font-semibold"
           style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
         >
-          Absen Santri
+          Rekap Absensi
         </h1>
-        <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap kehadiran santri per bulan — semua kelas</p>
+        <p className="text-sm mt-1" style={{ color: C.muted }}>Kehadiran santri per minggu — semua kelas</p>
       </header>
 
       <WeekNav
-        label={`${BULAN_LABEL[month - 1]} ${year}`}
-        sub={atThisMonth ? "Bulan ini" : undefined}
-        onPrev={() => shiftMonth(-1)}
-        onNext={atThisMonth ? undefined : () => shiftMonth(1)}
+        label={labelRentangPekan(days)}
+        sub={atThisWeek ? "Pekan ini" : undefined}
+        onPrev={() => setMonday(shiftWeek(monday, -1))}
+        onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
       />
 
       {error && (
@@ -1105,103 +1102,76 @@ function ManagementAbsenSantri() {
       {loading ? (
         <div className="mt-5"><PageLoadingSkeleton /></div>
       ) : (
-        <div className="mt-5 space-y-5">
-          <div
-            className="rounded-2xl p-4 sm:p-5"
-            style={{
-              background: kelasKosong.length > 0 ? "#FDEBEA" : C.leaf,
-              border: `1px solid ${kelasKosong.length > 0 ? "#E8A6A0" : C.green}`,
-            }}
-          >
-            <div className="text-sm font-bold" style={{ color: kelasKosong.length > 0 ? "#8A2A20" : C.green }}>
-              {kelasKosong.length > 0
-                ? `${kelasKosong.length} dari ${KELAS_LIST.length} kelas belum ada absen santri di ${BULAN_LABEL[month - 1]} ${year}`
-                : `Semua ${KELAS_LIST.length} kelas sudah ada absen santri di ${BULAN_LABEL[month - 1]} ${year} 🎉`}
-            </div>
-            {kelasKosong.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {kelasKosong.map((s) => (
-                  <span
-                    key={s.kelas}
-                    className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                    style={{ background: "#FFF", color: "#8A2A20", border: "1px solid #E8A6A0" }}
-                  >
-                    {s.kelas}
+        <div className="mt-5 space-y-2.5">
+          {stats.map((s) => {
+            const isOpen = expanded === s.kelas;
+            const dotColor = !s.hasData ? C.line : s.kejadianTidakHadir > 0 ? "#C0524A" : C.green;
+            const summary = !s.hasData
+              ? "Belum ada absen minggu ini"
+              : s.kejadianTidakHadir > 0
+              ? `${s.kejadianTidakHadir} kejadian tidak hadir`
+              : "Semua hadir minggu ini";
+            return (
+              <div key={s.kelas} className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                <button
+                  type="button"
+                  onClick={() => s.hasData && setExpanded(isOpen ? null : s.kelas)}
+                  className="w-full flex items-center gap-3 px-3.5 py-3 text-left"
+                  style={{ cursor: s.hasData ? "pointer" : "default" }}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: dotColor }} aria-hidden="true" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-semibold truncate" style={{ color: C.ink }}>{s.kelas}</span>
+                    <span className="block text-xs truncate" style={{ color: C.muted }}>{summary}</span>
                   </span>
-                ))}
-              </div>
-            )}
-          </div>
+                  {s.hasData && (
+                    <svg
+                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      className="shrink-0 transition-transform"
+                      style={{ color: C.muted, transform: isOpen ? "rotate(180deg)" : "none" }}
+                    >
+                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </button>
 
-          <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ background: C.leaf }}>
-                  <th className="text-left font-semibold px-3.5 py-2.5" style={{ color: C.muted }}>Kelas</th>
-                  <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Santri Tdk Hadir</th>
-                  <th className="text-center font-semibold px-2 py-2.5" style={{ color: C.muted }}>Kejadian</th>
-                  <th className="w-8" />
-                </tr>
-              </thead>
-              <tbody>
-                {stats.map((s) => {
-                  const isOpen = expanded === s.kelas;
-                  const hasData = s.perSantri.length > 0;
-                  return (
-                    <Fragment key={s.kelas}>
-                      <tr
-                        onClick={() => hasData && setExpanded(isOpen ? null : s.kelas)}
-                        style={{ borderTop: `1px solid ${C.line}`, cursor: hasData ? "pointer" : "default" }}
-                      >
-                        <td className="px-3.5 py-2.5" style={{ color: hasData ? C.ink : C.muted }}>{s.kelas}</td>
-                        <td className="text-center px-2 py-2.5 font-semibold" style={{ color: s.santriTidakHadir > 0 ? "#C0524A" : C.muted }}>
-                          {hasData ? s.santriTidakHadir : "—"}
-                        </td>
-                        <td className="text-center px-2 py-2.5" style={{ color: C.muted }}>
-                          {hasData ? s.kejadianTidakHadir : "—"}
-                        </td>
-                        <td className="px-2 py-2.5 text-center" style={{ color: C.muted }}>
-                          {hasData && (isOpen ? "▲" : "▼")}
-                        </td>
-                      </tr>
-                      {isOpen && hasData && (
-                        <tr style={{ background: C.mist }}>
-                          <td colSpan={4} className="px-3.5 py-3">
-                            <table className="w-full text-xs">
-                              <thead>
-                                <tr>
-                                  <th className="text-left font-semibold pb-1.5" style={{ color: C.muted }}>Santri</th>
-                                  <th className="text-center font-semibold pb-1.5" style={{ color: C.muted }}>Pagi (H/TH)</th>
-                                  <th className="text-center font-semibold pb-1.5" style={{ color: C.muted }}>Siang (H/TH)</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {s.perSantri.map((r) => (
-                                  <tr key={r.nama_santri} style={{ borderTop: `1px solid ${C.line}` }}>
-                                    <td className="py-1.5" style={{ color: C.ink }}>{r.nama_santri}</td>
-                                    <td className="text-center py-1.5" style={{ color: C.muted }}>
-                                      <span style={{ color: C.green, fontWeight: 700 }}>{r.hadirPagi}</span>
-                                      {" / "}
-                                      <span style={{ color: r.tidakHadirPagi > 0 ? "#C0524A" : C.muted, fontWeight: 700 }}>{r.tidakHadirPagi}</span>
-                                    </td>
-                                    <td className="text-center py-1.5" style={{ color: C.muted }}>
-                                      <span style={{ color: C.green, fontWeight: 700 }}>{r.hadirSiang}</span>
-                                      {" / "}
-                                      <span style={{ color: r.tidakHadirSiang > 0 ? "#C0524A" : C.muted, fontWeight: 700 }}>{r.tidakHadirSiang}</span>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                {isOpen && s.hasData && (
+                  <div className="px-3.5 pb-3.5 space-y-2.5" style={{ borderTop: `1px solid ${C.line}` }}>
+                    {s.perHari.map((h) => (
+                      <div key={ymd(h.date)} className="flex gap-3 pt-2.5">
+                        <span
+                          className="w-9 h-9 rounded-lg flex flex-col items-center justify-center shrink-0 leading-none"
+                          style={{
+                            background: h.tidakHadir.length > 0 ? "#FDEBEA" : h.adaData ? C.leaf : C.mist,
+                            color: h.tidakHadir.length > 0 ? "#C0524A" : C.green,
+                          }}
+                        >
+                          <span className="text-[8px] font-semibold uppercase">{labelHari(h.date).slice(0, 3)}</span>
+                          <span className="text-xs font-bold">{h.date.getDate()}</span>
+                        </span>
+                        <div className="min-w-0 flex-1 pt-0.5">
+                          {!h.adaData ? (
+                            <p className="text-xs" style={{ color: C.muted }}>Belum diabsen</p>
+                          ) : h.tidakHadir.length === 0 ? (
+                            <p className="text-xs font-medium" style={{ color: C.green }}>Semua santri hadir</p>
+                          ) : (
+                            <p className="text-xs" style={{ color: C.ink }}>
+                              {h.tidakHadir.map((t, i) => (
+                                <span key={i}>
+                                  {i > 0 && ", "}
+                                  {t.nama} <span style={{ color: C.muted }}>({t.sesi})</span>
+                                </span>
+                              ))}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </>
