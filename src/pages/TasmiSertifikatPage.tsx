@@ -88,7 +88,7 @@ export default function TasmiSertifikatPage() {
       />
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 0; }
+          @page { size: A4 portrait; margin: 0; }
           .no-print { display: none !important; }
           .cert-page { box-shadow: none !important; margin: 0 !important; }
           body { background: #fff !important; }
@@ -152,8 +152,8 @@ function Certificate({
     <div
       className="cert-page relative overflow-hidden shrink-0"
       style={{
-        width: "297mm",
-        aspectRatio: "297 / 210",
+        width: "210mm",
+        aspectRatio: "210 / 297",
         background: "linear-gradient(180deg, #FFFDF7 0%, #FFF8EA 100%)",
         boxShadow: "0 12px 40px rgba(28,74,51,0.18)",
         fontFamily: "'Tajawal', 'Quicksand', sans-serif",
@@ -165,38 +165,36 @@ function Certificate({
       {/* Bingkai dalam */}
       <div
         className="absolute rounded-2xl"
-        style={{ inset: "5%", border: "2px solid #D9B968", borderRadius: 24 }}
+        style={{ inset: "3.5%", border: "2px solid #D9B968", borderRadius: 24 }}
       />
       <div
         className="absolute rounded-2xl"
-        style={{ inset: "6%", border: "1px solid #E7CE96", borderRadius: 18 }}
+        style={{ inset: "4.3%", border: "1px solid #E7CE96", borderRadius: 18 }}
       />
 
-      {/* Konten */}
-      <div className="absolute inset-0 flex flex-col items-center text-center px-[8%]" style={{ paddingTop: "5%", paddingBottom: "6%" }}>
-        {/* Header 2 kolom: logo+nama di kanan (awal teks RTL), lambang di kiri */}
-        <div className="w-full flex items-start justify-between" style={{ maxWidth: "88%" }}>
-          <div className="flex flex-col items-center" style={{ width: "22%" }}>
-            <img
-              src={LOGO}
-              alt="Logo Kuttab Budi Ashari"
-              style={{ width: "70%", mixBlendMode: "multiply", filter: "brightness(1.04)" }}
-            />
-            <div style={{ fontFamily: "'Tajawal', sans-serif", fontWeight: 700, fontSize: "clamp(10px, 1.1vw, 13px)", color: C.green, marginTop: "4%" }}>
-              كُتّاب بودي أزهري
-            </div>
-            <div style={{ fontSize: "clamp(8px, 0.85vw, 10px)", color: C.muted, fontWeight: 600 }} dir="ltr">
-              Kuttab Budi Ashari
-            </div>
-          </div>
+      {/* Konten -- vertikal (portrait): lambang di atas, logo+nama di bawahnya, baru judul dst.
+          turun ke bawah, beda dari versi landscape yang logo & lambang sejajar 2 kolom. */}
+      <div className="absolute inset-0 flex flex-col items-center text-center px-[9%]" style={{ paddingTop: "6%", paddingBottom: "5%" }}>
+        {/* Lambang bulat Al-Qur'an */}
+        <div
+          className="rounded-full flex items-center justify-center shrink-0"
+          style={{ width: "17%", aspectRatio: "1/1", border: "2px solid #E7CE96", background: "rgba(217,185,104,0.12)" }}
+        >
+          <QuranIcon />
+        </div>
 
-          <div className="flex flex-col items-center" style={{ width: "22%" }}>
-            <div
-              className="rounded-full flex items-center justify-center"
-              style={{ width: "62%", aspectRatio: "1/1", border: "2px solid #E7CE96", background: "rgba(217,185,104,0.12)" }}
-            >
-              <QuranIcon />
-            </div>
+        {/* Logo + nama muassasah */}
+        <div className="flex flex-col items-center" style={{ marginTop: "3%" }}>
+          <img
+            src={LOGO}
+            alt="Logo Kuttab Budi Ashari"
+            style={{ width: "68px", mixBlendMode: "multiply", filter: "brightness(1.04)" }}
+          />
+          <div style={{ fontFamily: "'Tajawal', sans-serif", fontWeight: 700, fontSize: "clamp(11px, 2vw, 15px)", color: C.green, marginTop: "2%" }}>
+            كُتّاب بودي أزهري
+          </div>
+          <div style={{ fontSize: "clamp(9px, 1.5vw, 11px)", color: C.muted, fontWeight: 600 }} dir="ltr">
+            Kuttab Budi Ashari
           </div>
         </div>
 
@@ -205,9 +203,9 @@ function Certificate({
           style={{
             fontFamily: "'Lalezar', cursive",
             fontWeight: 400,
-            fontSize: "clamp(48px, 7.4vw, 88px)",
+            fontSize: "clamp(40px, 9vw, 64px)",
             color: "#B3801E",
-            marginTop: "1.5%",
+            marginTop: "3%",
             textShadow: "0 3px 0 #FFF2CE",
             lineHeight: 1,
           }}
@@ -220,9 +218,9 @@ function Certificate({
           className="rounded-full"
           style={{
             background: "#EDF3EE",
-            padding: "0.9% 4%",
-            marginTop: "2.2%",
-            fontSize: "clamp(12px, 1.5vw, 16px)",
+            padding: "1.3% 5%",
+            marginTop: "4%",
+            fontSize: "clamp(13px, 2.6vw, 17px)",
             fontWeight: 700,
             color: C.green,
           }}
@@ -233,12 +231,12 @@ function Certificate({
         {/* Nama santri */}
         <div
           style={{
-            fontSize: "clamp(20px, 2.8vw, 32px)",
+            fontSize: "clamp(20px, 4.4vw, 30px)",
             color: C.green,
             fontWeight: 700,
-            marginTop: "1.8%",
+            marginTop: "3.5%",
             borderBottom: `2px solid #D9B968`,
-            paddingBottom: "0.6%",
+            paddingBottom: "1.2%",
           }}
           dir="ltr"
         >
@@ -247,8 +245,8 @@ function Certificate({
 
         {/* Badge kelas */}
         {kelas && (
-          <div className="flex items-center" style={{ gap: "2%", marginTop: "1.6%" }}>
-            <span style={{ fontSize: "clamp(11px, 1.3vw, 14px)", color: C.muted, fontWeight: 600 }}>من فصل:</span>
+          <div className="flex items-center" style={{ gap: "2%", marginTop: "3%" }}>
+            <span style={{ fontSize: "clamp(12px, 2.2vw, 15px)", color: C.muted, fontWeight: 600 }}>من فصل:</span>
             <span
               className="rounded-full"
               style={{
@@ -256,8 +254,8 @@ function Certificate({
                 border: "1px solid #B9D6F2",
                 color: "#1F5E93",
                 fontWeight: 700,
-                fontSize: "clamp(11px, 1.3vw, 14px)",
-                padding: "0.3% 2.5%",
+                fontSize: "clamp(12px, 2.2vw, 15px)",
+                padding: "0.6% 3.5%",
               }}
               dir="ltr"
             >
@@ -266,58 +264,69 @@ function Certificate({
           </div>
         )}
 
-        {/* Intro singkat */}
+        {/* Intro singkat -- maxWidth sengaja dikecilin (bukan cuma "batas biar gak lebar-lebar
+            amat") biar teksnya KEPAKSA wrap 2 baris. Kalau dibiarin muat 1 baris penuh, lebar
+            barisnya (~396px) dikit lebih lebar dari layar HP (375px) walau di dalam kotaknya
+            sendiri gak overflow -- baru kepotong pas discroll gak pas ke tengah persis. Wrap 2
+            baris lebih aman di semua ukuran layar drpd ngandelin scroll presisi. */}
         <p
           style={{
-            fontSize: "clamp(12px, 1.5vw, 16px)",
+            fontSize: "clamp(13px, 2.6vw, 17px)",
             color: "#3A3226",
-            marginTop: "2%",
+            marginTop: "4%",
+            maxWidth: "48%",
+            minWidth: 0,
             fontWeight: 600,
+            lineHeight: 1.6,
           }}
         >
           قد {atamma} تسميع القرآن الكريم بإشراف {ustadz} بتاريخ {labelTanggalArab(record.tanggal)}
         </p>
 
         {/* Juz / Ustadz / Waktu / Kesalahan -- baris sendiri-sendiri */}
-        <div className="grid grid-cols-2" style={{ gap: "1.4% 6%", marginTop: "1.6%", width: "70%" }}>
+        <div className="grid grid-cols-2" style={{ gap: "2.5% 8%", marginTop: "4%", width: "88%" }}>
           <StatRow label="الجزء" value={record.juz || "—"} />
           <StatRow label="الأستاذ" value={record.nama_guru || "—"} ltr />
           <StatRow label="المدة" value={record.durasi || "—"} ltr />
           <StatRow label="عدد الأخطاء" value={String(record.jumlah_kesalahan)} />
         </div>
 
-        {/* Doa */}
+        {/* Doa -- maxWidth dikecilin juga, alasan sama kayak intro di atas (paksa wrap). */}
         <p
           style={{
-            fontSize: "clamp(12px, 1.5vw, 16px)",
+            fontSize: "clamp(13px, 2.6vw, 17px)",
             color: C.muted,
-            marginTop: "1.6%",
-            maxWidth: "64%",
-            lineHeight: 1.7,
+            marginTop: "4%",
+            maxWidth: "50%",
+            minWidth: 0,
+            lineHeight: 1.8,
             fontStyle: "italic",
           }}
         >
           بارك الله {lahu}، ونسأل الله أن {yarzuqahu} حبّ القرآن دائمًا، و{yajaalahu} من أهل القرآن وخاصته.
         </p>
 
+        {/* dorong footer ke bawah biar nempel dasar kartu, sisa ruang portrait dipakai di sini */}
+        <div className="flex-1" />
+
         {/* Footer */}
-        <div className="w-full flex items-end justify-between" style={{ maxWidth: "88%", marginTop: "1.6%" }}>
+        <div className="w-full flex items-end justify-between" style={{ maxWidth: "94%" }}>
           <FooterBlock label="التاريخ">
-            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(14px, 1.7vw, 19px)", color: C.ink }}>
+            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(14px, 2.6vw, 18px)", color: C.ink }}>
               {labelTanggalArab(record.tanggal)}
             </div>
           </FooterBlock>
           <FooterBlock label={ustadz}>
-            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(14px, 1.7vw, 19px)", color: C.ink }}>
+            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(14px, 2.6vw, 18px)", color: C.ink }}>
               {record.nama_guru || "—"}
             </div>
           </FooterBlock>
           <FooterBlock label="ختم المؤسسة">
             <div
               className="rounded-2xl flex items-center justify-center mx-auto"
-              style={{ padding: "3% 6%", border: `2px dashed #B3801E` }}
+              style={{ padding: "4% 7%", border: `2px dashed #B3801E` }}
             >
-              <div style={{ fontWeight: 700, fontSize: "clamp(11px, 1.3vw, 14px)", color: "#B3801E" }}>
+              <div style={{ fontWeight: 700, fontSize: "clamp(11px, 2vw, 14px)", color: "#B3801E" }}>
                 كُتّاب بودي أزهري
               </div>
             </div>
@@ -389,16 +398,16 @@ function Decorations() {
       className="absolute inset-0"
       width="100%"
       height="100%"
-      viewBox="0 0 1000 707"
+      viewBox="0 0 700 990"
       preserveAspectRatio="none"
       aria-hidden="true"
     >
       {/* Awan pojok kiri-atas & kanan-atas */}
-      <Cloud x={70} y={55} scale={1} />
-      <Cloud x={880} y={70} scale={0.85} />
+      <Cloud x={55} y={45} scale={0.8} />
+      <Cloud x={615} y={55} scale={0.7} />
 
       {/* Bulan sabit pojok kanan-atas */}
-      <g transform="translate(905,50)">
+      <g transform="translate(632,35) scale(0.8)">
         <path
           d="M20 0a20 20 0 1 0 0 40 16 16 0 1 1 0-40Z"
           fill="#F5C46A"
@@ -406,26 +415,26 @@ function Decorations() {
       </g>
 
       {/* Bintang kecil tersebar (dikit aja) */}
-      <Star x={140} y={40} s={7} />
-      <Star x={230} y={90} s={5} />
-      <Star x={790} y={45} s={6} />
-      <Star x={60} y={160} s={5} />
-      <Star x={945} y={190} s={7} />
-      <Star x={500} y={35} s={5} />
+      <Star x={100} y={30} s={6} />
+      <Star x={160} y={75} s={5} />
+      <Star x={555} y={35} s={5} />
+      <Star x={45} y={130} s={5} />
+      <Star x={660} y={150} s={6} />
+      <Star x={350} y={25} s={5} />
 
       {/* Rumput + bunga sepanjang bawah, jarang-jarang */}
       <Grass x={0} />
-      <Grass x={90} />
-      <Grass x={905} />
-      <Grass x={995} />
-      <Flower x={45} y={660} scale={0.9} color="#E48FA0" />
-      <Flower x={955} y={655} scale={0.9} color="#8FB6E4" />
-      <Flower x={130} y={672} scale={0.6} color="#D9B968" />
-      <Flower x={870} y={672} scale={0.6} color="#B08FE4" />
+      <Grass x={65} />
+      <Grass x={630} />
+      <Grass x={695} />
+      <Flower x={30} y={945} scale={0.9} color="#E48FA0" />
+      <Flower x={670} y={940} scale={0.9} color="#8FB6E4" />
+      <Flower x={90} y={958} scale={0.6} color="#D9B968" />
+      <Flower x={610} y={958} scale={0.6} color="#B08FE4" />
 
       {/* Bunga kecil di sudut bawah kiri/kanan atas juga, biar seimbang (dikit) */}
-      <Flower x={55} y={95} scale={0.5} color="#E48FA0" />
-      <Flower x={935} y={110} scale={0.5} color="#B08FE4" />
+      <Flower x={40} y={80} scale={0.5} color="#E48FA0" />
+      <Flower x={655} y={95} scale={0.5} color="#B08FE4" />
     </svg>
   );
 }
@@ -451,7 +460,7 @@ function Star({ x, y, s }: { x: number; y: number; s: number }) {
 
 function Grass({ x }: { x: number }) {
   return (
-    <g transform={`translate(${x},680)`} opacity={0.85}>
+    <g transform={`translate(${x},963)`} opacity={0.85}>
       <path d="M0 27 Q6 5 12 27" stroke="#7FA872" strokeWidth="3" fill="none" strokeLinecap="round" />
       <path d="M10 27 Q18 0 26 27" stroke="#6C9962" strokeWidth="3" fill="none" strokeLinecap="round" />
       <path d="M20 27 Q28 8 36 27" stroke="#7FA872" strokeWidth="3" fill="none" strokeLinecap="round" />
