@@ -46,7 +46,7 @@ const SANTRI_STATUSES: SantriStatus[] = ["hadir", "tidak_hadir"];
 const PERATURAN = [
   "Absen 2 sesi tiap hari mengajar (Senin–Jumat): kelas pagi & kelas siang — masing-masing punya jam datang & jam pulang sendiri.",
   "Ketuk tombol untuk mencatat jam otomatis; jam bisa dikoreksi manual bila perlu.",
-  "Kalau berhalangan di salah satu sesi, pilih Izin / Sakit / Cuti untuk sesi itu dan tulis keterangannya.",
+  "Kalau berhalangan di salah satu sesi, pilih Izin / Sakit / Cuti untuk sesi itu, lalu tulis di keterangan siapa yang menggantikan mengajar kelas tersebut.",
   "Hari yang terlewat masih bisa dikoreksi; tanggal yang belum tiba belum bisa diisi.",
 ];
 
