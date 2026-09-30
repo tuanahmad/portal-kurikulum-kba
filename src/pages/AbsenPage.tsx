@@ -44,7 +44,7 @@ const STATUSES: AbsenStatus[] = ["hadir", "izin", "sakit", "cuti"];
 const SANTRI_STATUSES: SantriStatus[] = ["hadir", "tidak_hadir"];
 
 const PERATURAN = [
-  "Absen 2 sesi tiap hari kerja (Senin–Jumat): kelas pagi & kelas siang — masing-masing punya jam datang & jam pulang sendiri.",
+  "Absen 2 sesi tiap hari mengajar (Senin–Jumat): kelas pagi & kelas siang — masing-masing punya jam datang & jam pulang sendiri.",
   "Ketuk tombol untuk mencatat jam otomatis; jam bisa dikoreksi manual bila perlu.",
   "Kalau berhalangan di salah satu sesi, pilih Izin / Sakit / Cuti untuk sesi itu dan tulis keterangannya.",
   "Hari yang terlewat masih bisa dikoreksi; tanggal yang belum tiba belum bisa diisi.",
@@ -922,10 +922,6 @@ function GuruAbsenSantri() {
         <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Roster santri kelas ini belum ada.</p>
       ) : (
         <div className="mt-5 space-y-2.5">
-          <p className="text-xs px-1" style={{ color: C.muted }}>
-            Tiap santri wajib dipilih Hadir/Tidak Hadir dulu — belum otomatis Hadir kalau belum disentuh.
-          </p>
-
           {roster.map((nama) => (
             <SantriRow
               key={nama}
