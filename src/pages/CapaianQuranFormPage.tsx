@@ -13,7 +13,7 @@ import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { MonthGrid } from "../components/MonthGrid";
 
-const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 const QUICK = ["0", "0,5", "1", "2", "3", "4", "5"]; // tombol cepat; guru tetap bisa ketik angka lain
 
 const GOLD = "linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)";

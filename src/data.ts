@@ -273,8 +273,15 @@ export const SANTRI_LIST: Record<string, string[]> = {
 export const MAIN_FOLDER = "1avPwaPRmDYUbD_By1UYwMJGV7sowIEYD";
 export const SNAPSHOT_DATE = "18 Juli 2026";
 
-// Urutan bulan tahun ajaran (Juli–Desember) -> nomor bulan kalender (1-12)
+// Nomor bulan KALENDER asli (1-12) — tetap dipakai apa adanya buat perhitungan tanggal beneran
+// (mis. pekanCountForBulan), BUKAN buat urutan tahun ajaran (lihat ACADEMIC_MONTH_ORDER di bawah).
 const MONTH_NUM: Record<string, number> = {
+  Januari: 1,
+  Februari: 2,
+  Maret: 3,
+  April: 4,
+  Mei: 5,
+  Juni: 6,
   Juli: 7,
   Agustus: 8,
   September: 9,
@@ -283,31 +290,65 @@ const MONTH_NUM: Record<string, number> = {
   Desember: 12,
 };
 
-/** True kalau bulan tsb sudah tiba (bulan ini atau sudah lewat) — bulan depan/nanti masih terkunci. */
-export function isMonthOpen(monthName: string, now: Date = new Date()): boolean {
-  const target = MONTH_NUM[monthName];
-  if (!target) return true;
-  return now.getMonth() + 1 >= target;
+// Tahun ajaran mulai Juli tahun ini, selesai Juni tahun depan -- dipakai buat nentuin tahun
+// kalender yang bener buat bulan Januari-Juni (yang jatuh di tahun kalender BERIKUTNYA), beda
+// dari Juli-Desember yang masih di tahun kalender yang sama. Update tiap mulai tahun ajaran baru.
+const ACADEMIC_YEAR_START = 2026;
+
+// Urutan bulan MENURUT tahun ajaran (Juli = awal, Juni = akhir) -- dipakai buat nentuin bulan
+// mana yang "udah kebuka" (bukan nomor bulan kalender mentah, yang bakal salah pas nyebrang
+// tahun: Januari=1 keitung "udah lewat" dibanding Oktober=10 kalau dibanding mentah-mentah).
+const ACADEMIC_MONTH_ORDER = [
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+];
+
+function academicIndexOf(monthName: string): number {
+  const i = ACADEMIC_MONTH_ORDER.indexOf(monthName);
+  return i === -1 ? 999 : i + 1; // bulan gak dikenal -> anggap paling akhir (biar default "belum kebuka")
 }
 
-/** Cari file yang cocok dengan bulan kalender saat ini (buat tombol "Buka bulan ini"). */
+/** Tahun kalender buat sebuah bulan tahun ajaran -- Juli-Desember di ACADEMIC_YEAR_START,
+ *  Januari-Juni di ACADEMIC_YEAR_START + 1. */
+function academicYearForBulan(monthName: string): number {
+  return academicIndexOf(monthName) <= 6 ? ACADEMIC_YEAR_START : ACADEMIC_YEAR_START + 1;
+}
+
+/** Posisi "sekarang" dalam urutan tahun ajaran (1-12), atau 0 kalau belum masuk tahun ajaran ini
+ *  sama sekali, atau 12 kalau tahun ajaran ini udah lewat total (biar semua kebuka/keliatan). */
+function currentAcademicIndex(now: Date): number {
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  if (y === ACADEMIC_YEAR_START && m >= 7) return m - 6;
+  if (y === ACADEMIC_YEAR_START + 1 && m <= 6) return m + 6;
+  if (y > ACADEMIC_YEAR_START + 1 || (y === ACADEMIC_YEAR_START + 1 && m > 6)) return 12;
+  return 0;
+}
+
+/** True kalau bulan tsb sudah tiba (bulan ini atau sudah lewat) — bulan depan/nanti masih terkunci. */
+export function isMonthOpen(monthName: string, now: Date = new Date()): boolean {
+  return academicIndexOf(monthName) <= currentAcademicIndex(now);
+}
+
+/** Cari file yang cocok dengan bulan tahun ajaran saat ini (buat tombol "Buka bulan ini"). */
 export function getCurrentMonthFile(
   files: { id: string; name: string }[],
   now: Date = new Date()
 ): { id: string; name: string } | null {
-  const currentNum = now.getMonth() + 1;
-  return files.find((f) => MONTH_NUM[f.name] === currentNum) || null;
+  const currentIdx = currentAcademicIndex(now);
+  return files.find((f) => academicIndexOf(f.name) === currentIdx) || null;
 }
 
 /** Jumlah pekan sekolah (Senin–Jumat) yang overlap sebuah bulan — dipakai buat diagram
  *  Capaian Al-Qur'an biar jumlah pekan yang ditampilkan selalu sesuai kalender asli bulan
  *  itu (4 atau 5), bukan berhenti di pekan terakhir yang keisi. Sebuah pekan dihitung milik
  *  bulan tempat hari Senin-nya jatuh. */
-export function pekanCountForBulan(bulanName: string, year: number = new Date().getFullYear()): number {
+export function pekanCountForBulan(bulanName: string, year?: number): number {
   const monthIdx = MONTH_NUM[bulanName];
   if (!monthIdx) return 5;
+  const y = year ?? academicYearForBulan(bulanName);
   let count = 0;
-  const d = new Date(year, monthIdx - 1, 1);
+  const d = new Date(y, monthIdx - 1, 1);
   while (d.getMonth() === monthIdx - 1) {
     if (d.getDay() === 1) count++;
     d.setDate(d.getDate() + 1);

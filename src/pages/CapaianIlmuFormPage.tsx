@@ -15,7 +15,7 @@ import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { MonthGrid } from "../components/MonthGrid";
 
-const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 const GREEN_GRAD = `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`;
 
 function norm(s: string) {

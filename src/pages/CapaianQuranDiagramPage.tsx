@@ -6,7 +6,7 @@ import { readCapaianQuran, findStudentIndexByName, type CapaianQuranData } from 
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { MonthGrid } from "../components/MonthGrid";
 
-const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 
 // Warna per section (fallback cycle kalau ada section tak terduga)
 const SECTION_COLORS: Record<string, string> = {
