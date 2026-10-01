@@ -615,7 +615,7 @@ function TargetPicker({ value, onChange }: { value: string[]; onChange: (v: stri
 const ABSEN_OLAHRAGA_RULES = [
   "Cukup tandai kedatangan — gak perlu jam datang/pulang.",
   "Kalau berhalangan, pilih Izin / Sakit / Cuti dan tulis keterangannya.",
-  "Cuma bisa diisi pada hari itu juga — begitu lewat, dianggap sudah disetor ke manajemen dan gak bisa diubah lagi.",
+  "Hari yang terlewat masih bisa dikoreksi; tanggal yang belum tiba belum bisa diisi.",
 ];
 
 function GuruAbsenOlahraga({ kelompok }: { kelompok: OlahragaKelompok }) {
@@ -679,7 +679,7 @@ function GuruAbsenOlahraga({ kelompok }: { kelompok: OlahragaKelompok }) {
                 key={key}
                 date={d}
                 isToday={key === todayYmd}
-                editable={key === todayYmd}
+                editable={key <= todayYmd}
                 isPast={key < todayYmd}
                 filled={isAbsenOlahragaFilled(entries[key])}
                 entry={entries[key] ?? emptyAbsenOlahraga(key)}
@@ -788,10 +788,12 @@ function AbsenOlahragaDayCard({
           </span>
           <span className="block text-xs truncate" style={{ color: C.muted }}>
             {!editable
-              ? isPast
-                ? filled ? STATUS_LABEL[entry.status] : "Terlewat — tidak diisi"
-                : "Belum waktunya diisi"
-              : filled ? STATUS_LABEL[entry.status] : "Belum absen"}
+              ? "Belum waktunya diisi"
+              : filled
+              ? STATUS_LABEL[entry.status]
+              : isPast
+              ? "Terlewat — belum diisi"
+              : "Belum absen"}
           </span>
         </span>
         {filled && (
@@ -814,9 +816,7 @@ function AbsenOlahragaDayCard({
 
           {!editable ? (
             <p className="text-sm" style={{ color: C.muted }}>
-              {isPast
-                ? "Tanggal ini sudah lewat — dianggap sudah disetor ke manajemen, gak bisa diedit lagi."
-                : "Tanggal ini belum tiba. Absen bisa diisi paling awal pada hari-H."}
+              Tanggal ini belum tiba. Absen bisa diisi paling awal pada hari-H.
             </p>
           ) : (
             <>
