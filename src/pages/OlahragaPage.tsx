@@ -228,6 +228,18 @@ function EvaluasiTingkatCard({
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  // Draf otomatis di perangkat (localStorage): evaluasi itu teks panjang -- kalau halaman ke-reset
+  // (sesi disegarkan, HP pindah aplikasi, tab ke-reload) sebelum sempat Simpan, ketikan gak hilang.
+  const draftKey = `olahraga-eval-draft:${kelompok}:${tingkat}:${bulan}`;
+  const readDraft = (): Record<string, EvalAnakEntry> | null => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      return raw ? (JSON.parse(raw) as Record<string, EvalAnakEntry>) : null;
+    } catch {
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -238,7 +250,9 @@ function EvaluasiTingkatCard({
       .then((d) => {
         if (cancelled) return;
         setData(d);
-        setForm(d);
+        const draft = readDraft();
+        setForm(draft ? { ...d, ...draft } : d);
+        if (draft) setMsg("Ada ketikan yang belum disimpan dari tadi — sudah dipulihkan. Tekan Simpan untuk menyimpannya.");
       })
       .catch((e) => !cancelled && setErr(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancelled && setLoading(false));
@@ -252,7 +266,15 @@ function EvaluasiTingkatCard({
   const dirty = JSON.stringify(form) !== JSON.stringify(data);
 
   const setAnak = (nama: string, k: keyof EvalAnakEntry, v: string) =>
-    setForm((p) => ({ ...p, [nama]: { ...(p[nama] ?? emptyEvalAnak()), [k]: v } }));
+    setForm((p) => {
+      const next = { ...p, [nama]: { ...(p[nama] ?? emptyEvalAnak()), [k]: v } };
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(next));
+      } catch {
+        /* storage penuh/diblokir: abaikan */
+      }
+      return next;
+    });
 
   async function handleSave() {
     setSaving(true);
@@ -260,7 +282,31 @@ function EvaluasiTingkatCard({
     setMsg(null);
     try {
       await saveEvaluasiAnakBatch({ kelompok, tingkat, bulan, entries: form });
-      setData(form);
+      // Jangan percaya begitu aja: baca ulang dari server & pastikan isinya beneran ada. Kalau
+      // gak cocok, tampilkan error (draf di perangkat tetap aman) -- bukan "Tersimpan" palsu.
+      const fresh = await readEvaluasiAnak(tingkat, bulan, {});
+      const t = (x: string | undefined) => (x ?? "").trim();
+      const mismatch = Object.entries(form).some(([nama, e]) => {
+        const f = fresh[nama];
+        return (
+          !f ||
+          t(f.eval_ketercapaian) !== t(e.eval_ketercapaian) ||
+          t(f.eval_partisipasi) !== t(e.eval_partisipasi) ||
+          t(f.eval_kendala) !== t(e.eval_kendala) ||
+          t(f.eval_perkembangan) !== t(e.eval_perkembangan) ||
+          t(f.eval_tindak_lanjut) !== t(e.eval_tindak_lanjut)
+        );
+      });
+      if (mismatch) {
+        throw new Error("Data belum terbaca di server setelah disimpan. Ketikanmu masih aman di perangkat — coba tekan Simpan sekali lagi.");
+      }
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        /* ignore */
+      }
+      setData(fresh);
+      setForm(fresh);
       setMsg("Tersimpan.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));

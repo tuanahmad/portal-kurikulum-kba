@@ -52,6 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(hideTimer);
   }, [loading]);
 
+  // Terakhir kali profil BERHASIL dimuat -- dipakai buat gak nge-wipe role/kelas/kelompok cuma
+  // gara-gara 1x gagal muat (mis. jaringan HP putus-nyambung pas token disegarkan). Kalau
+  // role/kelompok sampai ke-null sesaat, halaman guru bisa langsung ganti jadi layar "akun belum
+  // ditandai" dan form yang lagi diisi (beserta teks yang belum disimpan) hilang.
+  const profileUserId = useRef<string | null>(null);
+
   async function loadProfile(userId: string) {
     const { data, error } = await supabase
       .from("profiles")
@@ -59,16 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("id", userId)
       .single();
     if (!error && data) {
+      profileUserId.current = userId;
       setRole(data.role as Role);
       setKelas(data.kelas);
       setKelompok(data.kelompok);
       setFullName(data.full_name);
-    } else {
+    } else if (profileUserId.current !== userId) {
+      // belum pernah berhasil muat profil user ini -> baru boleh dikosongin
       setRole(null);
       setKelas(null);
       setKelompok(null);
       setFullName(null);
     }
+    // else: pernah berhasil & sekarang gagal -> pertahankan nilai terakhir yang valid
   }
 
   useEffect(() => {
@@ -78,16 +87,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (session?.user) {
-        await loadProfile(session.user.id);
-      } else {
+      if (!session?.user) {
+        profileUserId.current = null;
         setRole(null);
         setKelas(null);
         setKelompok(null);
         setFullName(null);
+        return;
       }
+      // Token cuma disegarkan (pindah tab / balik ke aplikasi) -> profil gak berubah, gak perlu
+      // dimuat ulang. Dan JANGAN await query Supabase di dalam callback ini: callback jalan sambil
+      // megang lock auth, query yang butuh token bisa nunggu lock yang sama -> permintaan macet.
+      if (event === "TOKEN_REFRESHED" && profileUserId.current === session.user.id) return;
+      const uid = session.user.id;
+      setTimeout(() => { void loadProfile(uid); }, 0);
     });
 
     return () => listener.subscription.unsubscribe();
