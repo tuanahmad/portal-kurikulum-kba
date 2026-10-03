@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
-import { C, INSTRUMEN_FOLDERS, jenjangOf } from "../data";
+import { C, INSTRUMEN_FOLDERS } from "../data";
 import { DriveTree } from "../components/DriveTree";
 import { AccentCard } from "../components/PortalComponents";
 import { SkeletonBlock } from "../components/Skeleton";
 import { useAuth } from "../contexts/AuthContext";
-import { listDriveFolders, findChildFolder, type DriveNode } from "../lib/drive";
-
-type Jenjang = "Kuttab Awwal" | "Qonuni" | "Olahraga";
+import { listDriveFolders, type DriveNode } from "../lib/drive";
 
 const GRADIENTS = [
   `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`,
@@ -25,32 +23,10 @@ const FOLDER_ICON: Record<string, JSX.Element> = {
   panduan: <CompassIcon />,
 };
 
-const JENJANG_NAMES: Jenjang[] = ["Kuttab Awwal", "Qonuni", "Olahraga"];
-
-/** Isi yang ditampilkan buat 1 jenjang di 1 kategori: isi folder jenjangnya (kalau ada) + folder
- *  topik lain (mis. Calistung, Doa, Kisah — Drive sekarang ditata per topik, bukan per jenjang) +
- *  file lepas. Folder jenjang LAIN disembunyiin biar guru Kuttab Awwal gak lihat folder Qonuni. */
-function contentFor(nodes: DriveNode[], jenjang: Jenjang): DriveNode[] {
-  const jenjangFolder = findChildFolder(nodes, jenjang);
-  const topicFolders = nodes.filter(
-    (n) => n.type === "folder" && !JENJANG_NAMES.some((j) => n.name.toLowerCase().startsWith(j.toLowerCase()))
-  );
-  const looseFiles = nodes.filter((n) => n.type === "file");
-  return [...(jenjangFolder?.children ?? []), ...topicFolders, ...looseFiles];
-}
-
-/** Jumlah item buat keterangan di kartu kategori — gak direkursif, sekadar gambaran isi. */
-function countFor(nodes: DriveNode[], jenjang: Jenjang): number {
-  return contentFor(nodes, jenjang).length;
-}
-
 export default function InstrumenPage() {
-  const { role, kelas } = useAuth();
-  // Guru olahraga bukan Kuttab Awwal/Qonuni dan cuma butuh lihat Panduan (belum ada Modul/Target
-  // buat olahraga) — jadi jenjang & kategori-nya langsung dikunci, gak lewat picker 2 langkah.
+  const { role } = useAuth();
+  // Guru olahraga cuma butuh Panduan (belum ada Modul/Target khusus olahraga) — kategori-nya langsung dikunci.
   const isOlahraga = role === "olahraga";
-  const myJenjang = isOlahraga ? "Olahraga" : jenjangOf(kelas);
-  const [jenjang, setJenjang] = useState<Jenjang | null>(myJenjang);
   const [activeKey, setActiveKey] = useState<string | null>(isOlahraga ? "panduan" : null);
 
   const [state, setState] = useState<{
@@ -94,52 +70,13 @@ export default function InstrumenPage() {
           </p>
         </header>
 
-        {role === "guru" && !myJenjang && (
-          <p className="text-sm text-center mt-8" style={{ color: C.muted }}>
-            Kelas belum diset untuk akun ini — hubungi koordinator kurikulum.
-          </p>
-        )}
-
-        {/* Langkah 1 (management aja — guru udah otomatis kepasang dari kelasnya) — pilih jenjang */}
-        {role === "management" && !jenjang && (
+        {/* Pilih kategori (Modul / Target / Panduan) */}
+        {!activeFolder && (
           <main className="mt-6">
-            <span className="block text-xs font-bold uppercase tracking-wider mb-2.5 px-1" style={{ color: C.green }}>
-              Pilih Jenjang
-            </span>
-            <div className="grid grid-cols-2 gap-4">
-              <AccentCard
-                title="Kuttab Awwal"
-                icon={<LayerIcon />}
-                gradient={GRADIENTS[0]}
-                onClick={() => setJenjang("Kuttab Awwal")}
-              />
-              <AccentCard
-                title="Qonuni"
-                icon={<LayerIcon />}
-                gradient={GRADIENTS[1]}
-                onClick={() => setJenjang("Qonuni")}
-              />
-            </div>
-          </main>
-        )}
-
-        {/* Langkah 2 — pilih kategori (Modul / Target / Panduan) */}
-        {jenjang && !activeFolder && (
-          <main className="mt-6">
-            {role === "management" && (
-              <button
-                onClick={() => setJenjang(null)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-4 transition-colors hover:opacity-80"
-                style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
-              >
-                <BackArrowIcon />
-                {jenjang}
-              </button>
-            )}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {INSTRUMEN_FOLDERS.map((f, i) => {
                 const nodes = state.result?.[f.folderId];
-                const count = nodes ? countFor(nodes, jenjang) : null;
+                const count = nodes ? nodes.length : null;
                 return (
                   <AccentCard
                     key={f.key}
@@ -161,8 +98,8 @@ export default function InstrumenPage() {
           </main>
         )}
 
-        {/* Langkah 3 — isi kategori yang dipilih */}
-        {jenjang && activeFolder && (
+        {/* Isi kategori yang dipilih — seluruh isi Drive, semua jenjang */}
+        {activeFolder && (
           <main className="mt-6">
             {!isOlahraga && (
               <button
@@ -191,10 +128,9 @@ export default function InstrumenPage() {
             {state.result &&
               (() => {
                 const nodes = state.result![activeFolder.folderId] || [];
-                const combined: DriveNode[] = contentFor(nodes, jenjang);
-                return (
+                                return (
                   <DriveTree
-                    nodes={combined}
+                    nodes={nodes}
                     section="Instrumen Ilmu"
                     gradient={GRADIENTS[activeIdx % GRADIENTS.length]}
                   />
@@ -211,16 +147,6 @@ function BackArrowIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function LayerIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <path d="M12 4l8 4-8 4-8-4 8-4Z" stroke="#FFF" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M4 12l8 4 8-4" stroke="#FFF" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M4 16l8 4 8-4" stroke="#FFF" strokeWidth="1.7" strokeLinejoin="round" />
     </svg>
   );
 }
