@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { RuleCard } from "../components/RuleCard";
+import { AbsenBulananTable } from "../components/AbsenBulananTable";
 import { useDraft } from "../lib/useDraft";
 import {
   readAbsenRange,
@@ -470,7 +471,7 @@ function TimeField({
 /* ═══════════════════════ Management ═══════════════════════ */
 
 function ManagementAbsen() {
-  const [tab, setTab] = useState<"kelas" | "hari">("kelas");
+  const [tab, setTab] = useState<"kelas" | "hari" | "bulan">("kelas");
   const [kelasList, setKelasList] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -497,8 +498,8 @@ function ManagementAbsen() {
         <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap kehadiran harian guru</p>
       </header>
 
-      <div className="mt-5 grid grid-cols-2 gap-1 p-1 rounded-xl" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-        {(["kelas", "hari"] as const).map((t) => {
+      <div className="mt-5 grid grid-cols-3 gap-1 p-1 rounded-xl" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        {(["kelas", "hari", "bulan"] as const).map((t) => {
           const active = tab === t;
           return (
             <button
@@ -507,7 +508,7 @@ function ManagementAbsen() {
               className="py-2 rounded-lg text-sm font-semibold transition-colors"
               style={{ background: active ? C.green : "transparent", color: active ? "#FFF" : C.muted }}
             >
-              {t === "kelas" ? "Per Kelas" : "Per Hari"}
+              {t === "kelas" ? "Per Kelas" : t === "hari" ? "Per Hari" : "Per Bulan"}
             </button>
           );
         })}
@@ -519,7 +520,13 @@ function ManagementAbsen() {
         </div>
       )}
 
-      {tab === "kelas" ? <ManagementAbsenPerKelas kelasList={kelasList} /> : <ManagementAbsenPerHari kelasList={kelasList} />}
+      {tab === "kelas" ? (
+        <ManagementAbsenPerKelas kelasList={kelasList} />
+      ) : tab === "hari" ? (
+        <ManagementAbsenPerHari kelasList={kelasList} />
+      ) : (
+        <AbsenBulananTable />
+      )}
     </>
   );
 }

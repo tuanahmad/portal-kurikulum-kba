@@ -208,3 +208,24 @@ export async function saveAbsenDay(params: {
   );
   if (error) throw new Error(error.message);
 }
+
+export type AbsenBulanRow = { kelas: string; tanggal: string; pagi: SesiEntry; siang: SesiEntry };
+
+/** Baca absen SEMUA guru dalam 1 rentang tanggal (dipakai rekap bulanan management). Balikin
+ *  daftar baris mentah -- dikelompokkin per guru/tanggal di sisi tampilan. */
+export async function readAbsenRangeAll(fromYmd: string, toYmd: string): Promise<AbsenBulanRow[]> {
+  const { data, error } = await supabase
+    .from("absen_guru")
+    .select(
+      "kelas, tanggal, status_pagi, jam_datang_pagi, jam_pulang_pagi, keterangan_pagi, status_siang, jam_datang_siang, jam_pulang_siang, keterangan_siang"
+    )
+    .gte("tanggal", fromYmd)
+    .lte("tanggal", toYmd);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => ({
+    kelas: row.kelas as string,
+    tanggal: row.tanggal as string,
+    pagi: rowToSesi(row.status_pagi, row.jam_datang_pagi, row.jam_pulang_pagi, row.keterangan_pagi),
+    siang: rowToSesi(row.status_siang, row.jam_datang_siang, row.jam_pulang_siang, row.keterangan_siang),
+  }));
+}
