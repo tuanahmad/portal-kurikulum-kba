@@ -2,22 +2,12 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { C, KELAS_LIST } from "../data";
 import { supabase } from "../lib/supabaseClient";
 import { PageLoadingSkeleton } from "./Skeleton";
-import { readAbsenRangeAll, ymd, labelHari, type AbsenBulanRow, type SesiEntry } from "../lib/absen";
-import {
-  DATANG_PAGI,
-  DATANG_SIANG,
-  PULANG_SIANG,
-  pulangPagiIdeal,
-  telatDatang,
-  pulangAwal,
-} from "../lib/absenAturan";
+import { readAbsenRangeAll, ymd, labelHari, type AbsenBulanRow } from "../lib/absen";
+import { buildRekapBulanan, type Guru, type SesiCell } from "../lib/absenBulanan";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-const STATUS_TEKS: Record<string, string> = { izin: "Izin", sakit: "Sakit", cuti: "Cuti" };
 const RED_BG = "#FDEBEA";
 const RED_TX = "#B3261E";
-
-type Guru = { kelas: string; nama: string };
 
 function weekdaysOfMonth(year: number, month0: number): Date[] {
   const out: Date[] = [];
@@ -30,11 +20,9 @@ function weekdaysOfMonth(year: number, month0: number): Date[] {
   return out;
 }
 
-const fmt = (jam: string | null) => (jam ? jam.replace(":", ".") : "—");
-
 /** Rekap absen guru per BULAN (management): baris = guru, kolom = tanggal Senin–Jumat, tiap tanggal
  *  punya 4 jam (pagi datang/pulang, siang datang/pulang). Merah = datang terlambat atau pulang
- *  lebih awal dari batas (aturan di lib/absenAturan.ts); putih = tepat waktu. */
+ *  lebih awal dari batas (aturan di lib/absenAturan.ts); putih = tepat waktu. Bisa diunduh PDF. */
 export function AbsenBulananTable() {
   const now = useMemo(() => new Date(), []);
   const [monthDate, setMonthDate] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
@@ -46,6 +34,7 @@ export function AbsenBulananTable() {
   const [rows, setRows] = useState<AbsenBulanRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   const days = useMemo(() => weekdaysOfMonth(year, month0), [year, month0]);
 
@@ -84,39 +73,49 @@ export function AbsenBulananTable() {
     };
   }, [year, month0]);
 
-  const byKey = useMemo(() => {
-    const m = new Map<string, AbsenBulanRow>();
-    for (const r of rows) m.set(`${r.kelas}|${r.tanggal}`, r);
-    return m;
-  }, [rows]);
-
-  const border = `1px solid ${C.line}`;
+  const model = useMemo(() => buildRekapBulanan(guru, rows, days), [guru, rows, days]);
 
   function shift(n: number) {
     setMonthDate((d) => new Date(d.getFullYear(), d.getMonth() + n, 1));
   }
 
-  /** Nilai 1 sesi buat 1 guru-hari: 2 sel (datang, pulang), atau 1 sel status kalau izin/sakit/cuti. */
-  function renderSesi(sesi: SesiEntry | undefined, datangIdeal: number, pulangIdeal: number, key: string, awalHari: boolean) {
+  async function unduhPdf() {
+    setPdfBusy(true);
+    setError(null);
+    try {
+      const { unduhPdfRekapBulanan } = await import("../lib/absenBulananPdf");
+      await unduhPdfRekapBulanan({
+        bulanLabel: `${BULAN[month0]} ${year}`,
+        days,
+        rows: model,
+        fileName: `Rekap-Absen-Guru-${BULAN[month0]}-${year}.pdf`,
+      });
+    } catch (e) {
+      setError("Gagal membuat PDF: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setPdfBusy(false);
+    }
+  }
+
+  const border = `1px solid ${C.line}`;
+
+  function sesiTds(c: SesiCell, keyPrefix: string, awalHari: boolean) {
     const base = { borderTop: border, borderLeft: awalHari ? border : undefined } as const;
-    if (sesi && sesi.status !== "hadir") {
-      const ket = sesi.keterangan.trim();
+    if (c.kind === "status") {
       return (
-        <td key={key} colSpan={2} className="text-center px-1 py-1 align-top" style={{ ...base, color: C.muted, minWidth: 88 }}>
-          <div className="font-semibold">{STATUS_TEKS[sesi.status] ?? sesi.status}</div>
-          {ket && <div className="text-[10px] leading-tight" style={{ maxWidth: 88, wordBreak: "break-word" }}>{ket}</div>}
+        <td key={keyPrefix} colSpan={2} className="text-center px-1 py-1 align-top" style={{ ...base, color: C.muted, minWidth: 88 }}>
+          <div className="font-semibold">{c.teks}</div>
+          {c.ket && <div className="text-[10px] leading-tight" style={{ maxWidth: 88, wordBreak: "break-word" }}>{c.ket}</div>}
         </td>
       );
     }
-    const telat = telatDatang(sesi?.jam_datang, datangIdeal);
-    const awal = pulangAwal(sesi?.jam_pulang, pulangIdeal);
     return (
-      <Fragment key={key}>
-        <td className="text-center px-1 py-1 tabular-nums" style={telat ? { ...base, background: RED_BG, color: RED_TX, fontWeight: 700 } : { ...base, color: C.ink }}>
-          {fmt(sesi?.jam_datang ?? null)}
+      <Fragment key={keyPrefix}>
+        <td className="text-center px-1 py-1 tabular-nums" style={c.datangMerah ? { ...base, background: RED_BG, color: RED_TX, fontWeight: 700 } : { ...base, color: C.ink }}>
+          {c.datang ?? "—"}
         </td>
-        <td className="text-center px-1 py-1 tabular-nums" style={awal ? { borderTop: border, background: RED_BG, color: RED_TX, fontWeight: 700 } : { borderTop: border, color: C.ink }}>
-          {fmt(sesi?.jam_pulang ?? null)}
+        <td className="text-center px-1 py-1 tabular-nums" style={c.pulangMerah ? { borderTop: border, background: RED_BG, color: RED_TX, fontWeight: 700 } : { borderTop: border, color: C.ink }}>
+          {c.pulang ?? "—"}
         </td>
       </Fragment>
     );
@@ -149,6 +148,19 @@ export function AbsenBulananTable() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ transform: "rotate(180deg)" }}><path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={unduhPdf}
+        disabled={pdfBusy || loading || model.length === 0}
+        className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-opacity"
+        style={{ background: C.green, color: "#FFF", opacity: pdfBusy || loading || model.length === 0 ? 0.5 : 1 }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {pdfBusy ? "Menyiapkan PDF…" : "Download PDF"}
+      </button>
 
       <p className="mt-3 text-[11px] leading-relaxed px-1" style={{ color: C.muted }}>
         Merah = datang terlambat (pagi lewat 06.30, siang lewat 14.00) atau pulang lebih awal (pagi: Kuttab Awwal 1A/1B
@@ -207,49 +219,29 @@ export function AbsenBulananTable() {
               </tr>
             </thead>
             <tbody>
-              {guru.map((g) => {
-                const pulangPagi = pulangPagiIdeal(g.kelas);
-                let telat = 0;
-                let awal = 0;
-                for (const d of days) {
-                  const r = byKey.get(`${g.kelas}|${ymd(d)}`);
-                  if (!r) continue;
-                  if (r.pagi.status === "hadir") {
-                    if (telatDatang(r.pagi.jam_datang, DATANG_PAGI)) telat++;
-                    if (pulangAwal(r.pagi.jam_pulang, pulangPagi)) awal++;
-                  }
-                  if (r.siang.status === "hadir") {
-                    if (telatDatang(r.siang.jam_datang, DATANG_SIANG)) telat++;
-                    if (pulangAwal(r.siang.jam_pulang, PULANG_SIANG)) awal++;
-                  }
-                }
-                return (
-                  <tr key={g.kelas}>
-                    <td
-                      className="px-2.5 py-1.5 align-top"
-                      style={{ position: "sticky", left: 0, zIndex: 1, background: "#FFF", borderTop: border, borderRight: border, minWidth: 120 }}
-                    >
-                      <div className="font-semibold truncate" style={{ color: C.ink, maxWidth: 130 }}>{g.nama}</div>
-                      <div className="text-[10px] truncate" style={{ color: C.muted, maxWidth: 130 }}>{g.kelas}</div>
-                    </td>
-                    <td className="text-center font-bold tabular-nums" style={{ borderTop: border, borderRight: border, color: telat > 0 ? RED_TX : C.muted, background: telat > 0 ? RED_BG : undefined }}>
-                      {telat}
-                    </td>
-                    <td className="text-center font-bold tabular-nums" style={{ borderTop: border, borderRight: border, color: awal > 0 ? RED_TX : C.muted, background: awal > 0 ? RED_BG : undefined }}>
-                      {awal}
-                    </td>
-                    {days.map((d) => {
-                      const r = byKey.get(`${g.kelas}|${ymd(d)}`);
-                      return (
-                        <Fragment key={ymd(d)}>
-                          {renderSesi(r?.pagi, DATANG_PAGI, pulangPagi, "pg", true)}
-                          {renderSesi(r?.siang, DATANG_SIANG, PULANG_SIANG, "sg", false)}
-                        </Fragment>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
+              {model.map((r) => (
+                <tr key={r.guru.kelas}>
+                  <td
+                    className="px-2.5 py-1.5 align-top"
+                    style={{ position: "sticky", left: 0, zIndex: 1, background: "#FFF", borderTop: border, borderRight: border, minWidth: 120 }}
+                  >
+                    <div className="font-semibold truncate" style={{ color: C.ink, maxWidth: 130 }}>{r.guru.nama}</div>
+                    <div className="text-[10px] truncate" style={{ color: C.muted, maxWidth: 130 }}>{r.guru.kelas}</div>
+                  </td>
+                  <td className="text-center font-bold tabular-nums" style={{ borderTop: border, borderRight: border, color: r.telat > 0 ? RED_TX : C.muted, background: r.telat > 0 ? RED_BG : undefined }}>
+                    {r.telat}
+                  </td>
+                  <td className="text-center font-bold tabular-nums" style={{ borderTop: border, borderRight: border, color: r.awal > 0 ? RED_TX : C.muted, background: r.awal > 0 ? RED_BG : undefined }}>
+                    {r.awal}
+                  </td>
+                  {r.hari.map((h, i) => (
+                    <Fragment key={i}>
+                      {sesiTds(h.pagi, "pg", true)}
+                      {sesiTds(h.siang, "sg", false)}
+                    </Fragment>
+                  ))}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
