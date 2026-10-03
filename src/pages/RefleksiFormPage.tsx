@@ -4,7 +4,6 @@ import { C, REFLEKSI_FILES, SANTRI_LIST, jenjangOf, isMonthOpen } from "../data"
 import { useAuth } from "../contexts/AuthContext";
 import { readReflectionTab, writeReflectionTab, type ReflectionData } from "../lib/refleksiSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
-import { DraftBanner } from "../components/DraftBanner";
 import { useDraft } from "../lib/useDraft";
 
 const ROSTER_ROWS = 20; // kapasitas tetap di sheet (A51:D70) — cukup buat kelas terbesar (11 santri)
@@ -233,7 +232,6 @@ export default function RefleksiFormPage() {
           </div>
         ) : (
           <div className="mt-6 space-y-7">
-            <DraftBanner show={draft.restored} onDiscard={draft.discard} />
             {error && (
               <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
                 {error}

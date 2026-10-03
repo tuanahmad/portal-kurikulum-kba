@@ -14,7 +14,6 @@ import { readCapaianIlmu, writeCapaianIlmu, type CapaianIlmuData } from "../lib/
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { MonthGrid } from "../components/MonthGrid";
-import { DraftBanner } from "../components/DraftBanner";
 import { useDraft } from "../lib/useDraft";
 
 const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
@@ -268,7 +267,6 @@ export default function CapaianIlmuFormPage() {
                     : "Capaian yang sudah diisi guru untuk santri ini."}
                 </p>
 
-                <DraftBanner show={draft.restored} onDiscard={draft.discard} />
 
                 <div className="mt-4 space-y-4">
                   {groups.map((g, gi) => (

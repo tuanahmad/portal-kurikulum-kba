@@ -3,7 +3,6 @@ import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { PageLoadingSkeleton } from "../components/Skeleton";
-import { DraftBanner } from "../components/DraftBanner";
 import { useDraft } from "../lib/useDraft";
 import { PickerCard } from "../components/PickerCard";
 import { RuleCard } from "../components/RuleCard";
@@ -264,7 +263,6 @@ function DayCard({
       {open && (
         <div className="px-3.5 pb-4 pt-1" style={{ borderTop: `1px solid ${C.line}` }}>
           <p className="text-xs mt-2 mb-3" style={{ color: C.muted }}>{labelTanggal(date)}</p>
-          <DraftBanner show={draft.restored} onDiscard={draft.discard} />
           <div className="space-y-3 mt-3">
             {QUESTIONS.map((q) => (
               <label key={q.key} className="block">

@@ -12,7 +12,6 @@ import {
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { MonthGrid } from "../components/MonthGrid";
-import { DraftBanner } from "../components/DraftBanner";
 import { useDraft } from "../lib/useDraft";
 
 const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
@@ -272,7 +271,6 @@ export default function CapaianQuranFormPage() {
                     : "Angka = baris yang dibaca. Kosongkan kalau nggak baca. Isi 0 kalau ngulang baris yang sama. Bisa juga diisi kode kaya PT (persiapan tasmi') / TS (tasmi')."}
                 </p>
 
-                <DraftBanner show={draft.restored} onDiscard={draft.discard} />
 
                 <div className="mt-4 space-y-2.5">
                   {roster.length === 0 && (

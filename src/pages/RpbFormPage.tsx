@@ -11,7 +11,6 @@ import {
   type RpbTabData,
 } from "../lib/rpbSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
-import { DraftBanner } from "../components/DraftBanner";
 import { useDraft } from "../lib/useDraft";
 import { RpbRekap } from "./RpbPage";
 
@@ -262,7 +261,6 @@ export default function RpbFormPage() {
           </div>
         ) : (
           <div className="mt-6 space-y-7">
-            <DraftBanner show={draft.restored} onDiscard={draft.discard} />
             {error && (
               <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
                 {error}

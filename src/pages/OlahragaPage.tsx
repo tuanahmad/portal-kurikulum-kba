@@ -3,7 +3,6 @@ import { Navigate, useParams } from "react-router-dom";
 import { C, isMonthOpen, olahragaRoster } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { PageLoadingSkeleton } from "../components/Skeleton";
-import { DraftBanner } from "../components/DraftBanner";
 import { useDraft } from "../lib/useDraft";
 import { RuleCard } from "../components/RuleCard";
 import { MonthGrid } from "../components/MonthGrid";
@@ -342,7 +341,6 @@ function EvaluasiTingkatCard({
             <PageLoadingSkeleton />
           ) : (
             <>
-              <DraftBanner show={draft.restored} onDiscard={draft.discard} />
               <div className="space-y-2 mt-3">
                 {roster.map((nama) => {
                   const entry = form[nama] ?? emptyEvalAnak();
@@ -530,7 +528,6 @@ function TingkatCard({
 
       {open && (
         <div className="px-3.5 pb-4 pt-3" style={{ borderTop: `1px solid ${C.line}` }}>
-          <DraftBanner show={draft.restored} onDiscard={draft.discard} />
           <div className="space-y-3 mt-3">
             {PEKAN_FIELDS.map((f) => (
               <Field key={f.key} label={f.label}>
@@ -863,7 +860,6 @@ function AbsenOlahragaDayCard({
         <div className="px-3.5 pb-4 pt-1" style={{ borderTop: `1px solid ${C.line}` }}>
           <p className="text-xs mt-2 mb-3" style={{ color: C.muted }}>{labelTanggal(date)}</p>
 
-          <DraftBanner show={draft.restored} onDiscard={draft.discard} />
 
           {!editable ? (
             <p className="text-sm" style={{ color: C.muted }}>

@@ -5,7 +5,6 @@ import { supabase } from "../lib/supabaseClient";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { RuleCard } from "../components/RuleCard";
-import { DraftBanner } from "../components/DraftBanner";
 import { useDraft } from "../lib/useDraft";
 import {
   readAbsenRange,
@@ -320,7 +319,6 @@ function AbsenDayCard({
             </p>
           ) : (
             <>
-              <DraftBanner show={draft.restored} onDiscard={draft.discard} />
               <div className="space-y-4 mt-3">
                 {SESI_LIST.map((sesi, i) => (
                   <div key={sesi}>
@@ -945,7 +943,6 @@ function GuruAbsenSantri() {
         <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Roster santri kelas ini belum ada.</p>
       ) : (
         <div className="mt-5 space-y-2.5">
-          <DraftBanner show={draft.restored} onDiscard={draft.discard} />
           {roster.map((nama) => (
             <SantriRow
               key={nama}

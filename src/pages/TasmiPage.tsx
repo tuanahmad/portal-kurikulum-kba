@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { C, capaianRoster } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { PageLoadingSkeleton } from "../components/Skeleton";
-import { DraftBanner } from "../components/DraftBanner";
 import { useDraft } from "../lib/useDraft";
 import { PickerCard } from "../components/PickerCard";
 import {
@@ -238,7 +237,6 @@ function TasmiForm({
       <div className="text-sm font-bold uppercase tracking-[0.1em] mb-3.5" style={{ color: C.green }}>
         {existing ? "Edit Catatan Tasmi'" : "Catat Tasmi' Baru"}
       </div>
-      <DraftBanner show={draft.restored} onDiscard={draft.discard} />
       <div className="space-y-3 mt-3">
         <Field label="Tanggal">
           <input
