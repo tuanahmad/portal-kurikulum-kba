@@ -8,7 +8,6 @@ import { useAuth } from "../contexts/AuthContext";
 
 const PREFIX = "portal-draft:v1:";
 const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // draf lebih dari 14 hari dianggap basi
-const WRITE_DEBOUNCE_MS = 300;
 
 type Stored<T> = { v: T; t: number };
 
@@ -69,7 +68,13 @@ export function useDraft<T>(opts: {
 
   // Pulihkan draf: sekali per (form, akun), begitu data server siap.
   useEffect(() => {
-    if (!key || !ready) return;
+    // Form lagi gak aktif / datanya lagi dimuat ulang: lupakan status "udah dipulihkan" biar pas
+    // aktif lagi (mis. guru ganti pilihan lalu balik ke pilihan yang sama, dan form di-reset dari
+    // sheet) drafnya dipulihkan lagi -- bukan malah dianggap sama dengan baseline lalu dihapus.
+    if (!key || !ready) {
+      restoredForKey.current = null;
+      return;
+    }
     if (restoredForKey.current === key) return;
     restoredForKey.current = key;
     const d = readDraft<T>(key);
@@ -85,7 +90,9 @@ export function useDraft<T>(opts: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, ready]);
 
-  // Simpan draf tiap isi form berubah (debounce), hapus kalau udah sama dengan yang tersimpan.
+  // Simpan draf SETIAP isi form berubah, langsung (tanpa debounce): kalau ditunda, guru yang ngetik
+  // terus lalu langsung kepencet back/pindah halaman bakal kehilangan ketikannya karena penundanya
+  // ikut batal pas halaman ditutup. Nulis localStorage per ketikan itu murah.
   useEffect(() => {
     if (!key || !ready || restoredForKey.current !== key) return;
     if (justRestored.current) {
@@ -97,8 +104,7 @@ export function useDraft<T>(opts: {
       setRestored(false);
       return;
     }
-    const id = setTimeout(() => writeDraft(key, value), WRITE_DEBOUNCE_MS);
-    return () => clearTimeout(id);
+    writeDraft(key, value);
   }, [key, ready, value, baseline]);
 
   // Pas aplikasi disembunyiin / ditutup, tulis langsung (jangan nunggu debounce).
