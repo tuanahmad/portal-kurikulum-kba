@@ -25,12 +25,23 @@ const FOLDER_ICON: Record<string, JSX.Element> = {
   panduan: <CompassIcon />,
 };
 
-/** Hitung jumlah item langsung di folder jenjang tertentu (buat keterangan di kartu kategori) —
- *  gak perlu presisi (subfolder dihitung 1 item, gak direkursif), sekadar gambaran isi. */
-function countFor(nodes: DriveNode[], jenjang: Jenjang): number {
+const JENJANG_NAMES: Jenjang[] = ["Kuttab Awwal", "Qonuni", "Olahraga"];
+
+/** Isi yang ditampilkan buat 1 jenjang di 1 kategori: isi folder jenjangnya (kalau ada) + folder
+ *  topik lain (mis. Calistung, Doa, Kisah — Drive sekarang ditata per topik, bukan per jenjang) +
+ *  file lepas. Folder jenjang LAIN disembunyiin biar guru Kuttab Awwal gak lihat folder Qonuni. */
+function contentFor(nodes: DriveNode[], jenjang: Jenjang): DriveNode[] {
   const jenjangFolder = findChildFolder(nodes, jenjang);
+  const topicFolders = nodes.filter(
+    (n) => n.type === "folder" && !JENJANG_NAMES.some((j) => n.name.toLowerCase().startsWith(j.toLowerCase()))
+  );
   const looseFiles = nodes.filter((n) => n.type === "file");
-  return (jenjangFolder?.children.length ?? 0) + looseFiles.length;
+  return [...(jenjangFolder?.children ?? []), ...topicFolders, ...looseFiles];
+}
+
+/** Jumlah item buat keterangan di kartu kategori — gak direkursif, sekadar gambaran isi. */
+function countFor(nodes: DriveNode[], jenjang: Jenjang): number {
+  return contentFor(nodes, jenjang).length;
 }
 
 export default function InstrumenPage() {
@@ -180,9 +191,7 @@ export default function InstrumenPage() {
             {state.result &&
               (() => {
                 const nodes = state.result![activeFolder.folderId] || [];
-                const jenjangFolder = findChildFolder(nodes, jenjang);
-                const looseFiles = nodes.filter((n) => n.type === "file");
-                const combined: DriveNode[] = [...(jenjangFolder?.children ?? []), ...looseFiles];
+                const combined: DriveNode[] = contentFor(nodes, jenjang);
                 return (
                   <DriveTree
                     nodes={combined}
