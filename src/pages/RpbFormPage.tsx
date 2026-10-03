@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { C, RPB_FILES, jenjangOf, isMonthOpen, sheetUrl } from "../data";
 import { useAuth } from "../contexts/AuthContext";
@@ -11,6 +11,8 @@ import {
   type RpbTabData,
 } from "../lib/rpbSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
+import { DraftBanner } from "../components/DraftBanner";
+import { useDraft } from "../lib/useDraft";
 import { RpbRekap } from "./RpbPage";
 
 const TABLE_B_ROWS_DEFAULT = 5; // muncul dari awal
@@ -127,6 +129,35 @@ export default function RpbFormPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file?.id, kelas]);
 
+  // Seluruh isian form dijadiin 1 "snapshot" buat draf otomatis (lihat lib/useDraft.ts).
+  const snapshot = useMemo(
+    () => ({ namaGuru, kelasField, levelField, bulanField, jumlahPertemuan, tableB, tableC, bidangCount }),
+    [namaGuru, kelasField, levelField, bulanField, jumlahPertemuan, tableB, tableC, bidangCount]
+  );
+  type Snap = typeof snapshot;
+  const [baseline, setBaseline] = useState<Snap | null>(null);
+  useEffect(() => {
+    if (!loading) setBaseline(snapshot); // data server baru selesai dimuat -> ini isi "terakhir tersimpan"
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+  const applySnap = (v: Snap) => {
+    setNamaGuru(v.namaGuru);
+    setKelasField(v.kelasField);
+    setLevelField(v.levelField);
+    setBulanField(v.bulanField);
+    setJumlahPertemuan(v.jumlahPertemuan);
+    setTableB(v.tableB);
+    setTableC(v.tableC);
+    setBidangCount(v.bidangCount);
+  };
+  const draft = useDraft({
+    formKey: kelas && bulan && !qonuniWriteBlocked ? `rpb:${kelas}:${bulan}` : null,
+    value: snapshot,
+    baseline: baseline ?? snapshot,
+    setValue: applySnap,
+    ready: !loading && baseline !== null,
+  });
+
   async function handleSave() {
     if (!kelas || !file) return;
     setSaving(true);
@@ -157,6 +188,8 @@ export default function RpbFormPage() {
     };
     try {
       await writeRpbTab(file.id, kelas, payload);
+      setBaseline(snapshot);
+      draft.clear();
       setSaveMsg("Tersimpan ke sheet.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -229,6 +262,7 @@ export default function RpbFormPage() {
           </div>
         ) : (
           <div className="mt-6 space-y-7">
+            <DraftBanner show={draft.restored} onDiscard={draft.discard} />
             {error && (
               <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
                 {error}

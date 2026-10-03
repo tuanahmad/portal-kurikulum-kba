@@ -5,6 +5,8 @@ import { supabase } from "../lib/supabaseClient";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { RuleCard } from "../components/RuleCard";
+import { DraftBanner } from "../components/DraftBanner";
+import { useDraft } from "../lib/useDraft";
 import {
   readAbsenRange,
   readAbsenDayAll,
@@ -216,6 +218,13 @@ function AbsenDayCard({
     entry.siang.status, entry.siang.jam_datang, entry.siang.jam_pulang, entry.siang.keterangan,
   ]);
 
+  const draft = useDraft({
+    formKey: open && editable ? `absen-guru:${kelas}:${ymd(date)}` : null,
+    value: form,
+    baseline: { tanggal: entry.tanggal, pagi: { ...entry.pagi }, siang: { ...entry.siang } } as AbsenEntry,
+    setValue: setForm,
+  });
+
   const filled = isAbsenFilled(entry);
   const lengkap = isAbsenLengkap(entry);
   const dirty =
@@ -247,6 +256,7 @@ function AbsenDayCard({
       };
       onSaved(saved);
       setForm(saved);
+      draft.clear();
       setMsg("Tersimpan.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -310,7 +320,8 @@ function AbsenDayCard({
             </p>
           ) : (
             <>
-              <div className="space-y-4">
+              <DraftBanner show={draft.restored} onDiscard={draft.discard} />
+              <div className="space-y-4 mt-3">
                 {SESI_LIST.map((sesi, i) => (
                   <div key={sesi}>
                     {i > 0 && <div className="h-px mb-4" style={{ background: C.line }} />}
@@ -830,6 +841,15 @@ function GuruAbsenSantri() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [baseline, setBaseline] = useState<Record<string, FormEntry>>({});
+
+  const draft = useDraft({
+    formKey: kelas && editable ? `absen-santri:${kelas}:${dateYmd}` : null,
+    value: form,
+    baseline,
+    setValue: setForm,
+    ready: !loading,
+  });
 
   useEffect(() => {
     if (!kelas) return;
@@ -843,6 +863,7 @@ function GuruAbsenSantri() {
         const next: Record<string, FormEntry> = {};
         for (const nama of roster) next[nama] = saved[nama] ?? emptyFormEntry(nama);
         setForm(next);
+        setBaseline(JSON.parse(JSON.stringify(next)));
       })
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancelled && setLoading(false));
@@ -877,6 +898,8 @@ function GuruAbsenSantri() {
         };
       });
       await saveAbsenSantriDay(kelas, dateYmd, entries);
+      setBaseline(JSON.parse(JSON.stringify(form)));
+      draft.clear();
       setMsg("Tersimpan.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -922,6 +945,7 @@ function GuruAbsenSantri() {
         <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Roster santri kelas ini belum ada.</p>
       ) : (
         <div className="mt-5 space-y-2.5">
+          <DraftBanner show={draft.restored} onDiscard={draft.discard} />
           {roster.map((nama) => (
             <SantriRow
               key={nama}

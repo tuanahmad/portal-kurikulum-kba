@@ -12,6 +12,8 @@ import {
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { MonthGrid } from "../components/MonthGrid";
+import { DraftBanner } from "../components/DraftBanner";
+import { useDraft } from "../lib/useDraft";
 
 const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 const QUICK = ["0", "0,5", "1", "2", "3", "4", "5"]; // tombol cepat; guru tetap bisa ketik angka lain
@@ -40,6 +42,7 @@ export default function CapaianQuranFormPage() {
   const [sectionName, setSectionName] = useState<string | null>(null);
   const [slot, setSlot] = useState<number | null>(null);
   const [values, setValues] = useState<string[]>([]);
+  const [baselineValues, setBaselineValues] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -72,19 +75,28 @@ export default function CapaianQuranFormPage() {
   useEffect(() => {
     if (!section || !slot) {
       setValues([]);
+      setBaselineValues([]);
       return;
     }
-    setValues(
-      roster.map((_nama, ri) => {
-        const idx = studentIndexFor(section, roster, ri);
-        return idx >= 0 ? section.students[idx]?.values?.[slot - 1] ?? "" : "";
-      })
-    );
+    const fromSheet = roster.map((_nama, ri) => {
+      const idx = studentIndexFor(section, roster, ri);
+      return idx >= 0 ? section.students[idx]?.values?.[slot - 1] ?? "" : "";
+    });
+    setValues(fromSheet);
+    setBaselineValues(fromSheet);
     // sengaja gak clear saveMsg di sini -- efek ini juga jalan ulang abis handleSave nge-refetch
     // `data` (bikin `section` jadi objek baru), dan kalau saveMsg ikut ke-clear di situ, pesan
     // "Tersimpan ke sheet." keburu ilang instan padahal baru aja muncul. Clear-nya dipindah ke
     // titik user GANTI slot/section secara manual (lihat onClick di picker-nya).
   }, [section, slot, roster]);
+
+  const draft = useDraft({
+    formKey: isGuru && kelas && bulan && section && slot ? `quran:${kelas}:${bulan}:${section.name}:${slot}` : null,
+    value: values,
+    baseline: baselineValues,
+    setValue: setValues,
+    ready: !loading && !!section && !!slot,
+  });
 
   if (isGuru && !kelas) {
     return (
@@ -116,6 +128,7 @@ export default function CapaianQuranFormPage() {
       // atas nge-populate ulang `values` dari data LAMA itu (keliatan kaya editannya "ilang").
       const fresh = await readCapaianQuran(fileId, bulan);
       setData(fresh);
+      draft.clear();
       setSaveMsg("Tersimpan ke sheet.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -258,6 +271,8 @@ export default function CapaianQuranFormPage() {
                     ? "Angka = putaran mengulang hafalan. Kosongkan kalau nggak ada. Isi 0 kalau nggak ngulang. Bisa juga diisi kode kaya PT (persiapan tasmi') / TS (tasmi')."
                     : "Angka = baris yang dibaca. Kosongkan kalau nggak baca. Isi 0 kalau ngulang baris yang sama. Bisa juga diisi kode kaya PT (persiapan tasmi') / TS (tasmi')."}
                 </p>
+
+                <DraftBanner show={draft.restored} onDiscard={draft.discard} />
 
                 <div className="mt-4 space-y-2.5">
                   {roster.length === 0 && (

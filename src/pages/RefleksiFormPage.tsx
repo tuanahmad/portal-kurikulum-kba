@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { C, REFLEKSI_FILES, SANTRI_LIST, jenjangOf, isMonthOpen } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { readReflectionTab, writeReflectionTab, type ReflectionData } from "../lib/refleksiSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
+import { DraftBanner } from "../components/DraftBanner";
+import { useDraft } from "../lib/useDraft";
 
 const ROSTER_ROWS = 20; // kapasitas tetap di sheet (A51:D70) — cukup buat kelas terbesar (11 santri)
 const KENDALA_ROWS = 5;
@@ -108,6 +110,38 @@ export default function RefleksiFormPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file?.id, kelas]);
 
+  // Seluruh isian form dijadiin 1 "snapshot" buat draf otomatis (lihat lib/useDraft.ts).
+  const snapshot = useMemo(
+    () => ({ namaGuru, kelasField, levelField, bulanField, capaianTarget, keberhasilan, kendala, evaluasiDiri, refleksiGuru, rencanaPerbaikan, murid }),
+    [namaGuru, kelasField, levelField, bulanField, capaianTarget, keberhasilan, kendala, evaluasiDiri, refleksiGuru, rencanaPerbaikan, murid]
+  );
+  type Snap = typeof snapshot;
+  const [baseline, setBaseline] = useState<Snap | null>(null);
+  useEffect(() => {
+    if (!loading) setBaseline(snapshot); // data server baru selesai dimuat -> ini isi "terakhir tersimpan"
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+  const applySnap = (v: Snap) => {
+    setNamaGuru(v.namaGuru);
+    setKelasField(v.kelasField);
+    setLevelField(v.levelField);
+    setBulanField(v.bulanField);
+    setCapaianTarget(v.capaianTarget);
+    setKeberhasilan(v.keberhasilan);
+    setKendala(v.kendala);
+    setEvaluasiDiri(v.evaluasiDiri);
+    setRefleksiGuru(v.refleksiGuru);
+    setRencanaPerbaikan(v.rencanaPerbaikan);
+    setMurid(v.murid);
+  };
+  const draft = useDraft({
+    formKey: kelas && bulan ? `refleksi:${kelas}:${bulan}` : null,
+    value: snapshot,
+    baseline: baseline ?? snapshot,
+    setValue: applySnap,
+    ready: !loading && baseline !== null,
+  });
+
   async function handleSave() {
     if (!kelas || !file) return;
     setSaving(true);
@@ -131,6 +165,8 @@ export default function RefleksiFormPage() {
     };
     try {
       await writeReflectionTab(file.id, kelas, payload);
+      setBaseline(snapshot);
+      draft.clear();
       setSaveMsg("Tersimpan ke sheet (salinan uji coba).");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -197,6 +233,7 @@ export default function RefleksiFormPage() {
           </div>
         ) : (
           <div className="mt-6 space-y-7">
+            <DraftBanner show={draft.restored} onDiscard={draft.discard} />
             {error && (
               <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
                 {error}

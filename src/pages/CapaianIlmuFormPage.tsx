@@ -14,6 +14,8 @@ import { readCapaianIlmu, writeCapaianIlmu, type CapaianIlmuData } from "../lib/
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { MonthGrid } from "../components/MonthGrid";
+import { DraftBanner } from "../components/DraftBanner";
+import { useDraft } from "../lib/useDraft";
 
 const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 const GREEN_GRAD = `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`;
@@ -60,6 +62,7 @@ export default function CapaianIlmuFormPage() {
   const [data, setData] = useState<CapaianIlmuData | null>(null);
   const [anakI, setAnakI] = useState<number | null>(null); // index dalam roster
   const [form, setForm] = useState<Record<string, string>>({});
+  const [baselineForm, setBaselineForm] = useState<Record<string, string>>({});
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -92,13 +95,23 @@ export default function CapaianIlmuFormPage() {
   useEffect(() => {
     if (!data || anakI == null) {
       setForm({});
+      setBaselineForm({});
       return;
     }
     const slot = rosterSlots[anakI];
     const f: Record<string, string> = {};
     for (const b of bidangFlat) f[b.key] = data.values[b.key]?.[slot] ?? "";
     setForm(f);
+    setBaselineForm(f);
   }, [data, anakI, rosterSlots, bidangFlat]);
+
+  const draft = useDraft({
+    formKey: isGuru && kelas && bulan && data && anakI != null ? `ilmu:${kelas}:${bulan}:${roster[anakI]}` : null,
+    value: form,
+    baseline: baselineForm,
+    setValue: setForm,
+    ready: !loading && !!data && anakI != null,
+  });
 
   if (isGuru && !kelas) {
     return (
@@ -123,6 +136,7 @@ export default function CapaianIlmuFormPage() {
         names: [{ anakIdx: slot, nama: roster[anakI] }],
       });
       setSaveMsg("Tersimpan ke sheet.");
+      draft.clear();
       // update cache lokal biar pindah anak tetep keliatan
       setData((prev) => {
         if (!prev) return prev;
@@ -253,6 +267,8 @@ export default function CapaianIlmuFormPage() {
                     ? 'Tulis capaian tiap bidang. Tombol "samakan" mengisi bidang itu ke semua santri sekaligus.'
                     : "Capaian yang sudah diisi guru untuk santri ini."}
                 </p>
+
+                <DraftBanner show={draft.restored} onDiscard={draft.discard} />
 
                 <div className="mt-4 space-y-4">
                   {groups.map((g, gi) => (

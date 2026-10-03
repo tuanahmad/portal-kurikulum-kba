@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { C, capaianRoster } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { PageLoadingSkeleton } from "../components/Skeleton";
+import { DraftBanner } from "../components/DraftBanner";
+import { useDraft } from "../lib/useDraft";
 import { PickerCard } from "../components/PickerCard";
 import {
   readTasmiByKelas,
@@ -184,7 +186,8 @@ function TasmiForm({
   onCancel: () => void;
   onSaved: () => void;
 }) {
-  const [form, setForm] = useState<TasmiDraft>(
+  // Isi awal form (dan sekaligus "baseline" buat draf): data yang lagi diedit, atau form kosong.
+  const [initial] = useState<TasmiDraft>(() =>
     existing
       ? {
           tanggal: existing.tanggal,
@@ -198,8 +201,16 @@ function TasmiForm({
         }
       : emptyTasmiDraft(todayYmd(), fullName)
   );
+  const [form, setForm] = useState<TasmiDraft>(initial);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  const draft = useDraft({
+    formKey: `tasmi:${kelas}:${existing?.id ?? "baru"}`,
+    value: form,
+    baseline: initial,
+    setValue: setForm,
+  });
 
   const valid = form.tanggal.trim() !== "" && form.nama_santri.trim() !== "";
 
@@ -213,6 +224,7 @@ function TasmiForm({
     try {
       if (existing) await updateTasmiRecord(existing.id, form);
       else await createTasmiRecord(kelas, form);
+      draft.clear();
       onSaved();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -226,7 +238,8 @@ function TasmiForm({
       <div className="text-sm font-bold uppercase tracking-[0.1em] mb-3.5" style={{ color: C.green }}>
         {existing ? "Edit Catatan Tasmi'" : "Catat Tasmi' Baru"}
       </div>
-      <div className="space-y-3">
+      <DraftBanner show={draft.restored} onDiscard={draft.discard} />
+      <div className="space-y-3 mt-3">
         <Field label="Tanggal">
           <input
             type="date"

@@ -3,6 +3,8 @@ import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { PageLoadingSkeleton } from "../components/Skeleton";
+import { DraftBanner } from "../components/DraftBanner";
+import { useDraft } from "../lib/useDraft";
 import { PickerCard } from "../components/PickerCard";
 import { RuleCard } from "../components/RuleCard";
 import {
@@ -174,6 +176,18 @@ function DayCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry.tanggal, entry.kondisi_guru, entry.kondisi_santri, entry.kabar_kendala]);
 
+  const draft = useDraft({
+    formKey: open ? `jurnal:${kelas}:${ymd(date)}` : null,
+    value: form,
+    baseline: {
+      tanggal: entry.tanggal,
+      kondisi_guru: entry.kondisi_guru,
+      kondisi_santri: entry.kondisi_santri,
+      kabar_kendala: entry.kabar_kendala,
+    } as typeof form,
+    setValue: setForm,
+  });
+
   const filled = isEntryFilled(entry);
   const dirty =
     form.kondisi_guru !== entry.kondisi_guru ||
@@ -193,6 +207,7 @@ function DayCard({
         kabar_kendala: form.kabar_kendala,
       });
       onSaved({ ...form, tanggal: ymd(date) });
+      draft.clear();
       setMsg("Tersimpan.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -249,7 +264,8 @@ function DayCard({
       {open && (
         <div className="px-3.5 pb-4 pt-1" style={{ borderTop: `1px solid ${C.line}` }}>
           <p className="text-xs mt-2 mb-3" style={{ color: C.muted }}>{labelTanggal(date)}</p>
-          <div className="space-y-3">
+          <DraftBanner show={draft.restored} onDiscard={draft.discard} />
+          <div className="space-y-3 mt-3">
             {QUESTIONS.map((q) => (
               <label key={q.key} className="block">
                 <span className="block text-xs font-semibold mb-1" style={{ color: C.green }}>{q.label}</span>

@@ -3,6 +3,8 @@ import { Navigate, useParams } from "react-router-dom";
 import { C, isMonthOpen, olahragaRoster } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { PageLoadingSkeleton } from "../components/Skeleton";
+import { DraftBanner } from "../components/DraftBanner";
+import { useDraft } from "../lib/useDraft";
 import { RuleCard } from "../components/RuleCard";
 import { MonthGrid } from "../components/MonthGrid";
 import { PickerCard } from "../components/PickerCard";
@@ -228,18 +230,6 @@ function EvaluasiTingkatCard({
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  // Draf otomatis di perangkat (localStorage): evaluasi itu teks panjang -- kalau halaman ke-reset
-  // (sesi disegarkan, HP pindah aplikasi, tab ke-reload) sebelum sempat Simpan, ketikan gak hilang.
-  const draftKey = `olahraga-eval-draft:${kelompok}:${tingkat}:${bulan}`;
-  const readDraft = (): Record<string, EvalAnakEntry> | null => {
-    try {
-      const raw = localStorage.getItem(draftKey);
-      return raw ? (JSON.parse(raw) as Record<string, EvalAnakEntry>) : null;
-    } catch {
-      return null;
-    }
-  };
-
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -250,9 +240,7 @@ function EvaluasiTingkatCard({
       .then((d) => {
         if (cancelled) return;
         setData(d);
-        const draft = readDraft();
-        setForm(draft ? { ...d, ...draft } : d);
-        if (draft) setMsg("Ada ketikan yang belum disimpan dari tadi — sudah dipulihkan. Tekan Simpan untuk menyimpannya.");
+        setForm(d);
       })
       .catch((e) => !cancelled && setErr(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancelled && setLoading(false));
@@ -265,16 +253,16 @@ function EvaluasiTingkatCard({
   const anyFilled = Object.values(data).some((e) => isEvalAnakFilled(e));
   const dirty = JSON.stringify(form) !== JSON.stringify(data);
 
+  const draft = useDraft({
+    formKey: open ? `olahraga-eval:${kelompok}:${tingkat}:${bulan}` : null,
+    value: form,
+    baseline: data,
+    setValue: setForm,
+    ready: open && !loading,
+  });
+
   const setAnak = (nama: string, k: keyof EvalAnakEntry, v: string) =>
-    setForm((p) => {
-      const next = { ...p, [nama]: { ...(p[nama] ?? emptyEvalAnak()), [k]: v } };
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(next));
-      } catch {
-        /* storage penuh/diblokir: abaikan */
-      }
-      return next;
-    });
+    setForm((p) => ({ ...p, [nama]: { ...(p[nama] ?? emptyEvalAnak()), [k]: v } }));
 
   async function handleSave() {
     setSaving(true);
@@ -300,13 +288,9 @@ function EvaluasiTingkatCard({
       if (mismatch) {
         throw new Error("Data belum terbaca di server setelah disimpan. Ketikanmu masih aman di perangkat — coba tekan Simpan sekali lagi.");
       }
-      try {
-        localStorage.removeItem(draftKey);
-      } catch {
-        /* ignore */
-      }
       setData(fresh);
       setForm(fresh);
+      draft.clear();
       setMsg("Tersimpan.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -358,7 +342,8 @@ function EvaluasiTingkatCard({
             <PageLoadingSkeleton />
           ) : (
             <>
-              <div className="space-y-2">
+              <DraftBanner show={draft.restored} onDiscard={draft.discard} />
+              <div className="space-y-2 mt-3">
                 {roster.map((nama) => {
                   const entry = form[nama] ?? emptyEvalAnak();
                   const filled = isEvalAnakFilled(data[nama]);
@@ -439,17 +424,18 @@ function TingkatCard({
   const [err, setErr] = useState<string | null>(null);
 
   const targetKey = entry.target.join("");
+  const entryAsForm = (): OlahragaEntry => ({
+    tingkat: entry.tingkat,
+    bulan: entry.bulan,
+    pekan1: entry.pekan1,
+    pekan2: entry.pekan2,
+    pekan3: entry.pekan3,
+    pekan4: entry.pekan4,
+    target: [...entry.target],
+    alat: entry.alat,
+  });
   useEffect(() => {
-    setForm({
-      tingkat: entry.tingkat,
-      bulan: entry.bulan,
-      pekan1: entry.pekan1,
-      pekan2: entry.pekan2,
-      pekan3: entry.pekan3,
-      pekan4: entry.pekan4,
-      target: [...entry.target],
-      alat: entry.alat,
-    });
+    setForm(entryAsForm());
     setMsg(null);
     setErr(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -457,6 +443,13 @@ function TingkatCard({
     entry.tingkat, entry.bulan, targetKey, entry.alat,
     entry.pekan1, entry.pekan2, entry.pekan3, entry.pekan4,
   ]);
+
+  const draft = useDraft({
+    formKey: open ? `olahraga-rencana:${kelompok}:${tingkat}:${bulan}` : null,
+    value: form,
+    baseline: entryAsForm(),
+    setValue: setForm,
+  });
 
   const rencanaOk = isRencanaFilled(entry);
 
@@ -487,6 +480,7 @@ function TingkatCard({
       const saved: OlahragaEntry = { ...form, tingkat, bulan };
       onSaved(saved);
       setForm(saved);
+      draft.clear();
       setMsg("Tersimpan.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -536,7 +530,8 @@ function TingkatCard({
 
       {open && (
         <div className="px-3.5 pb-4 pt-3" style={{ borderTop: `1px solid ${C.line}` }}>
-          <div className="space-y-3">
+          <DraftBanner show={draft.restored} onDiscard={draft.discard} />
+          <div className="space-y-3 mt-3">
             {PEKAN_FIELDS.map((f) => (
               <Field key={f.key} label={f.label}>
                 <textarea
@@ -777,6 +772,13 @@ function AbsenOlahragaDayCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry.tanggal, entry.status, entry.keterangan]);
 
+  const draft = useDraft({
+    formKey: open && editable ? `olahraga-absen:${kelompok}:${ymd(date)}` : null,
+    value: form,
+    baseline: { tanggal: entry.tanggal, status: entry.status, keterangan: entry.keterangan } as AbsenOlahragaEntry,
+    setValue: setForm,
+  });
+
   // Belum pernah disimpan => tetap "dirty" walau status masih default "Hadir" (gak ada field jam
   // yang bisa dipakai buat mancing perubahan nilai kayak absen guru biasa — cuma status doang).
   const dirty = !filled || form.status !== entry.status || form.keterangan !== entry.keterangan;
@@ -797,6 +799,7 @@ function AbsenOlahragaDayCard({
       };
       onSaved(saved);
       setForm(saved);
+      draft.clear();
       setMsg("Tersimpan.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -859,6 +862,8 @@ function AbsenOlahragaDayCard({
       {open && (
         <div className="px-3.5 pb-4 pt-1" style={{ borderTop: `1px solid ${C.line}` }}>
           <p className="text-xs mt-2 mb-3" style={{ color: C.muted }}>{labelTanggal(date)}</p>
+
+          <DraftBanner show={draft.restored} onDiscard={draft.discard} />
 
           {!editable ? (
             <p className="text-sm" style={{ color: C.muted }}>
