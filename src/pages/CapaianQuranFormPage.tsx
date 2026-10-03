@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import {
   readCapaianQuran,
   writeCapaianQuranSlot,
-  findStudentIndexByName,
+  studentIndexFor,
   type CapaianQuranData,
   type CapaianQuranSection,
 } from "../lib/capaianQuranSheet";
@@ -75,8 +75,8 @@ export default function CapaianQuranFormPage() {
       return;
     }
     setValues(
-      roster.map((nama) => {
-        const idx = findStudentIndexByName(section, nama);
+      roster.map((_nama, ri) => {
+        const idx = studentIndexFor(section, roster, ri);
         return idx >= 0 ? section.students[idx]?.values?.[slot - 1] ?? "" : "";
       })
     );
@@ -397,8 +397,8 @@ function WeekRekapAccordion({
   const isPekan = section.type === "pekan";
   const slots = isPekan ? [week] : [1, 2, 3, 4, 5].map((d) => (week - 1) * 5 + d);
   const validSlots = slots.filter((s) => s <= section.slotCount);
-  const hasAny = roster.some((nama) => {
-    const idx = findStudentIndexByName(section, nama);
+  const hasAny = roster.some((_nama, ri) => {
+    const idx = studentIndexFor(section, roster, ri);
     return idx >= 0 && validSlots.some((s) => isFilled(section.students[idx]?.values?.[s - 1]));
   });
 
@@ -443,7 +443,7 @@ function WeekRekapAccordion({
               </thead>
               <tbody>
                 {roster.map((nama, i) => {
-                  const idx = findStudentIndexByName(section, nama);
+                  const idx = studentIndexFor(section, roster, i);
                   return (
                   <tr key={i} style={{ borderTop: `1px solid ${C.line}` }}>
                     <td className="py-2 pr-2 truncate" style={{ color: C.ink, maxWidth: 120 }}>{nama}</td>
