@@ -113,8 +113,7 @@ function PinGate({ onBuka }: { onBuka: () => void }) {
   );
 }
 
-function GantiPin() {
-  const [open, setOpen] = useState(false);
+function GantiPinPanel({ onTutup }: { onTutup: () => void }) {
   const [lama, setLama] = useState("");
   const [baru, setBaru] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
@@ -131,7 +130,7 @@ function GantiPin() {
     if (data === "ok") {
       setLama("");
       setBaru("");
-      return setMsg({ ok: true, t: "PIN diganti." });
+      return setMsg({ ok: true, t: "PIN berhasil diganti." });
     }
     setMsg({
       ok: false,
@@ -139,22 +138,44 @@ function GantiPin() {
     });
   }
 
+  const kotak = "w-full text-center text-lg tracking-[0.4em] rounded-xl py-2 outline-none";
   return (
-    <div className="mt-4">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="text-xs font-semibold underline" style={{ color: C.green }}>
-        {open ? "Tutup" : "Ganti PIN"}
-      </button>
-      {open && (
-        <div className="mt-2 p-3 space-y-2" style={card}>
-          <input type="password" inputMode="numeric" autoComplete="off" placeholder="PIN lama" value={lama} onChange={(e) => setLama(angka(e.target.value))} className="w-full text-sm rounded-lg px-3 py-2 outline-none" style={{ border: `1px solid ${C.line}` }} />
-          <input type="password" inputMode="numeric" autoComplete="off" placeholder="PIN baru (6 angka)" value={baru} onChange={(e) => setBaru(angka(e.target.value))} className="w-full text-sm rounded-lg px-3 py-2 outline-none" style={{ border: `1px solid ${C.line}` }} />
-          {msg && <div className="text-xs" style={{ color: msg.ok ? OK : "#8A2A20" }}>{msg.t}</div>}
-          <button type="button" onClick={simpan} disabled={!siap} className="w-full py-2 rounded-xl text-sm font-bold" style={{ background: C.green, color: "#FFF", opacity: siap ? 1 : 0.5 }}>
-            {busy ? "Menyimpan…" : "Simpan PIN baru"}
-          </button>
+    <div className="mt-4 p-4 sm:p-5" style={card}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <span className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: C.leaf, color: C.green }}>
+            <IkonKunci />
+          </span>
+          <div className="text-sm font-semibold" style={{ color: C.ink }}>Ganti PIN</div>
         </div>
-      )}
+        <button type="button" onClick={onTutup} aria-label="Tutup" className="w-7 h-7 rounded-full flex items-center justify-center" style={{ color: C.muted, background: C.mist, border: `1px solid ${C.line}` }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
+        </button>
+      </div>
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label className="block">
+          <span className="block text-[11px] font-semibold mb-1" style={{ color: C.muted }}>PIN lama</span>
+          <input type="password" inputMode="numeric" autoComplete="off" placeholder="••••••" value={lama} onChange={(e) => setLama(angka(e.target.value))} className={kotak} style={{ border: `1px solid ${C.line}`, background: C.mist }} />
+        </label>
+        <label className="block">
+          <span className="block text-[11px] font-semibold mb-1" style={{ color: C.muted }}>PIN baru (6 angka)</span>
+          <input type="password" inputMode="numeric" autoComplete="off" placeholder="••••••" value={baru} onChange={(e) => setBaru(angka(e.target.value))} className={kotak} style={{ border: `1px solid ${C.line}`, background: C.mist }} />
+        </label>
+      </div>
+      {msg && <div className="mt-3 text-xs font-medium" style={{ color: msg.ok ? OK : "#8A2A20" }}>{msg.t}</div>}
+      <button type="button" onClick={simpan} disabled={!siap} className="mt-4 w-full py-2.5 rounded-xl text-sm font-bold transition-opacity" style={{ background: C.green, color: "#FFF", opacity: siap ? 1 : 0.45 }}>
+        {busy ? "Menyimpan…" : "Simpan PIN baru"}
+      </button>
     </div>
+  );
+}
+
+function IkonKunci() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -162,7 +183,7 @@ function GantiPin() {
  *  rapi di layar dan bisa diunduh PDF buat dikirim ke coach. Cuma membaca data, tidak menulis apa pun. */
 function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
   const [bulan, setBulan] = useState<string | null>(null);
-
+  const [pinOpen, setPinOpen] = useState(false);
   const [lap, setLap] = useState<Laporan | null>(null);
   const [prog, setProg] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -206,16 +227,33 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
             <h1 className="text-xl sm:text-2xl font-semibold" style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>
               Sajian Data
             </h1>
-            <button type="button" onClick={onKunci} className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: C.leaf, color: C.green, border: "1px solid " + C.green }}>
-              Kunci
-            </button>
+            <div className="shrink-0 flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setPinOpen((o) => !o)}
+                aria-expanded={pinOpen}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors hover:opacity-80"
+                style={{ background: pinOpen ? C.green : "#FFF", color: pinOpen ? "#FFF" : C.green, border: "1px solid " + C.line }}
+              >
+                <IkonKunci />
+                Ganti PIN
+              </button>
+              <button
+                type="button"
+                onClick={onKunci}
+                className="inline-flex items-center text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors hover:opacity-80"
+                style={{ background: C.leaf, color: C.green, border: "1px solid " + C.green }}
+              >
+                Kunci
+              </button>
+            </div>
           </div>
           <p className="text-sm mt-1" style={{ color: C.muted }}>
             Laporan bulanan seluruh sekolah dari data yang diisi guru. Pilih bulan, lihat, lalu unduh PDF untuk coach.
           </p>
         </header>
 
-        <GantiPin />
+        {pinOpen && <GantiPinPanel onTutup={() => setPinOpen(false)} />}
 
         <div className="mt-5">
           <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
