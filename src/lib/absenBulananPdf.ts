@@ -1,5 +1,6 @@
 import { labelHari } from "./absen";
 import type { GuruRow, SesiCell } from "./absenBulanan";
+import { LEGENDA_DATANG } from "./absenAturan";
 
 const MERAH_BG: [number, number, number] = [253, 235, 234];
 const MERAH_TX: [number, number, number] = [179, 38, 30];
@@ -20,7 +21,7 @@ export async function unduhPdfRekapBulanan(opts: { bulanLabel: string; days: Dat
   doc.setFontSize(7.5);
   doc.setTextColor(90);
   doc.text(
-    "Merah = datang terlambat (pagi lewat 06.30, siang lewat 14.00) atau pulang lebih awal (pagi: KA 1A/1B sebelum 10.00, lainnya sebelum 10.30; siang sebelum 15.00). Dtg = datang, Plg = pulang.",
+    `Merah = ${LEGENDA_DATANG} atau pulang lebih awal (pagi: KA 1A/1B sebelum 10.00, lainnya sebelum 10.30; siang sebelum 15.00). Dtg = datang, Plg = pulang.`,
     10,
     15.5,
     { maxWidth: 277 }

@@ -25,14 +25,14 @@ export function jamTeks(jam: string | null | undefined): string | null {
   return m ? `${m[1].padStart(2, "0")}.${m[2]}` : null;
 }
 
-function sesiCell(s: SesiEntry | undefined, datangIdeal: number, pulangIdeal: number): SesiCell {
+function sesiCell(s: SesiEntry | undefined, datangIdeal: number, pulangIdeal: number, tanggal: string): SesiCell {
   if (s && s.status !== "hadir") {
     return { kind: "status", teks: STATUS_TEKS[s.status] ?? s.status, ket: s.keterangan.trim() };
   }
   return {
     kind: "jam",
     datang: jamTeks(s?.jam_datang),
-    datangMerah: telatDatang(s?.jam_datang, datangIdeal),
+    datangMerah: telatDatang(s?.jam_datang, datangIdeal, tanggal),
     pulang: jamTeks(s?.jam_pulang),
     pulangMerah: pulangAwal(s?.jam_pulang, pulangIdeal),
   };
@@ -47,9 +47,10 @@ export function buildRekapBulanan(guru: Guru[], rows: AbsenBulanRow[], days: Dat
     let telat = 0;
     let awal = 0;
     const hari = days.map((d) => {
-      const r = byKey.get(`${g.kelas}|${ymd(d)}`);
-      const pagi = sesiCell(r?.pagi, DATANG_PAGI, pulangPagi);
-      const siang = sesiCell(r?.siang, DATANG_SIANG, PULANG_SIANG);
+      const tgl = ymd(d);
+      const r = byKey.get(`${g.kelas}|${tgl}`);
+      const pagi = sesiCell(r?.pagi, DATANG_PAGI, pulangPagi, tgl);
+      const siang = sesiCell(r?.siang, DATANG_SIANG, PULANG_SIANG, tgl);
       for (const c of [pagi, siang]) {
         if (c.kind === "jam") {
           if (c.datangMerah) telat++;

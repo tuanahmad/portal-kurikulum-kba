@@ -428,7 +428,7 @@ function Laporan_({ lap }: { lap: Laporan }) {
         </div>
       </Seksi>
 
-      <Seksi judul="Kehadiran dan kedisiplinan guru" sub="Hitungan per sesi (pagi dan siang). Telat = datang melewati jam ideal; pulang awal = lebih dari 30 menit sebelum jam pulang.">
+      <Seksi judul="Kehadiran dan kedisiplinan guru" sub="Hitungan per sesi (pagi dan siang). Telat = datang melewati jam ideal + toleransi (10 menit sampai 14 Oktober, 5 menit mulai 15 Oktober); pulang awal = lebih dari 30 menit sebelum jam pulang.">
         <div className="overflow-x-auto" style={card}>
           <table className="w-full text-xs" style={{ minWidth: 520 }}>
             <thead>

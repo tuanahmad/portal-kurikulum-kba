@@ -213,7 +213,7 @@ export async function unduhPdfLaporan(lap: Laporan) {
   y = lastY() + 8;
 
   h1("Kehadiran dan kedisiplinan guru");
-  para("Hitungan per sesi (pagi dan siang). Telat = datang melewati jam ideal; pulang awal = lebih dari 30 menit sebelum jam pulang.", { size: 8, color: MUTED });
+  para("Hitungan per sesi (pagi dan siang). Telat = datang melewati jam ideal + toleransi (10 menit sampai 14 Oktober, 5 menit mulai 15 Oktober); pulang awal = lebih dari 30 menit sebelum jam pulang.", { size: 8, color: MUTED });
   autoTable(doc, {
     startY: y,
     head: [["Guru", "Kelas", "Hadir", "Izin", "Sakit", "Cuti", "Telat", "Pulang awal", "% hadir"]],

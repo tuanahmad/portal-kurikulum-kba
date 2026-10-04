@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 import { PageLoadingSkeleton } from "./Skeleton";
 import { readAbsenRangeAll, ymd, labelHari, type AbsenBulanRow } from "../lib/absen";
 import { buildRekapBulanan, type Guru, type SesiCell } from "../lib/absenBulanan";
+import { LEGENDA_DATANG } from "../lib/absenAturan";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const RED_BG = "#FDEBEA";
@@ -163,7 +164,7 @@ export function AbsenBulananTable() {
       </button>
 
       <p className="mt-3 text-[11px] leading-relaxed px-1" style={{ color: C.muted }}>
-        Merah = datang terlambat (pagi lewat 06.30, siang lewat 14.00) atau pulang lebih awal (pagi: Kuttab Awwal 1A/1B
+        Merah = {LEGENDA_DATANG} atau pulang lebih awal (pagi: Kuttab Awwal 1A/1B
         sebelum 10.00, lainnya sebelum 10.30; siang sebelum 15.00). Putih = tepat waktu.
       </p>
 
