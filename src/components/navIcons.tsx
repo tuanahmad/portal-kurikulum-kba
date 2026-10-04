@@ -33,6 +33,7 @@ const MANAGEMENT_NAV_FULL: NavItem[] = [
   { to: "/absen", label: "Absen Guru", icon: CalendarCheckIcon },
   { to: "/jurnal", label: "Daily Jurnal", icon: NotebookIcon },
   { to: "/olahraga", label: "Rekap Olahraga", icon: WhistleIcon },
+  { to: "/sajian-data", label: "Sajian Data", icon: BarChartIcon },
 ];
 
 /** Menu navigasi sesuai role. Guru olahraga lihat Home + Panduan + Rencana + Evaluasi + Absen
@@ -122,6 +123,14 @@ export function NotebookIcon({ active }: { active?: boolean }) {
       <rect x="4.5" y="3.5" width="15" height="17" rx="2" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
       <path d="M8 3.5v17" stroke="currentColor" strokeWidth={active ? 2 : 1.6} />
       <path d="M11.5 9h5M11.5 12.5h5M11.5 16h3.5" stroke="currentColor" strokeWidth={active ? 2 : 1.6} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function BarChartIcon({ active }: { active?: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ opacity: active ? 1 : 0.9 }}>
+      <path d="M5 20V11M12 20V5M19 20v-7" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
     </svg>
   );
 }

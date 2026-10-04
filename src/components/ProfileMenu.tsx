@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
-import { LogoutIcon, CalendarCheckIcon } from "./navIcons";
+import { LogoutIcon, CalendarCheckIcon, BarChartIcon } from "./navIcons";
 import { ProfileNameField } from "./ProfileNameField";
 import { PushNotifToggle } from "./PushNotifToggle";
 
@@ -59,6 +59,20 @@ export function ProfileMenu() {
               </Link>
               <div className="h-px my-1" style={{ background: C.line }} />
               <PushNotifToggle variant="light" />
+            </>
+          )}
+          {role === "management" && (
+            <>
+              <div className="h-px my-1" style={{ background: C.line }} />
+              <Link
+                to="/sajian-data"
+                onClick={() => setOpen(false)}
+                className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:opacity-80"
+                style={{ color: C.ink }}
+              >
+                <BarChartIcon />
+                <span className="text-sm font-medium">Sajian Data</span>
+              </Link>
             </>
           )}
           {role === "olahraga" && (
