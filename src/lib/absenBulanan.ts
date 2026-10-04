@@ -1,5 +1,5 @@
 import { ymd, type AbsenBulanRow, type SesiEntry } from "./absen";
-import { DATANG_PAGI, DATANG_SIANG, PULANG_SIANG, pulangPagiIdeal, telatDatang, pulangAwal, jamGanjil } from "./absenAturan";
+import { DATANG_PAGI, DATANG_SIANG, PULANG_SIANG, pulangPagiIdeal, telatDatang, pulangAwal, jamGanjil, normalisasiJam } from "./absenAturan";
 
 // Model rekap absen guru per bulan -- dipakai bareng sama tampilan tabel di layar DAN export PDF,
 // biar aturan merah/putihnya cuma ada di 1 tempat.
@@ -41,16 +41,19 @@ function sesiCell(s: SesiEntry | undefined, sesi: "pagi" | "siang", datangIdeal:
   if (s && s.status !== "hadir") {
     return { kind: "status", teks: STATUS_TEKS[s.status] ?? s.status, ket: s.keterangan.trim() };
   }
-  const dG = jamGanjil(s?.jam_datang, sesi, "datang");
-  const pG = jamGanjil(s?.jam_pulang, sesi, "pulang");
+  // Baca AM/PM dulu (02.13 di kelas siang = 14.13), baru dinilai telat / pulang awal / tidak wajar.
+  const datangN = normalisasiJam(s?.jam_datang, sesi, "datang");
+  const pulangN = normalisasiJam(s?.jam_pulang, sesi, "pulang");
+  const dG = jamGanjil(datangN, sesi, "datang");
+  const pG = jamGanjil(pulangN, sesi, "pulang");
   return {
     kind: "jam",
-    datang: jamTeks(s?.jam_datang),
+    datang: jamTeks(datangN),
     datangGanjil: dG,
-    datangMerah: !dG && telatDatang(s?.jam_datang, datangIdeal, tanggal),
-    pulang: jamTeks(s?.jam_pulang),
+    datangMerah: !dG && telatDatang(datangN, datangIdeal, tanggal),
+    pulang: jamTeks(pulangN),
     pulangGanjil: pG,
-    pulangMerah: !pG && pulangAwal(s?.jam_pulang, pulangIdeal),
+    pulangMerah: !pG && pulangAwal(pulangN, pulangIdeal),
   };
 }
 

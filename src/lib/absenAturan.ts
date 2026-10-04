@@ -46,21 +46,26 @@ export function pulangAwal(jam: string | null | undefined, ideal: number): boole
   return m != null && m < ideal - TOLERANSI_PULANG;
 }
 
-/** Kelas siang yang jamnya tercatat sebelum tengah hari (mis. 02.13 -- kemungkinan salah AM/PM) atau
- *  kelas pagi yang datangnya tercatat setelah tengah hari dianggap "tidak wajar". Tidak dikoreksi
- *  otomatis (itu menebak data): cuma ditandai dan TIDAK dihitung telat/pulang awal. */
-export function jamGanjil(jam: string | null | undefined, sesi: "pagi" | "siang", jenis: "datang" | "pulang"): boolean {
+/** Membaca AM/PM dengan akal sehat (data di database TIDAK diubah, hanya cara membacanya): jam kelas siang
+ *  yang tercatat sebelum tengah hari (mis. 02.13) dibaca sebagai sore (14.13); jam datang kelas pagi yang
+ *  tercatat setelah tengah hari (mis. 18.30) dibaca sebagai pagi (06.30). Keputusan koordinator kurikulum:
+ *  guru boleh mengisi AM/PM-nya terserah, aplikasi yang menafsirkan. Hasil "HH:MM" atau null. */
+export function normalisasiJam(jam: string | null | undefined, sesi: "pagi" | "siang", jenis: "datang" | "pulang"): string | null {
   const m = hmToMenit(jam);
-  if (m == null) return false;
-  if (sesi === "siang") return m < menit(12);
-  return jenis === "datang" && m >= menit(12);
-}
-export const LEGENDA_GANJIL = "Kuning = jam tidak wajar (mis. kelas siang tercatat 02.13), tidak dihitung telat/pulang awal, mohon dikonfirmasi guru.";
-/** Kalau jam tidak wajar (lihat jamGanjil), kembalikan jam usulan yang selisih 12 jam ("02:13" -> "14:13",
- *  "18:30" -> "06:30") buat ditawarkan ke guru -- guru yang memutuskan, bukan dikoreksi otomatis. */
-export function saranJamAmPm(jam: string | null | undefined, sesi: "pagi" | "siang", jenis: "datang" | "pulang"): string | null {
-  const m = hmToMenit(jam);
-  if (m == null || !jamGanjil(jam, sesi, jenis)) return null;
-  const n = m < menit(12) ? m + menit(12) : m - menit(12);
+  if (m == null) return null;
+  let n = m;
+  if (sesi === "siang" && m < menit(12)) n = m + menit(12);
+  else if (sesi === "pagi" && jenis === "datang" && m >= menit(12)) n = m - menit(12);
   return `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
 }
+
+/** Jam yang MASIH tidak masuk akal sesudah dinormalisasi (mis. kelas siang datang 18.06 atau pulang 22.44).
+ *  Hanya ditandai (kuning) dan TIDAK dihitung telat/pulang awal -- tidak ditebak lebih jauh. */
+export function jamGanjil(jamNormal: string | null | undefined, sesi: "pagi" | "siang", jenis: "datang" | "pulang"): boolean {
+  const m = hmToMenit(jamNormal);
+  if (m == null) return false;
+  if (sesi === "siang") return jenis === "datang" ? m < menit(12) || m >= menit(18) : m < menit(13) || m > menit(20);
+  return jenis === "datang" ? m < menit(4) || m >= menit(12) : false;
+}
+export const LEGENDA_GANJIL =
+  "Jam kelas siang yang tercatat sebelum tengah hari dibaca sebagai sore (02.13 menjadi 14.13). Kuning = jam yang tetap tidak wajar setelah dibaca begitu, tidak dihitung telat/pulang awal.";
