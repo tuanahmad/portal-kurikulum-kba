@@ -56,3 +56,11 @@ export function jamGanjil(jam: string | null | undefined, sesi: "pagi" | "siang"
   return jenis === "datang" && m >= menit(12);
 }
 export const LEGENDA_GANJIL = "Kuning = jam tidak wajar (mis. kelas siang tercatat 02.13), tidak dihitung telat/pulang awal, mohon dikonfirmasi guru.";
+/** Kalau jam tidak wajar (lihat jamGanjil), kembalikan jam usulan yang selisih 12 jam ("02:13" -> "14:13",
+ *  "18:30" -> "06:30") buat ditawarkan ke guru -- guru yang memutuskan, bukan dikoreksi otomatis. */
+export function saranJamAmPm(jam: string | null | undefined, sesi: "pagi" | "siang", jenis: "datang" | "pulang"): string | null {
+  const m = hmToMenit(jam);
+  if (m == null || !jamGanjil(jam, sesi, jenis)) return null;
+  const n = m < menit(12) ? m + menit(12) : m - menit(12);
+  return `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
+}

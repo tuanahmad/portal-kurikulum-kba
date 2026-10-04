@@ -32,6 +32,7 @@ import {
   type AbsenStatus,
 } from "../lib/absen";
 import { capaianRoster, KELAS_LIST } from "../data";
+import { saranJamAmPm } from "../lib/absenAturan";
 import {
   readAbsenSantriDay,
   saveAbsenSantriDay,
@@ -325,6 +326,7 @@ function AbsenDayCard({
                   <div key={sesi}>
                     {i > 0 && <div className="h-px mb-4" style={{ background: C.line }} />}
                     <SesiBlock
+                      sesi={sesi}
                       label={SESI_LABEL[sesi]}
                       value={form[sesi]}
                       onChange={(v) => setSesi(sesi, v)}
@@ -353,10 +355,12 @@ function AbsenDayCard({
 }
 
 function SesiBlock({
+  sesi,
   label,
   value,
   onChange,
 }: {
+  sesi: SesiKey;
   label: string;
   value: SesiEntry;
   onChange: (v: SesiEntry) => void;
@@ -393,12 +397,16 @@ function SesiBlock({
         <div className="mt-3 space-y-2.5">
           <TimeField
             label="Jam datang"
+            sesi={sesi}
+            saran={saranJamAmPm(value.jam_datang, sesi, "datang")}
             value={value.jam_datang}
             onNow={() => set("jam_datang", nowHM())}
             onManual={(v) => set("jam_datang", v)}
           />
           <TimeField
             label="Jam pulang"
+            sesi={sesi}
+            saran={saranJamAmPm(value.jam_pulang, sesi, "pulang")}
             value={value.jam_pulang}
             onNow={() => set("jam_pulang", nowHM())}
             onManual={(v) => set("jam_pulang", v)}
@@ -425,15 +433,22 @@ function SesiBlock({
 
 function TimeField({
   label,
+  sesi,
+  saran,
   value,
   onNow,
   onManual,
 }: {
   label: string;
+  sesi: SesiKey;
+  /** Usulan jam (selisih 12 jam) kalau jam yang diisi tidak wajar; null kalau wajar. */
+  saran: string | null;
   value: string | null;
   onNow: () => void;
   onManual: (v: string | null) => void;
 }) {
+  const [abaikan, setAbaikan] = useState<string | null>(null); // jam yang sudah dikonfirmasi "memang benar"
+  const tampilSaran = saran && abaikan !== value;
   return (
     <div className="rounded-xl p-3" style={{ border: `1px solid ${C.line}` }}>
       <div className="flex items-center justify-between">
@@ -464,6 +479,21 @@ function TimeField({
           style={{ border: `1px solid ${C.line}`, color: C.ink }}
         />
       </div>
+      {tampilSaran && (
+        <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ background: "#FAEEDA", border: "1px solid #EFD9AE", color: "#633806" }}>
+          <div>
+            Jam {value?.replace(":", ".")} {sesi === "siang" ? "sebelum tengah hari, padahal kelas siang" : "setelah tengah hari, padahal kelas pagi"}. Mungkin salah pilih AM/PM. Maksudnya {saran?.replace(":", ".")}?
+          </div>
+          <div className="mt-1.5 flex gap-2">
+            <button type="button" onClick={() => onManual(saran)} className="px-2.5 py-1 rounded-md font-bold" style={{ background: C.green, color: "#FFF" }}>
+              Ya, ubah ke {saran?.replace(":", ".")}
+            </button>
+            <button type="button" onClick={() => setAbaikan(value)} className="px-2.5 py-1 rounded-md font-semibold" style={{ background: "#FFF", color: "#633806", border: "1px solid #EFD9AE" }}>
+              Bukan, jamnya sudah benar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
