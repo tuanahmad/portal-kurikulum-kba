@@ -23,8 +23,8 @@ export function toleransiDatang(tanggalYmd: string): number {
 /** Kalimat penjelas aturan datang -- dipakai di legenda tabel/PDF. */
 export const LEGENDA_DATANG = "datang terlambat (pagi lewat 06.30, siang lewat 14.00, ditambah toleransi 10 menit sampai 14 Oktober dan 5 menit mulai 15 Oktober)";
 
-/** Jam pulang pagi ideal: Kuttab Awwal 1A & 1B 10.30; kelas lain 11.00. (Kuttab Awwal 2/3
- *  belum dikonfirmasi -- sementara ikut 11.00 kayak Qonuni; ubah di sini kalau beda.) */
+/** Jam pulang pagi ideal: Kuttab Awwal 1A & 1B 10.30; semua kelas lain (KA 2, KA 3, Qonuni) 11.00
+ *  (dikonfirmasi koordinator kurikulum). */
 export function pulangPagiIdeal(kelas: string): number {
   return kelas === "Kuttab Awwal 1A" || kelas === "Kuttab Awwal 1B" ? menit(10, 30) : menit(11, 0);
 }
@@ -45,3 +45,14 @@ export function pulangAwal(jam: string | null | undefined, ideal: number): boole
   const m = hmToMenit(jam);
   return m != null && m < ideal - TOLERANSI_PULANG;
 }
+
+/** Kelas siang yang jamnya tercatat sebelum tengah hari (mis. 02.13 -- kemungkinan salah AM/PM) atau
+ *  kelas pagi yang datangnya tercatat setelah tengah hari dianggap "tidak wajar". Tidak dikoreksi
+ *  otomatis (itu menebak data): cuma ditandai dan TIDAK dihitung telat/pulang awal. */
+export function jamGanjil(jam: string | null | undefined, sesi: "pagi" | "siang", jenis: "datang" | "pulang"): boolean {
+  const m = hmToMenit(jam);
+  if (m == null) return false;
+  if (sesi === "siang") return m < menit(12);
+  return jenis === "datang" && m >= menit(12);
+}
+export const LEGENDA_GANJIL = "Kuning = jam tidak wajar (mis. kelas siang tercatat 02.13), tidak dihitung telat/pulang awal, mohon dikonfirmasi guru.";

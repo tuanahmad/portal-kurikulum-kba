@@ -352,6 +352,14 @@ export async function muatLaporan(bulan: string, onProgress?: (p: Progress) => v
     if (!refleksiTerisi(kl.refleksi)) kosong.push("Refleksi");
     if (kosong.length) perhatian.push(`${kl.kelas}: belum terisi — ${kosong.join(", ")}.`);
   }
+  for (const r of guruRows) {
+    if (r.ganjil.length)
+      perhatian.push(
+        `${r.guru.nama} (${r.guru.kelas}): ${r.ganjil.length} isian jam tidak wajar, perlu dikonfirmasi guru (${r.ganjil
+          .map((x) => `${x.tanggal.slice(8)}/${x.tanggal.slice(5, 7)} ${x.sesi} ${x.jenis} ${x.jam}`)
+          .join("; ")}).`
+      );
+  }
   for (const g of guruSummary) {
     if (g.telat >= 3) perhatian.push(`${g.guru.nama} (${g.guru.kelas}): telat datang ${g.telat} kali.`);
     if (g.awal >= 3) perhatian.push(`${g.guru.nama} (${g.guru.kelas}): pulang lebih awal ${g.awal} kali.`);

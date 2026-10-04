@@ -1,9 +1,11 @@
 import { labelHari } from "./absen";
 import type { GuruRow, SesiCell } from "./absenBulanan";
-import { LEGENDA_DATANG } from "./absenAturan";
+import { LEGENDA_DATANG, LEGENDA_GANJIL } from "./absenAturan";
 
 const MERAH_BG: [number, number, number] = [253, 235, 234];
 const MERAH_TX: [number, number, number] = [179, 38, 30];
+const KUNING_BG: [number, number, number] = [250, 238, 218];
+const KUNING_TX: [number, number, number] = [133, 79, 11];
 
 /** Bikin PDF rekap absen guru per bulan DI BROWSER (jsPDF) lalu langsung diunduh ke perangkat yang
  *  nekan tombolnya -- gak lewat server. Library-nya di-import dinamis biar gak nambah ukuran
@@ -21,7 +23,7 @@ export async function unduhPdfRekapBulanan(opts: { bulanLabel: string; days: Dat
   doc.setFontSize(7.5);
   doc.setTextColor(90);
   doc.text(
-    `Merah = ${LEGENDA_DATANG} atau pulang lebih awal (pagi: KA 1A/1B sebelum 10.00, lainnya sebelum 10.30; siang sebelum 15.00). Dtg = datang, Plg = pulang.`,
+    `Merah = ${LEGENDA_DATANG} atau pulang lebih awal (pagi: KA 1A/1B sebelum 10.00, lainnya sebelum 10.30; siang sebelum 15.00). ${LEGENDA_GANJIL} Dtg = datang, Plg = pulang.`,
     10,
     15.5,
     { maxWidth: 277 }
@@ -47,11 +49,11 @@ export async function unduhPdfRekapBulanan(opts: { bulanLabel: string; days: Dat
     return [
       {
         content: c.datang ?? "-",
-        styles: c.datangMerah ? { fillColor: MERAH_BG, textColor: MERAH_TX, fontStyle: "bold" } : {},
+        styles: c.datangGanjil ? { fillColor: KUNING_BG, textColor: KUNING_TX, fontStyle: "bold" } : c.datangMerah ? { fillColor: MERAH_BG, textColor: MERAH_TX, fontStyle: "bold" } : {},
       },
       {
         content: c.pulang ?? "-",
-        styles: c.pulangMerah ? { fillColor: MERAH_BG, textColor: MERAH_TX, fontStyle: "bold" } : {},
+        styles: c.pulangGanjil ? { fillColor: KUNING_BG, textColor: KUNING_TX, fontStyle: "bold" } : c.pulangMerah ? { fillColor: MERAH_BG, textColor: MERAH_TX, fontStyle: "bold" } : {},
       },
     ];
   };

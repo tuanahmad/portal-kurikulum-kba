@@ -1,5 +1,5 @@
 import { ymd, type AbsenBulanRow, type SesiEntry } from "./absen";
-import { DATANG_PAGI, DATANG_SIANG, PULANG_SIANG, pulangPagiIdeal, telatDatang, pulangAwal } from "./absenAturan";
+import { DATANG_PAGI, DATANG_SIANG, PULANG_SIANG, pulangPagiIdeal, telatDatang, pulangAwal, jamGanjil } from "./absenAturan";
 
 // Model rekap absen guru per bulan -- dipakai bareng sama tampilan tabel di layar DAN export PDF,
 // biar aturan merah/putihnya cuma ada di 1 tempat.
@@ -8,12 +8,24 @@ export type Guru = { kelas: string; nama: string };
 
 export type SesiCell =
   | { kind: "status"; teks: string; ket: string }
-  | { kind: "jam"; datang: string | null; datangMerah: boolean; pulang: string | null; pulangMerah: boolean };
+  | {
+      kind: "jam";
+      datang: string | null;
+      datangMerah: boolean;
+      datangGanjil: boolean;
+      pulang: string | null;
+      pulangMerah: boolean;
+      pulangGanjil: boolean;
+    };
+
+export type JamGanjil = { tanggal: string; sesi: "pagi" | "siang"; jenis: "datang" | "pulang"; jam: string };
 
 export type GuruRow = {
   guru: Guru;
   telat: number;
   awal: number;
+  /** Isian jam yang tidak wajar (lihat jamGanjil) -- ditandai, tidak dihitung telat/pulang awal. */
+  ganjil: JamGanjil[];
   hari: { pagi: SesiCell; siang: SesiCell }[];
 };
 
@@ -25,16 +37,20 @@ export function jamTeks(jam: string | null | undefined): string | null {
   return m ? `${m[1].padStart(2, "0")}.${m[2]}` : null;
 }
 
-function sesiCell(s: SesiEntry | undefined, datangIdeal: number, pulangIdeal: number, tanggal: string): SesiCell {
+function sesiCell(s: SesiEntry | undefined, sesi: "pagi" | "siang", datangIdeal: number, pulangIdeal: number, tanggal: string): SesiCell {
   if (s && s.status !== "hadir") {
     return { kind: "status", teks: STATUS_TEKS[s.status] ?? s.status, ket: s.keterangan.trim() };
   }
+  const dG = jamGanjil(s?.jam_datang, sesi, "datang");
+  const pG = jamGanjil(s?.jam_pulang, sesi, "pulang");
   return {
     kind: "jam",
     datang: jamTeks(s?.jam_datang),
-    datangMerah: telatDatang(s?.jam_datang, datangIdeal, tanggal),
+    datangGanjil: dG,
+    datangMerah: !dG && telatDatang(s?.jam_datang, datangIdeal, tanggal),
     pulang: jamTeks(s?.jam_pulang),
-    pulangMerah: pulangAwal(s?.jam_pulang, pulangIdeal),
+    pulangGanjil: pG,
+    pulangMerah: !pG && pulangAwal(s?.jam_pulang, pulangIdeal),
   };
 }
 
@@ -46,19 +62,22 @@ export function buildRekapBulanan(guru: Guru[], rows: AbsenBulanRow[], days: Dat
     const pulangPagi = pulangPagiIdeal(g.kelas);
     let telat = 0;
     let awal = 0;
+    const ganjil: JamGanjil[] = [];
     const hari = days.map((d) => {
       const tgl = ymd(d);
       const r = byKey.get(`${g.kelas}|${tgl}`);
-      const pagi = sesiCell(r?.pagi, DATANG_PAGI, pulangPagi, tgl);
-      const siang = sesiCell(r?.siang, DATANG_SIANG, PULANG_SIANG, tgl);
-      for (const c of [pagi, siang]) {
+      const pagi = sesiCell(r?.pagi, "pagi", DATANG_PAGI, pulangPagi, tgl);
+      const siang = sesiCell(r?.siang, "siang", DATANG_SIANG, PULANG_SIANG, tgl);
+      for (const [c, sesi] of [[pagi, "pagi"], [siang, "siang"]] as const) {
         if (c.kind === "jam") {
           if (c.datangMerah) telat++;
           if (c.pulangMerah) awal++;
+          if (c.datangGanjil && c.datang) ganjil.push({ tanggal: tgl, sesi, jenis: "datang", jam: c.datang });
+          if (c.pulangGanjil && c.pulang) ganjil.push({ tanggal: tgl, sesi, jenis: "pulang", jam: c.pulang });
         }
       }
       return { pagi, siang };
     });
-    return { guru: g, telat, awal, hari };
+    return { guru: g, telat, awal, ganjil, hari };
   });
 }

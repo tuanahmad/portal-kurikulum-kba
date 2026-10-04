@@ -4,11 +4,13 @@ import { supabase } from "../lib/supabaseClient";
 import { PageLoadingSkeleton } from "./Skeleton";
 import { readAbsenRangeAll, ymd, labelHari, type AbsenBulanRow } from "../lib/absen";
 import { buildRekapBulanan, type Guru, type SesiCell } from "../lib/absenBulanan";
-import { LEGENDA_DATANG } from "../lib/absenAturan";
+import { LEGENDA_DATANG, LEGENDA_GANJIL } from "../lib/absenAturan";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const RED_BG = "#FDEBEA";
 const RED_TX = "#B3261E";
+const YEL_BG = "#FAEEDA";
+const YEL_TX = "#854F0B";
 
 function weekdaysOfMonth(year: number, month0: number): Date[] {
   const out: Date[] = [];
@@ -112,10 +114,18 @@ export function AbsenBulananTable() {
     }
     return (
       <Fragment key={keyPrefix}>
-        <td className="text-center px-1 py-1 tabular-nums" style={c.datangMerah ? { ...base, background: RED_BG, color: RED_TX, fontWeight: 700 } : { ...base, color: C.ink }}>
+        <td
+          className="text-center px-1 py-1 tabular-nums"
+          title={c.datangGanjil ? "Jam tidak wajar, mohon dikonfirmasi guru" : undefined}
+          style={c.datangGanjil ? { ...base, background: YEL_BG, color: YEL_TX, fontWeight: 700 } : c.datangMerah ? { ...base, background: RED_BG, color: RED_TX, fontWeight: 700 } : { ...base, color: C.ink }}
+        >
           {c.datang ?? "—"}
         </td>
-        <td className="text-center px-1 py-1 tabular-nums" style={c.pulangMerah ? { borderTop: border, background: RED_BG, color: RED_TX, fontWeight: 700 } : { borderTop: border, color: C.ink }}>
+        <td
+          className="text-center px-1 py-1 tabular-nums"
+          title={c.pulangGanjil ? "Jam tidak wajar, mohon dikonfirmasi guru" : undefined}
+          style={c.pulangGanjil ? { borderTop: border, background: YEL_BG, color: YEL_TX, fontWeight: 700 } : c.pulangMerah ? { borderTop: border, background: RED_BG, color: RED_TX, fontWeight: 700 } : { borderTop: border, color: C.ink }}
+        >
           {c.pulang ?? "—"}
         </td>
       </Fragment>
@@ -165,7 +175,7 @@ export function AbsenBulananTable() {
 
       <p className="mt-3 text-[11px] leading-relaxed px-1" style={{ color: C.muted }}>
         Merah = {LEGENDA_DATANG} atau pulang lebih awal (pagi: Kuttab Awwal 1A/1B
-        sebelum 10.00, lainnya sebelum 10.30; siang sebelum 15.00). Putih = tepat waktu.
+        sebelum 10.00, lainnya sebelum 10.30; siang sebelum 15.00). Putih = tepat waktu. {LEGENDA_GANJIL}
       </p>
 
       {error && (
