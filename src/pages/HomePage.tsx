@@ -167,6 +167,13 @@ function ManagementMenu() {
         gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`}
         icon={<ChartIcon />}
       />
+      <HomeCard
+        to="/sajian-data"
+        title="Sajian Data"
+        desc="Laporan bulanan seluruh sekolah dari data guru, siap diunduh PDF untuk coach."
+        gradient={`linear-gradient(135deg, ${C.greenDeep} 0%, #8A6A20 100%)`}
+        icon={<ChartIcon />}
+      />
       </div>
     </main>
   );

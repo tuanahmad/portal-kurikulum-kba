@@ -20,6 +20,7 @@ import CapaianIlmuFormPage from "./pages/CapaianIlmuFormPage";
 import TasmiPage from "./pages/TasmiPage";
 import TasmiSertifikatPage from "./pages/TasmiSertifikatPage";
 import TasmiRekapPage from "./pages/TasmiRekapPage";
+import SajianDataPage from "./pages/SajianDataPage";
 
 export default function App() {
   return (
@@ -42,6 +43,14 @@ export default function App() {
             <Route path="/capaian" element={<CapaianPage />} />
             <Route path="/absen" element={<AbsenPage />} />
             <Route path="/jurnal" element={<JurnalPage />} />
+            <Route
+              path="/sajian-data"
+              element={
+                <ProtectedRoute allowedRoles={["management"]}>
+                  <SajianDataPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/olahraga"
               element={

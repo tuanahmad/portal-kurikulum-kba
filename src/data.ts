@@ -314,6 +314,13 @@ function academicYearForBulan(monthName: string): number {
   return academicIndexOf(monthName) <= 6 ? ACADEMIC_YEAR_START : ACADEMIC_YEAR_START + 1;
 }
 
+/** Tahun + bulan kalender (month0 = 0..11) untuk nama bulan tahun ajaran, atau null kalau bulan gak dikenal. */
+export function kalenderBulan(monthName: string): { year: number; month0: number } | null {
+  const m = MONTH_NUM[monthName];
+  if (!m) return null;
+  return { year: academicYearForBulan(monthName), month0: m - 1 };
+}
+
 /** Posisi "sekarang" dalam urutan tahun ajaran (1-12), atau 0 kalau belum masuk tahun ajaran ini
  *  sama sekali, atau 12 kalau tahun ajaran ini udah lewat total (biar semua kebuka/keliatan). */
 function currentAcademicIndex(now: Date): number {
