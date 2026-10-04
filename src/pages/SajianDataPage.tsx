@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { C, isMonthOpen } from "../data";
@@ -40,6 +41,7 @@ export default function SajianDataPage() {
     }
     setUnlocked(true);
   };
+  const navigate = useNavigate();
   const kunci = () => {
     try {
       sessionStorage.removeItem(key);
@@ -47,6 +49,7 @@ export default function SajianDataPage() {
       /* ignore */
     }
     setUnlocked(false);
+    navigate("/home");
   };
   return unlocked ? <SajianDataIsi onKunci={kunci} /> : <PinGate onBuka={buka} />;
 }
@@ -170,6 +173,33 @@ function GantiPinPanel({ onTutup }: { onTutup: () => void }) {
   );
 }
 
+/** Gembok animasi: terbuka (gagang terangkat) selama halaman dibuka; saat ditekan gagangnya turun
+ *  mengunci dulu, baru halaman ditutup. */
+function Gembok({ terkunci }: { terkunci: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <g
+        style={{
+          transform: terkunci ? "translateY(0)" : "translateY(-3.5px)",
+          transition: "transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+      >
+        <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </g>
+      <g
+        style={{
+          transformOrigin: "12px 15.5px",
+          transform: terkunci ? "scale(1.08)" : "scale(1)",
+          transition: "transform 200ms ease 330ms",
+        }}
+      >
+        <rect x="5" y="11" width="14" height="9.5" rx="2" fill="currentColor" fillOpacity={terkunci ? 0.18 : 0.08} stroke="currentColor" strokeWidth="2" />
+        <circle cx="12" cy="15.7" r="1.15" fill="currentColor" />
+      </g>
+    </svg>
+  );
+}
+
 function IkonKunci() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -184,6 +214,14 @@ function IkonKunci() {
 function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
   const [bulan, setBulan] = useState<string | null>(null);
   const [pinOpen, setPinOpen] = useState(false);
+  const [mengunci, setMengunci] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  function kunciDenganAnimasi() {
+    if (mengunci) return;
+    setMengunci(true);
+    timer.current = window.setTimeout(onKunci, 650); // beri waktu gembok mengunci dulu
+  }
   const [lap, setLap] = useState<Laporan | null>(null);
   const [prog, setProg] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -240,11 +278,13 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
               </button>
               <button
                 type="button"
-                onClick={onKunci}
-                className="inline-flex items-center text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors hover:opacity-80"
-                style={{ background: C.leaf, color: C.green, border: "1px solid " + C.green }}
+                onClick={kunciDenganAnimasi}
+                aria-label="Kunci Sajian Data dan keluar"
+                title="Kunci dan keluar"
+                className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
+                style={{ background: mengunci ? C.green : C.leaf, color: mengunci ? "#FFF" : C.green, border: "1px solid " + C.green }}
               >
-                Kunci
+                <Gembok terkunci={mengunci} />
               </button>
             </div>
           </div>
