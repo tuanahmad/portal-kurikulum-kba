@@ -48,10 +48,12 @@ function sesiCell(s: SesiEntry | undefined, sesi: "pagi" | "siang", datangIdeal:
   const pG = jamGanjil(pulangN, sesi, "pulang");
   return {
     kind: "jam",
-    datang: jamTeks(datangN),
+    // Kalau tetap tidak wajar setelah dibaca sebagai sore/pagi, tampilkan jam ASLI yang tersimpan (apa adanya),
+    // bukan hasil bacaan yang justru menyesatkan (mis. 06.06 jadi 18.06).
+    datang: jamTeks(dG ? s?.jam_datang : datangN),
     datangGanjil: dG,
     datangMerah: !dG && telatDatang(datangN, datangIdeal, tanggal),
-    pulang: jamTeks(pulangN),
+    pulang: jamTeks(pG ? s?.jam_pulang : pulangN),
     pulangGanjil: pG,
     pulangMerah: !pG && pulangAwal(pulangN, pulangIdeal),
   };
