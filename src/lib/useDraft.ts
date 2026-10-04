@@ -9,7 +9,10 @@ import { useAuth } from "../contexts/AuthContext";
 const PREFIX = "portal-draft:v1:";
 const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // draf lebih dari 14 hari dianggap basi
 
-type Stored<T> = { v: T; t: number };
+// `b` = baseline (data server) saat draf ditulis. Draf cuma dipulihkan kalau data server SAMA seperti
+// waktu itu; kalau udah berubah (mis. diisi dari perangkat lain / dikoreksi admin), draf basi dibuang
+// biar gak menimpa data yang lebih baru dengan isi lama/kosong.
+type Stored<T> = { v: T; t: number; b?: T };
 
 function readDraft<T>(key: string): Stored<T> | null {
   try {
@@ -20,9 +23,9 @@ function readDraft<T>(key: string): Stored<T> | null {
   }
 }
 
-function writeDraft<T>(key: string, value: T) {
+function writeDraft<T>(key: string, value: T, baseline: T) {
   try {
-    localStorage.setItem(key, JSON.stringify({ v: value, t: Date.now() } satisfies Stored<T>));
+    localStorage.setItem(key, JSON.stringify({ v: value, t: Date.now(), b: baseline } satisfies Stored<T>));
   } catch {
     /* storage penuh/diblokir (mis. mode privat): abaikan, form tetap jalan normal */
   }
@@ -78,7 +81,7 @@ export function useDraft<T>(opts: {
     if (restoredForKey.current === key) return;
     restoredForKey.current = key;
     const d = readDraft<T>(key);
-    if (d && Date.now() - d.t < MAX_AGE_MS && !same(d.v, baseline)) {
+    if (d && Date.now() - d.t < MAX_AGE_MS && d.b !== undefined && same(d.b, baseline) && !same(d.v, baseline)) {
       justRestored.current = true;
       setValue(d.v);
       setRestored(true);
@@ -104,7 +107,7 @@ export function useDraft<T>(opts: {
       setRestored(false);
       return;
     }
-    writeDraft(key, value);
+    writeDraft(key, value, baseline);
   }, [key, ready, value, baseline]);
 
   // Pas aplikasi disembunyiin / ditutup, tulis langsung (jangan nunggu debounce).
@@ -112,7 +115,7 @@ export function useDraft<T>(opts: {
     const flush = () => {
       const c = latest.current;
       if (!c.key || !c.ready || restoredForKey.current !== c.key) return;
-      if (!same(c.value, c.baseline)) writeDraft(c.key, c.value);
+      if (!same(c.value, c.baseline)) writeDraft(c.key, c.value, c.baseline);
     };
     const onVis = () => {
       if (document.visibilityState === "hidden") flush();
