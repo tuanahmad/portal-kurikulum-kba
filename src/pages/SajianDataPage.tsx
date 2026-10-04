@@ -173,15 +173,17 @@ function GantiPinPanel({ onTutup }: { onTutup: () => void }) {
   );
 }
 
-/** Gembok animasi: terbuka (gagang terangkat) selama halaman dibuka; saat ditekan gagangnya turun
- *  mengunci dulu, baru halaman ditutup. */
+/** Gembok animasi: saat halaman terbuka, gagangnya berayun terbuka ke kanan (sumbu di kaki kiri,
+ *  seperti gembok sungguhan); saat ditekan gagangnya berayun balik mengunci dulu, baru halaman ditutup. */
 function Gembok({ terkunci }: { terkunci: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <g
         style={{
-          transform: terkunci ? "translateY(0)" : "translateY(-3.5px)",
-          transition: "transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+          transformBox: "view-box",
+          transformOrigin: "8px 11px",
+          transform: terkunci ? "rotate(0deg)" : "rotate(-34deg)",
+          transition: "transform 480ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
       >
         <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -215,12 +217,17 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
   const [bulan, setBulan] = useState<string | null>(null);
   const [pinOpen, setPinOpen] = useState(false);
   const [mengunci, setMengunci] = useState(false);
+  const [terbuka, setTerbuka] = useState(false); // mulai tertutup, lalu "membuka" begitu halaman masuk
+  useEffect(() => {
+    const t = window.setTimeout(() => setTerbuka(true), 350);
+    return () => window.clearTimeout(t);
+  }, []);
   const timer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(timer.current), []);
   function kunciDenganAnimasi() {
     if (mengunci) return;
     setMengunci(true);
-    timer.current = window.setTimeout(onKunci, 650); // beri waktu gembok mengunci dulu
+    timer.current = window.setTimeout(onKunci, 750); // beri waktu gembok berayun mengunci dulu
   }
   const [lap, setLap] = useState<Laporan | null>(null);
   const [prog, setProg] = useState<Progress | null>(null);
@@ -284,7 +291,7 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
                 className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
                 style={{ background: mengunci ? C.green : C.leaf, color: mengunci ? "#FFF" : C.green, border: "1px solid " + C.green }}
               >
-                <Gembok terkunci={mengunci} />
+                <Gembok terkunci={mengunci || !terbuka} />
               </button>
             </div>
           </div>
