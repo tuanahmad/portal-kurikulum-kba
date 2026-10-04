@@ -29,6 +29,9 @@ import {
   emptyEvalAnak,
   isEvalAnakFilled,
   readAbsenOlahragaRange,
+  readEvaluasiAnakGabungan,
+  readAbsenOlahragaRangeGabungan,
+  type AbsenOlahragaPerKelompok,
   saveAbsenOlahraga,
   emptyAbsenOlahraga,
   isAbsenOlahragaFilled,
@@ -1110,7 +1113,6 @@ function ManagementRencana() {
 /* ───────── Rekap Evaluasi (management): Kelompok -> Bulan -> Kelas -> Anak -> isi ───────── */
 
 function ManagementEvaluasi() {
-  const [kelompok, setKelompok] = useState<OlahragaKelompok | null>(null);
   const [bulan, setBulan] = useState<string | null>(null);
   const [tingkatI, setTingkatI] = useState<number | null>(null);
   const [anakI, setAnakI] = useState<number | null>(null);
@@ -1119,48 +1121,45 @@ function ManagementEvaluasi() {
   const [error, setError] = useState<string | null>(null);
 
   const tingkat = tingkatI != null ? TINGKAT_LIST[tingkatI] : null;
-  const roster = useMemo(() => (tingkat && kelompok ? olahragaRoster(tingkat, kelompok) : []), [tingkat, kelompok]);
+  // Langsung per kelas, gak dipisah ikhwan/akhwat: KA 1 & KA 2 rosternya campur (guru ikhwan &
+  // akhwat sama-sama ngisi), KA 3 digabung dari roster ikhwan + akhwat.
+  const roster = useMemo(
+    () => (tingkat ? Array.from(new Set([...olahragaRoster(tingkat, "ikhwan"), ...olahragaRoster(tingkat, "akhwat")])) : []),
+    [tingkat]
+  );
   const anakNama = anakI != null ? roster[anakI] : null;
   const entry = anakNama ? data[anakNama] : undefined;
 
   useEffect(() => {
     setAnakI(null);
-    if (!tingkat || !bulan || !kelompok) return;
+    if (!tingkat || !bulan) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
-    readEvaluasiAnak(tingkat, bulan, { kelompok })
+    readEvaluasiAnakGabungan(tingkat, bulan)
       .then((d) => !cancelled && setData(d))
       .catch((e) => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [tingkat, bulan, kelompok]);
+  }, [tingkat, bulan]);
 
   return (
     <ManagementShell title="Evaluasi Kegiatan Olahraga">
-      {!kelompok ? (
-        <KelompokPicker onChange={setKelompok} />
-      ) : !bulan ? (
-        <>
-          <StepBackPill label={KELOMPOK_LABEL[kelompok]} onClick={() => setKelompok(null)} />
-          <div className="mt-4">
-            <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
-            <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
-          </div>
-        </>
+      {!bulan ? (
+        <div className="mt-6">
+          <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
+          <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
+        </div>
       ) : !tingkat ? (
         <>
-          <StepBackPill label={`${KELOMPOK_LABEL[kelompok]} · ${bulan}`} onClick={() => setBulan(null)} />
+          <StepBackPill label={bulan} onClick={() => setBulan(null)} />
           <TingkatPicker value={tingkatI} onChange={setTingkatI} />
         </>
       ) : anakNama == null ? (
         <>
-          <StepBackPill
-            label={`${KELOMPOK_LABEL[kelompok]} · ${bulan} · Kuttab Awwal ${tingkat.replace("KA ", "")}`}
-            onClick={() => setTingkatI(null)}
-          />
+          <StepBackPill label={`${bulan} · Kuttab Awwal ${tingkat.replace("KA ", "")}`} onClick={() => setTingkatI(null)} />
           {error && (
             <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
               {error}
@@ -1211,17 +1210,9 @@ function ManagementEvaluasi() {
 /* ───────── Rekap Absen (management): Kelompok -> isi (seperti biasa) ───────── */
 
 function ManagementAbsenWrapper() {
-  const [kelompok, setKelompok] = useState<OlahragaKelompok | null>(null);
   return (
     <ManagementShell title="Absen Olahraga">
-      {!kelompok ? (
-        <KelompokPicker onChange={setKelompok} />
-      ) : (
-        <>
-          <StepBackPill label={KELOMPOK_LABEL[kelompok]} onClick={() => setKelompok(null)} />
-          <ManagementAbsenOlahraga kelompok={kelompok} />
-        </>
-      )}
+      <ManagementAbsenOlahraga />
     </ManagementShell>
   );
 }
@@ -1278,13 +1269,13 @@ function ReadOnlyTingkat({
   );
 }
 
-function ManagementAbsenOlahraga({ kelompok }: { kelompok: OlahragaKelompok }) {
+function ManagementAbsenOlahraga() {
   const thisMonday = useMemo(() => mondayOf(new Date()), []);
   const [monday, setMonday] = useState(thisMonday);
   const days = useMemo(() => weekdaysFrom(monday).slice(0, 3), [monday]);
   const atThisWeek = ymd(monday) >= ymd(thisMonday);
 
-  const [entries, setEntries] = useState<Record<string, AbsenOlahragaEntry>>({});
+  const [entries, setEntries] = useState<Record<string, AbsenOlahragaPerKelompok>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -1292,14 +1283,14 @@ function ManagementAbsenOlahraga({ kelompok }: { kelompok: OlahragaKelompok }) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    readAbsenOlahragaRange(ymd(days[0]), ymd(days[2]), { kelompok })
+    readAbsenOlahragaRangeGabungan(ymd(days[0]), ymd(days[2]))
       .then((m) => !cancelled && setEntries(m))
       .catch((e) => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [kelompok, monday]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [monday]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -1322,7 +1313,7 @@ function ManagementAbsenOlahraga({ kelompok }: { kelompok: OlahragaKelompok }) {
       ) : (
         <div className="mt-5 space-y-3">
           {days.map((d) => (
-            <ReadOnlyAbsenOlahragaDay key={ymd(d)} date={d} entry={entries[ymd(d)]} />
+            <ReadOnlyAbsenOlahragaDay key={ymd(d)} date={d} entries={entries[ymd(d)]} />
           ))}
         </div>
       )}
@@ -1330,14 +1321,15 @@ function ManagementAbsenOlahraga({ kelompok }: { kelompok: OlahragaKelompok }) {
   );
 }
 
-function ReadOnlyAbsenOlahragaDay({ date, entry }: { date: Date; entry: AbsenOlahragaEntry | undefined }) {
-  const filled = isAbsenOlahragaFilled(entry);
+function ReadOnlyAbsenOlahragaDay({ date, entries }: { date: Date; entries: AbsenOlahragaPerKelompok | undefined }) {
+  const kelompokList: OlahragaKelompok[] = ["ikhwan", "akhwat"];
+  const anyFilled = kelompokList.some((k) => isAbsenOlahragaFilled(entries?.[k]));
   return (
     <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
       <div className="flex items-center gap-3">
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
-          style={{ background: filled ? C.green : C.leaf, color: filled ? "#FFF" : C.green }}
+          style={{ background: anyFilled ? C.green : C.leaf, color: anyFilled ? "#FFF" : C.green }}
         >
           <span className="text-[9px] font-semibold uppercase">{labelHari(date).slice(0, 3)}</span>
           <span className="text-sm font-bold">{date.getDate()}</span>
@@ -1348,20 +1340,31 @@ function ReadOnlyAbsenOlahragaDay({ date, entry }: { date: Date; entry: AbsenOla
         </div>
       </div>
 
-      {!filled ? (
-        <p className="mt-2 text-xs" style={{ color: C.muted }}>Belum absen.</p>
-      ) : (
-        <div className="mt-3">
-          <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: C.leaf, color: C.green }}>
-            {STATUS_LABEL[(entry as AbsenOlahragaEntry).status]}
-          </span>
-          {(entry as AbsenOlahragaEntry).keterangan.trim() && (
-            <p className="mt-1.5 text-sm whitespace-pre-wrap" style={{ color: C.ink }}>
-              {(entry as AbsenOlahragaEntry).keterangan.trim()}
-            </p>
-          )}
-        </div>
-      )}
+      <div className="mt-3 space-y-2">
+        {kelompokList.map((k) => {
+          const entry = entries?.[k];
+          const filled = isAbsenOlahragaFilled(entry);
+          return (
+            <div key={k} className="flex items-start gap-2.5">
+              <span className="text-xs font-semibold w-14 shrink-0 pt-0.5" style={{ color: C.green }}>{KELOMPOK_LABEL[k]}</span>
+              {!filled ? (
+                <span className="text-xs pt-0.5" style={{ color: C.muted }}>Belum absen.</span>
+              ) : (
+                <div className="min-w-0">
+                  <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: C.leaf, color: C.green }}>
+                    {STATUS_LABEL[(entry as AbsenOlahragaEntry).status]}
+                  </span>
+                  {(entry as AbsenOlahragaEntry).keterangan.trim() && (
+                    <p className="mt-1 text-sm whitespace-pre-wrap" style={{ color: C.ink }}>
+                      {(entry as AbsenOlahragaEntry).keterangan.trim()}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

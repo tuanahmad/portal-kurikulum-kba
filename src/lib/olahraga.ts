@@ -316,3 +316,61 @@ export async function saveAbsenOlahraga(params: {
   );
   if (error) throw new Error(error.message);
 }
+
+/** Versi management: gabungan SEMUA kelompok (ikhwan + akhwat). KA 1/KA 2 rosternya campur, jadi
+ *  guru ikhwan & akhwat sama-sama bisa ngisi nama yang sama -- kalau dua-duanya terisi, ambil yang
+ *  paling baru diubah; kalau cuma satu yang terisi, ambil yang terisi (jangan ketimpa yang kosong). */
+export async function readEvaluasiAnakGabungan(
+  tingkat: OlahragaTingkat,
+  bulan: string
+): Promise<Record<string, EvalAnakEntry>> {
+  const { data, error } = await supabase
+    .from("olahraga_evaluasi_anak")
+    .select("nama_santri, eval_ketercapaian, eval_partisipasi, eval_kendala, eval_perkembangan, eval_tindak_lanjut, updated_at")
+    .eq("tingkat", tingkat)
+    .eq("bulan", bulan)
+    .order("updated_at", { ascending: true });
+  if (error) throw new Error(error.message);
+
+  const out: Record<string, EvalAnakEntry> = {};
+  for (const row of data ?? []) {
+    const e: EvalAnakEntry = {
+      eval_ketercapaian: row.eval_ketercapaian ?? "",
+      eval_partisipasi: row.eval_partisipasi ?? "",
+      eval_kendala: row.eval_kendala ?? "",
+      eval_perkembangan: row.eval_perkembangan ?? "",
+      eval_tindak_lanjut: row.eval_tindak_lanjut ?? "",
+      updated_at: row.updated_at,
+    };
+    const prev = out[row.nama_santri];
+    if (!prev || isEvalAnakFilled(e) || !isEvalAnakFilled(prev)) out[row.nama_santri] = e;
+  }
+  return out;
+}
+
+export type AbsenOlahragaPerKelompok = Partial<Record<OlahragaKelompok, AbsenOlahragaEntry>>;
+
+/** Absen olahraga semua kelompok sekaligus: map tanggal -> { ikhwan?, akhwat? }. */
+export async function readAbsenOlahragaRangeGabungan(
+  fromYmd: string,
+  toYmd: string
+): Promise<Record<string, AbsenOlahragaPerKelompok>> {
+  const { data, error } = await supabase
+    .from("absen_olahraga")
+    .select("tanggal, kelompok, status, keterangan, updated_at")
+    .gte("tanggal", fromYmd)
+    .lte("tanggal", toYmd);
+  if (error) throw new Error(error.message);
+
+  const out: Record<string, AbsenOlahragaPerKelompok> = {};
+  for (const row of data ?? []) {
+    const k = row.kelompok as OlahragaKelompok;
+    (out[row.tanggal] ??= {})[k] = {
+      tanggal: row.tanggal,
+      status: (row.status ?? "hadir") as AbsenStatus,
+      keterangan: row.keterangan ?? "",
+      updated_at: row.updated_at,
+    };
+  }
+  return out;
+}
