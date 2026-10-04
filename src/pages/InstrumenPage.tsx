@@ -12,6 +12,18 @@ const GRADIENTS = [
   `linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`,
 ];
 
+/** Guru olahraga cuma boleh lihat materi olahraga: ambil item (file/folder) yang namanya mengandung
+ *  "olahraga" dari SEMUA folder Drive -- file panduan olahraga sengaja boleh ditaruh di folder mana
+ *  aja (mis. Modul-Panduan-Olahraga.pdf ada di folder Modul), jadi gak bisa cuma baca folder Panduan. */
+function olahragaNodes(nodes: DriveNode[]): DriveNode[] {
+  const out: DriveNode[] = [];
+  for (const n of nodes) {
+    if (/olahraga/i.test(n.name)) out.push(n);
+    else if (n.type === "folder" && n.children) out.push(...olahragaNodes(n.children));
+  }
+  return out;
+}
+
 const FOLDER_DESC: Record<string, string> = {
   modul: "Bahan ajar & modul harian",
   target: "Capaian yang harus dituju",
@@ -127,8 +139,10 @@ export default function InstrumenPage() {
 
             {state.result &&
               (() => {
-                const nodes = state.result![activeFolder.folderId] || [];
-                                return (
+                const nodes = isOlahraga
+                  ? INSTRUMEN_FOLDERS.flatMap((f) => olahragaNodes(state.result![f.folderId] || []))
+                  : state.result![activeFolder.folderId] || [];
+                return (
                   <DriveTree
                     nodes={nodes}
                     section="Instrumen Ilmu"
