@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabaseClient";
 import { C, isMonthOpen } from "../data";
 import { BackButton } from "../components/PortalComponents";
 import { MonthGrid } from "../components/MonthGrid";
@@ -15,10 +17,152 @@ const BAD_BG = "#FDEBEA";
 const card = { background: "#FFF", border: `1px solid ${C.line}`, borderRadius: 16 } as const;
 const warna = (p: number | null) => (p == null ? C.muted : p >= 85 ? OK : p >= 60 ? WARN : BAD);
 
-/** Sajian Data (management): laporan bulanan seluruh sekolah dari semua data yang diisi guru, tampil
- *  rapi di layar dan bisa diunduh PDF buat dikirim ke coach. Cuma membaca data, tidak menulis apa pun. */
+/** Sajian Data masih dalam pengembangan, jadi dikunci PIN (6 angka, disimpan sebagai hash di database,
+ *  dicek lewat fungsi server `sajian_pin_verify`; salah 5x terkunci 15 menit). Terbuka selama tab
+ *  itu aktif (sessionStorage), tombol "Kunci" menguncinya lagi. Ini mengunci HALAMANNYA saja -- data
+ *  sumbernya tetap sama seperti yang bisa dibaca akun management di halaman lain. */
 export default function SajianDataPage() {
+  const { session } = useAuth();
+  const uid = session?.user?.id ?? "anon";
+  const key = `sajian-unlocked:${uid}`;
+  const [unlocked, setUnlocked] = useState(() => {
+    try {
+      return sessionStorage.getItem(key) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const buka = () => {
+    try {
+      sessionStorage.setItem(key, "1");
+    } catch {
+      /* abaikan: tetap terbuka selama komponen ini hidup */
+    }
+    setUnlocked(true);
+  };
+  const kunci = () => {
+    try {
+      sessionStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+    setUnlocked(false);
+  };
+  return unlocked ? <SajianDataIsi onKunci={kunci} /> : <PinGate onBuka={buka} />;
+}
+
+function PinGate({ onBuka }: { onBuka: () => void }) {
+  const [pin, setPin] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function cek(v: string) {
+    setBusy(true);
+    setMsg(null);
+    const { data, error } = await supabase.rpc("sajian_pin_verify", { pin: v });
+    setBusy(false);
+    if (error) return setMsg("Gagal memeriksa PIN: " + error.message);
+    if (data === "ok") return onBuka();
+    setPin("");
+    setMsg(
+      data === "locked"
+        ? "Terlalu banyak percobaan. Coba lagi 15 menit lagi."
+        : data === "forbidden"
+          ? "Halaman ini hanya untuk akun management."
+          : data === "unset"
+            ? "PIN belum diatur."
+            : "PIN salah."
+    );
+  }
+
+  return (
+    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
+      <div className="max-w-sm mx-auto px-4 pt-10 pb-28">
+        <BackButton to="/home" label="Home" />
+        <div className="mt-8 p-6 text-center" style={card}>
+          <div className="mx-auto w-11 h-11 rounded-full flex items-center justify-center" style={{ background: C.leaf, color: C.green }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </div>
+          <h1 className="mt-3 text-lg font-semibold" style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>Sajian Data</h1>
+          <p className="text-sm mt-1" style={{ color: C.muted }}>Masukkan PIN 6 angka untuk membuka.</p>
+          <input
+            type="password"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={6}
+            value={pin}
+            disabled={busy}
+            autoFocus
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, "").slice(0, 6);
+              setPin(v);
+              setMsg(null);
+              if (v.length === 6) void cek(v);
+            }}
+            aria-label="PIN"
+            className="mt-4 w-full text-center text-2xl tracking-[0.5em] outline-none rounded-xl py-2.5"
+            style={{ border: `1px solid ${msg ? "#E8A6A0" : C.line}`, background: "#FFF" }}
+          />
+          <div className="mt-3 text-xs min-h-4" style={{ color: msg ? "#8A2A20" : C.muted }}>{busy ? "Memeriksa…" : msg}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GantiPin() {
+  const [open, setOpen] = useState(false);
+  const [lama, setLama] = useState("");
+  const [baru, setBaru] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const angka = (v: string) => v.replace(/\D/g, "").slice(0, 6);
+  const siap = lama.length === 6 && baru.length === 6 && !busy;
+
+  async function simpan() {
+    setBusy(true);
+    setMsg(null);
+    const { data, error } = await supabase.rpc("sajian_pin_set", { old_pin: lama, new_pin: baru });
+    setBusy(false);
+    if (error) return setMsg({ ok: false, t: "Gagal: " + error.message });
+    if (data === "ok") {
+      setLama("");
+      setBaru("");
+      return setMsg({ ok: true, t: "PIN diganti." });
+    }
+    setMsg({
+      ok: false,
+      t: data === "wrong" ? "PIN lama salah." : data === "locked" ? "Terlalu banyak percobaan. Coba lagi 15 menit lagi." : data === "invalid" ? "PIN baru harus 6 angka." : "Tidak bisa mengganti PIN.",
+    });
+  }
+
+  return (
+    <div className="mt-4">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="text-xs font-semibold underline" style={{ color: C.green }}>
+        {open ? "Tutup" : "Ganti PIN"}
+      </button>
+      {open && (
+        <div className="mt-2 p-3 space-y-2" style={card}>
+          <input type="password" inputMode="numeric" autoComplete="off" placeholder="PIN lama" value={lama} onChange={(e) => setLama(angka(e.target.value))} className="w-full text-sm rounded-lg px-3 py-2 outline-none" style={{ border: `1px solid ${C.line}` }} />
+          <input type="password" inputMode="numeric" autoComplete="off" placeholder="PIN baru (6 angka)" value={baru} onChange={(e) => setBaru(angka(e.target.value))} className="w-full text-sm rounded-lg px-3 py-2 outline-none" style={{ border: `1px solid ${C.line}` }} />
+          {msg && <div className="text-xs" style={{ color: msg.ok ? OK : "#8A2A20" }}>{msg.t}</div>}
+          <button type="button" onClick={simpan} disabled={!siap} className="w-full py-2 rounded-xl text-sm font-bold" style={{ background: C.green, color: "#FFF", opacity: siap ? 1 : 0.5 }}>
+            {busy ? "Menyimpan…" : "Simpan PIN baru"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Isi Sajian Data (management): laporan bulanan seluruh sekolah dari semua data yang diisi guru, tampil
+ *  rapi di layar dan bisa diunduh PDF buat dikirim ke coach. Cuma membaca data, tidak menulis apa pun. */
+function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
   const [bulan, setBulan] = useState<string | null>(null);
+
   const [lap, setLap] = useState<Laporan | null>(null);
   const [prog, setProg] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,13 +202,20 @@ export default function SajianDataPage() {
       <div className="max-w-3xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
         <BackButton to="/home" label="Home" />
         <header className="mt-4">
-          <h1 className="text-xl sm:text-2xl font-semibold" style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>
-            Sajian Data
-          </h1>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-xl sm:text-2xl font-semibold" style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>
+              Sajian Data
+            </h1>
+            <button type="button" onClick={onKunci} className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: C.leaf, color: C.green, border: "1px solid " + C.green }}>
+              Kunci
+            </button>
+          </div>
           <p className="text-sm mt-1" style={{ color: C.muted }}>
             Laporan bulanan seluruh sekolah dari data yang diisi guru. Pilih bulan, lihat, lalu unduh PDF untuk coach.
           </p>
         </header>
+
+        <GantiPin />
 
         <div className="mt-5">
           <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
