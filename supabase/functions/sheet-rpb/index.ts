@@ -9,15 +9,24 @@
 // Nama tab dicocokkan LONGGAR (buang semua spasi + case-insensitive) terhadap judul tab asli
 // di spreadsheet sebelum dipakai buat baca/tulis — sheet hasil convert Excel->Sheets kadang punya
 // spasi nyasar di nama tab ("Kuttab Awwal 1 A", " Qonuni 2 Ikhwan") yang bikin lookup exact-match
-// gagal walau sheet-nya sendiri OK. Kalau gak ketemu yang cocok, tetep pakai nama aslinya biar
-// error dari Sheets API jelas (bukan disembunyikan).
+// gagal walau sheet-nya sendiri OK. Kalau masih gak ketemu, coba lagi tanpa akhiran "A"/"B" atau
+// "Ikhwan"/"Akhwat" (fallback "keluarga") — beberapa file (RPB Juli) nulis kelas yang biasanya
+// dipisah (1A/1B, 3 Ikhwan/3 Akhwat) jadi SATU tab gabungan ("Kuttab Awal 1", "Kuttab Awwal 3"),
+// jadi kedua kelas yang biasanya kepisah itu nunjuk ke tab gabungan yang sama buat bulan itu.
+// Kalau tetep gak ketemu, tetep pakai nama aslinya biar error dari Sheets API jelas (bukan
+// disembunyikan).
 //
 // ————— BACA (dinamis, bukan range tetap) —————
-// Awalnya pakai range tetap (C3:C7 / C11:E15+C60:E62 / B19:E58), tapi ternyata beda guru nulis
-// RPB dengan format yang beda-beda (terutama Qonuni):
+// Header (Nama Guru/Kelas/Level/Bulan/Jumlah Pertemuan) dicari pakai MARKER kayak Tabel B/C:
+// baris yang mengandung teks "nama guru" dijadiin jangkar, terus Kelas/Level/Bulan/Jumlah
+// Pertemuan diasumsikan 4 baris BERURUTAN persis di bawahnya (urutan itu konsisten di semua tab
+// yang dicek) — beberapa tab (hasil convert Excel->Sheets per-bulan, dibuat manual per file)
+// punya baris kosong nyelip/ilang di ATAS "Nama Guru", yang bikin asumsi baris tetap (dulu C3:C7)
+// geser dan field ketuker semua ("Kelas" nampilin isi "Nama Guru", dst) — jangkar ke marker
+// nyelesain itu karena gak peduli berapa baris di ATASnya.
 //  - Info header kadang "Label" (kolom B) + "Value" (kolom C) terpisah, kadang digabung jadi
-//    1 sel "Label: Value" di kolom B doang — headerValue() cek kolom C dulu, baru fallback ke
-//    kolom B dengan potong di titik dua pertama.
+//    1 sel "Label: Value" atau "Label : Value" di kolom B doang — headerValue() cek kolom C dulu,
+//    baru fallback ke kolom B dengan potong di titik dua pertama.
 //  - Jumlah baris Tabel B & Tabel C beda-beda per kelas/guru (Qonuni bisa jauh lebih panjang
 //    dari 5+3 baris yang diasumsikan sebelumnya) — batasnya sekarang dicari dengan nemuin teks
 //    marker-nya ("B. Target Pembelajaran" / "C. Rencana Materi Tiap Pekan"), bukan angka baris
@@ -27,12 +36,17 @@
 //    (strukturnya sama kayak Kuttab Awwal). Baca kolom lebar (C..G) apa adanya di sini — nggak
 //    nebak kolom mana artinya apa; itu diinterpretasikan di klien (RpbPage.tsx) berdasarkan
 //    berapa kolom yang keisi di baris itu, bukan asumsi posisi tetap.
+//  - Bidang Ilmu TAMBAHAN ke-6..8 (tombol "+ Tambah Bidang Ilmu" di form) ditulis ke C60:E62, di LUAR
+//    rentang antara marker B dan marker C. Kalau layoutnya template baku (marker B di baris 9 &
+//    marker C di baris 17), baris-baris itu diambil kembali sebagai baris Tabel B tambahan, supaya
+//    Bidang Ilmu ke-6+ tidak "hilang" dari form setelah disimpan (diperbaiki 2026-10-06). Layout lain
+//    (sheet lama yang ditulis tangan) dibaca persis seperti sebelumnya.
 //
 // ————— TULIS (masih range tetap) —————
-// writeTab masih pakai posisi tetap (C3:C7, C11:E15+C60:E62, B19:E58) — CUMA aman buat Kuttab
-// Awwal, yang formatnya udah diverifikasi konsisten. RpbFormPage sengaja gak manggil ini buat
-// kelas Qonuni (ditolak di klien) karena format Tabel B/C-nya beda-beda antar guru — nulis
-// otomatis ke posisi tetap berisiko nimpa data yang strukturnya beda dari yang diasumsikan.
+// writeTab masih pakai posisi tetap (C3:C7, C11:E15, C60:E62, B19:E58) — CUMA aman buat Kuttab
+// Awwal, yang formatnya udah diverifikasi konsisten (dipanggil dari RpbFormPage, yang sendirinya
+// cuma dibuka guru buat kelasnya sendiri lewat form live, bukan sheet hasil convert lama yang
+// mungkin punya baris nyelip).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
@@ -60,6 +74,18 @@ function normTabName(s: string): string {
   return s.replace(/\s+/g, "").toLowerCase();
 }
 
+/** Nama-nama "keluarga" buat fallback terakhir kalau tab spesifik kelasnya gak ketemu sama
+ *  sekali — buang akhiran "1A"/"1B" jadi "1", atau buang " Ikhwan"/" Akhwat" di ujung, biar
+ *  kelas yang biasanya kepisah bisa nemu tab gabungan kalau memang cuma itu yang ada. */
+function familyFallbackNames(requested: string): string[] {
+  const out: string[] = [];
+  const mAB = requested.match(/^(.*\d)\s*[AB]$/i);
+  if (mAB) out.push(mAB[1].trim());
+  const mGroup = requested.match(/^(.*)\s+(Ikhwan|Akhwat)$/i);
+  if (mGroup) out.push(mGroup[1].trim());
+  return out;
+}
+
 /** Cari judul tab ASLI yang paling cocok (longgar) sama `requested`. Kalau gak ketemu,
  *  balikin `requested` apa adanya biar error selanjutnya jelas nyebut nama yang diminta. */
 async function resolveSheetName(fileId: string, requested: string, auth: { apiKey?: string; token?: string }): Promise<string> {
@@ -74,7 +100,13 @@ async function resolveSheetName(fileId: string, requested: string, auth: { apiKe
   const exact = titles.find((t) => t === requested);
   if (exact) return exact;
   const loose = titles.find((t) => normTabName(t) === target);
-  return loose ?? requested;
+  if (loose) return loose;
+  for (const family of familyFallbackNames(requested)) {
+    const famTarget = normTabName(family);
+    const famMatch = titles.find((t) => normTabName(t) === famTarget);
+    if (famMatch) return famMatch;
+  }
+  return requested;
 }
 
 // ————— GET: baca isi tab (dinamis) —————
@@ -82,9 +114,9 @@ function cellAt(rows: string[][], r: number, c: number): string {
   return (rows[r]?.[c] ?? "").toString();
 }
 
-function findMarkerRow(rows: string[][], marker: string): number {
+function findMarkerRow(rows: string[][], marker: string, from = 0): number {
   const m = marker.toLowerCase();
-  for (let i = 0; i < rows.length; i++) {
+  for (let i = from; i < rows.length; i++) {
     if (rows[i].some((v) => (v ?? "").toString().toLowerCase().includes(m))) return i;
   }
   return -1;
@@ -117,18 +149,23 @@ async function readTab(fileId: string, sheetNameRaw: string) {
   const sheetName = await resolveSheetName(fileId, sheetNameRaw, { apiKey: GOOGLE_API_KEY });
   const rows = await fetchGrid(fileId, sheetName);
 
-  const namaGuru = headerValue(rows, 2);
-  const kelas = headerValue(rows, 3);
-  const level = headerValue(rows, 4);
-  const bulan = headerValue(rows, 5);
-  const jumlahPertemuan = headerValue(rows, 6);
+  const namaGuruRow = findMarkerRow(rows, "nama guru");
+  const namaGuru = namaGuruRow >= 0 ? headerValue(rows, namaGuruRow) : "";
+  const kelas = namaGuruRow >= 0 ? headerValue(rows, namaGuruRow + 1) : "";
+  const level = namaGuruRow >= 0 ? headerValue(rows, namaGuruRow + 2) : "";
+  const bulan = namaGuruRow >= 0 ? headerValue(rows, namaGuruRow + 3) : "";
+  const jumlahPertemuan = namaGuruRow >= 0 ? headerValue(rows, namaGuruRow + 4) : "";
 
-  const bMarker = findMarkerRow(rows, "b. target pembelajaran");
-  const cMarker = findMarkerRow(rows, "c. rencana materi");
+  const bMarker = findMarkerRow(rows, "b. target pembelajaran", namaGuruRow >= 0 ? namaGuruRow : 0);
+  const cMarker = findMarkerRow(rows, "c. rencana materi", namaGuruRow >= 0 ? namaGuruRow : 0);
 
-  // Tabel B: mulai 2 baris setelah marker-nya (lewatin baris header "No/Bidang Ilmu/..."),
-  // sampai marker C (atau abis baris kalau marker C gak ketemu). Kolom C..G (lebar) biar
-  // nangkep kolom tambahan Qonuni juga, gak cuma C..E.
+  // Template baku (marker B di baris 9, marker C di baris 17): Bidang Ilmu TAMBAHAN ke-6..8 yang ditulis
+  // form ke C60:E62 diambil kembali sebagai baris Tabel B tambahan (lihat catatan di atas).
+  const templateBaku = bMarker === 8 && cMarker === 16;
+  const EXTRA_FIRST = 59; // 0-based = baris 60
+  const EXTRA_LAST = 61; // 0-based = baris 62
+  const extraRows = new Set<number>();
+
   const tableB: string[][] = [];
   if (bMarker >= 0) {
     const start = bMarker + 2;
@@ -138,12 +175,20 @@ async function readTab(fileId: string, sheetNameRaw: string) {
       if (row.some((v) => v.trim())) tableB.push(row);
     }
   }
+  if (templateBaku) {
+    for (let r = EXTRA_FIRST; r <= EXTRA_LAST; r++) {
+      if (cellAt(rows, r, 2).trim()) {
+        tableB.push([2, 3, 4, 5, 6].map((c) => cellAt(rows, r, c)));
+        extraRows.add(r);
+      }
+    }
+  }
 
-  // Tabel C: mulai 2 baris setelah marker-nya (lewatin baris header "Pekan/Bidang Ilmu/...").
   const tableC: string[][] = [];
   if (cMarker >= 0) {
     const start = cMarker + 2;
     for (let r = start; r < rows.length; r++) {
+      if (extraRows.has(r)) continue;
       const row = [1, 2, 3, 4].map((c) => cellAt(rows, r, c));
       if (row.some((v) => v.trim())) tableC.push(row);
     }
@@ -220,7 +265,7 @@ async function writeTab(
     level: string;
     bulan: string;
     jumlahPertemuan: string;
-    tableB: string[][]; // selalu 8 baris dari sisi app (5 utama + 3 tambahan)
+    tableB: string[][];
     tableC: string[][];
   }
 ) {
