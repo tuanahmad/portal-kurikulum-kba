@@ -10,9 +10,9 @@ export function ProtectedRoute({
   children: ReactNode;
   allowedRoles?: Array<"management" | "guru" | "olahraga">;
 }) {
-  const { session, role, loading } = useAuth();
+  const { session, role, loading, rosterReady } = useAuth();
 
-  if (loading) {
+  if (loading || (session && !rosterReady)) {
     return <PageLoadingSkeleton />;
   }
 

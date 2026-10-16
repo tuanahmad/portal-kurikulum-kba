@@ -1,3 +1,5 @@
+import { rosterDariDb } from "./lib/roster";
+
 // ————— Data & identitas Kuttab Budi Ashari —————
 // ————— Identitas Kuttab Budi Ashari —————
 // green  #1C4A33 — hijau logo
@@ -76,6 +78,10 @@ export const REFLEKSI_FILES: { id: string; name: string }[] = [
 
 /** Roster buat Capaian Al-Qur'an — per kelas (1A & 1B dipisah, guru & sheet-nya beda). */
 export function capaianRoster(kelas: string): string[] {
+  // Sumber utama: tabel santri_roster di database (dimuat setelah login). Daftar di kode (SANTRI_LIST) cuma
+  // cadangan kalau pemuatan gagal -- akan dihapus setelah database terbukti stabil.
+  const db = rosterDariDb();
+  if (db) return db[kelas] ?? [];
   return SANTRI_LIST[kelas] || [];
 }
 

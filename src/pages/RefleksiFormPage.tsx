@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
-import { C, REFLEKSI_FILES, SANTRI_LIST, jenjangOf, isMonthOpen } from "../data";
+import { C, REFLEKSI_FILES, capaianRoster, jenjangOf, isMonthOpen } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { readReflectionTab, writeReflectionTab, type ReflectionData } from "../lib/refleksiSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
@@ -78,7 +78,7 @@ export default function RefleksiFormPage() {
   const [murid, setMurid] = useState<string[][]>(Array.from({ length: ROSTER_ROWS }, () => ["", "", "", ""]));
 
   const file = REFLEKSI_FILES.find((f) => f.name === bulan);
-  const roster = (kelas && SANTRI_LIST[kelas]) || [];
+  const roster = kelas ? capaianRoster(kelas) : [];
 
   useEffect(() => {
     if (!kelas || !file) return;

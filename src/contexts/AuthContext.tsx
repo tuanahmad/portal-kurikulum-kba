@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { supabase } from "../lib/supabaseClient";
 import type { Session } from "@supabase/supabase-js";
+import { muatRoster, kosongkanRoster } from "../lib/roster";
 
 type Role = "management" | "guru" | "olahraga";
 
@@ -20,6 +21,8 @@ interface AuthContextValue {
   kelompok: string | null;
   fullName: string | null;
   loading: boolean;
+  /** true kalau daftar santri sudah dimuat (atau gagal/timeout dan halaman memakai cadangan). */
+  rosterReady: boolean;
   signIn: (username: string, pin: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -34,6 +37,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [kelompok, setKelompok] = useState<string | null>(null);
   const [fullName, setFullName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rosterReady, setRosterReady] = useState(false);
+
+  // Pengaman: kalau sudah login tapi daftar santri tak kunjung siap (mis. profil gagal dimuat), jangan biarkan
+  // layar menunggu selamanya -- lepas setelah 8 detik, halaman memakai cadangan.
+  useEffect(() => {
+    if (!session || rosterReady) return;
+    const t = setTimeout(() => setRosterReady(true), 8000);
+    return () => clearTimeout(t);
+  }, [session, rosterReady]);
 
   // Splash logo di index.html (tampil instan sebelum React siap) — begitu sesi login kelar
   // dicek, hilangin dengan fade lalu buang elemennya biar gak nyangkut di DOM. Ditahan minimal
@@ -78,12 +90,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFullName(null);
     }
     // else: pernah berhasil & sekarang gagal -> pertahankan nilai terakhir yang valid
+
+    // Daftar santri dari database (dibatasi RLS sesuai peran). Ditunggu maksimal 4 detik; kalau gagal/lambat,
+    // halaman tetap jalan dengan daftar cadangan di kode.
+    await Promise.race([muatRoster(), new Promise<void>((r) => setTimeout(r, 4000))]);
+    setRosterReady(true);
   }
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       if (session?.user) await loadProfile(session.user.id);
+      else setRosterReady(true); // tidak login: tidak ada yang perlu dimuat
       setLoading(false);
     });
 
@@ -91,6 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       if (!session?.user) {
         profileUserId.current = null;
+        kosongkanRoster();
+        setRosterReady(false);
         setRole(null);
         setKelas(null);
         setKelompok(null);
@@ -126,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, role, kelas, kelompok, fullName, loading, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ session, role, kelas, kelompok, fullName, loading, rosterReady, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
