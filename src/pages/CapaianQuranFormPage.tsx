@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
-import { C, capaianQuranFileId, capaianRoster, isMonthOpen, sheetUrl } from "../data";
+import { C, capaianQuranFileId, capaianRoster, isMonthOpen, sheetUrl, tanggalSlot, rentangPekan, slotUntukTanggal } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import {
   readCapaianQuran,
@@ -217,9 +217,20 @@ export default function CapaianQuranFormPage() {
           {/* Langkah 3 (guru) — Slot, satu per satu buat diisi */}
           {isGuru && section && (
             <Step n={3} label={`Pilih ${slotLabel.toLowerCase()} ke-`}>
-              <div className="flex flex-wrap gap-1.5">
-                {Array.from({ length: section.slotCount }, (_, i) => i + 1).map((n) => {
+              {(() => {
+                const isPekanSec = section.type === "pekan";
+                const perBaris = isPekanSec ? 1 : 5;
+                const hariIni = bulan ? slotUntukTanggal(bulan, new Date(), isPekanSec ? section.slotCount * 5 : section.slotCount) : null;
+                const slotHariIni = hariIni == null ? null : isPekanSec ? Math.ceil(hariIni / 5) : hariIni;
+                const baris: number[][] = [];
+                for (let i = 1; i <= section.slotCount; i += perBaris) baris.push(Array.from({ length: Math.min(perBaris, section.slotCount - i + 1) }, (_, j) => i + j));
+                const tombol = (n: number) => {
                   const active = n === slot;
+                  const rp = bulan && isPekanSec ? rentangPekan(bulan, n) : null;
+                  const tg = isPekanSec ? rp?.awal ?? null : bulan ? tanggalSlot(bulan, n) : null;
+                  const tgAkhir = rp?.akhir ?? null;
+                  const luar = !tg; // melebihi jumlah hari kerja bulan ini
+                  const hariIniIni = slotHariIni === n;
                   return (
                     <button
                       key={n}
@@ -227,18 +238,50 @@ export default function CapaianQuranFormPage() {
                         setSlot(active ? null : n);
                         setSaveMsg(null);
                       }}
-                      className="w-10 h-10 rounded-lg text-sm font-semibold transition-colors"
+                      className={`rounded-lg font-semibold transition-colors ${isPekanSec ? "px-3 h-11 text-sm text-left" : "w-14 h-14 text-sm"}`}
                       style={{
                         background: active ? C.green : "#FFF",
                         color: active ? "#FFF" : C.ink,
-                        border: `1px solid ${active ? C.green : C.line}`,
+                        border: `1px solid ${active ? C.green : hariIniIni ? C.gold : C.line}`,
+                        boxShadow: hariIniIni && !active ? `0 0 0 2px ${C.goldSoft}` : undefined,
+                        opacity: luar && !active ? 0.5 : 1,
                       }}
+                      title={tg ? `${tg.hari}, ${tg.tgl}${hariIniIni ? " — hari ini" : ""}` : "melebihi jumlah hari kerja bulan ini"}
                     >
-                      {n}
+                      {isPekanSec ? (
+                        <>Pekan {n}{tg && tgAkhir ? <span className="ml-2 text-xs font-normal opacity-80">{tg.tgl} – {tgAkhir.tgl}</span> : null}</>
+                      ) : (
+                        <span className="flex flex-col items-center leading-tight">
+                          <span>{n}</span>
+                          {tg && <span className="text-[10px] font-normal opacity-80">{tg.hari} {tg.tgl}</span>}
+                        </span>
+                      )}
                     </button>
                   );
-                })}
-              </div>
+                };
+                return (
+                  <div className="space-y-2">
+                    {slotHariIni != null && (
+                      <button
+                        onClick={() => {
+                          setSlot(slotHariIni);
+                          setSaveMsg(null);
+                        }}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                        style={{ background: C.goldSoft, color: C.ink, border: `1px solid ${C.gold}` }}
+                      >
+                        Pilih hari ini ({slotLabel.toLowerCase()} ke-{slotHariIni})
+                      </button>
+                    )}
+                    {baris.map((row, i) => (
+                      <div key={i} className="flex flex-wrap items-center gap-1.5">
+                        {!isPekanSec && <span className="text-[10px] font-semibold w-9 shrink-0" style={{ color: C.muted }}>Pekan {i + 1}</span>}
+                        {row.map(tombol)}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </Step>
           )}
 

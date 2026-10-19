@@ -327,6 +327,56 @@ export function kalenderBulan(monthName: string): { year: number; month0: number
   return { year: academicYearForBulan(monthName), month0: m - 1 };
 }
 
+const HARI_PENDEK = ["Sen", "Sel", "Rab", "Kam", "Jum"];
+const BULAN_PENDEK = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+export type TanggalSlot = { date: Date; hari: string; tgl: string };
+
+/** Semua hari kerja (Senin-Jumat) dalam bulan itu, berurutan. Nomor pertemuan di sheet Capaian Al-Qur'an BERURUTAN dari
+ *  pertemuan pertama bulan itu: pertemuan 1 = hari kerja pertama, pertemuan 2 = hari kerja kedua, dst.
+ *  Hanya untuk TAMPILAN; libur tidak diketahui sehingga tanggal adalah perkiraan. Nomor slot yang disimpan ke sheet tidak berubah. */
+function hariKerjaBulan(monthName: string): Date[] {
+  const k = kalenderBulan(monthName);
+  if (!k) return [];
+  const out: Date[] = [];
+  const d = new Date(k.year, k.month0, 1);
+  while (d.getMonth() === k.month0) {
+    const dow = d.getDay();
+    if (dow >= 1 && dow <= 5) out.push(new Date(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+
+const bentukTanggal = (date: Date): TanggalSlot => ({ date, hari: HARI_PENDEK[date.getDay() - 1], tgl: `${date.getDate()} ${BULAN_PENDEK[date.getMonth()]}` });
+
+/** Tanggal untuk "pertemuan ke-N" (null kalau N melebihi jumlah hari kerja di bulan itu). */
+export function tanggalSlot(monthName: string, slot: number): TanggalSlot | null {
+  const d = hariKerjaBulan(monthName)[slot - 1];
+  return d ? bentukTanggal(d) : null;
+}
+
+/** Rentang tanggal "pekan ke-W" = pertemuan 5(W-1)+1 .. 5W (dipotong di hari kerja terakhir bulan itu). */
+export function rentangPekan(monthName: string, pekan: number): { awal: TanggalSlot; akhir: TanggalSlot } | null {
+  const hk = hariKerjaBulan(monthName);
+  const i = (pekan - 1) * 5;
+  if (i >= hk.length) return null;
+  return { awal: bentukTanggal(hk[i]), akhir: bentukTanggal(hk[Math.min(i + 4, hk.length - 1)]) };
+}
+
+/** Nomor pertemuan untuk sebuah tanggal (akhir pekan / di luar bulan -> null). */
+export function slotUntukTanggal(monthName: string, tanggal: Date, maxSlot: number): number | null {
+  const hk = hariKerjaBulan(monthName);
+  const i = hk.findIndex((d) => d.getFullYear() === tanggal.getFullYear() && d.getMonth() === tanggal.getMonth() && d.getDate() === tanggal.getDate());
+  return i >= 0 && i + 1 <= maxSlot ? i + 1 : null;
+}
+
+/** Jumlah pekan (kelompok 5 pertemuan) dalam sebulan: ceil(hari kerja / 5). Okt 2026: 22 hari kerja -> 5 pekan. */
+export function pekanGridCount(monthName: string): number {
+  const n = hariKerjaBulan(monthName).length;
+  return n ? Math.ceil(n / 5) : 5;
+}
+
 /** Posisi "sekarang" dalam urutan tahun ajaran (1-12), atau 0 kalau belum masuk tahun ajaran ini
  *  sama sekali, atau 12 kalau tahun ajaran ini udah lewat total (biar semua kebuka/keliatan). */
 function currentAcademicIndex(now: Date): number {

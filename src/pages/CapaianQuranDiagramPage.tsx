@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
-import { C, capaianQuranFileId, capaianRoster, isMonthOpen, pekanCountForBulan } from "../data";
+import { C, capaianQuranFileId, capaianRoster, isMonthOpen, pekanGridCount, rentangPekan } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { readCapaianQuran, studentIndexFor, type CapaianQuranData } from "../lib/capaianQuranSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
@@ -144,7 +144,7 @@ export default function CapaianQuranDiagramPage() {
   const [data, setData] = useState<CapaianQuranData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const calendarWeeks = useMemo(() => (bulan ? pekanCountForBulan(bulan) : 5), [bulan]);
+  const calendarWeeks = useMemo(() => (bulan ? pekanGridCount(bulan) : 5), [bulan]);
   // Tampilkan minimal sebanyak pekan kalender, tapi jangan pernah lebih sedikit dari pekan yang udah diisi.
   const weeksInMonth = useMemo(() => Math.max(calendarWeeks, data ? filledWeeks(data) : 0), [calendarWeeks, data]);
 
@@ -244,7 +244,7 @@ export default function CapaianQuranDiagramPage() {
                       ) : (
                         <div className="space-y-3">
                           {series.map((s) => (
-                            <SectionBars key={s.section} s={s} />
+                            <SectionBars key={s.section} s={s} bulan={bulan} />
                           ))}
                         </div>
                       )}
@@ -261,17 +261,17 @@ export default function CapaianQuranDiagramPage() {
 }
 
 /** Satu baris = satu section, isinya diagram batang nilai per pekan (P1..Pn) + keterangan satuan. */
-function SectionBars({ s }: { s: Series }) {
+function SectionBars({ s, bulan }: { s: Series; bulan?: string | null }) {
   const unit = unitFor(s.section);
   const count = Math.max(1, s.weeks.length);
   const shown = s.weeks;
   const maxVal = Math.max(1, ...shown);
 
   const W = 260;
-  const H = 82;
+  const H = 96;
   const padX = 6;
   const padT = 14; // ruang buat label angka di atas batang
-  const padB = 14; // ruang buat label P1..Pn
+  const padB = 26; // ruang buat label P1..Pn + rentang tanggalnya
   const plotW = W - padX * 2;
   const plotH = H - padT - padB;
   const slotW = plotW / count;
@@ -313,9 +313,20 @@ function SectionBars({ s }: { s: Series }) {
               >
                 {topLabel}
               </text>
-              <text x={cx} y={H - 3} textAnchor="middle" fontSize={9} fill={C.muted}>
+              <text x={cx} y={H - 14} textAnchor="middle" fontSize={9} fill={C.muted}>
                 P{k + 1}
               </text>
+              {(() => {
+                const rp = bulan ? rentangPekan(bulan, k + 1) : null;
+                if (!rp) return null;
+                const sama = rp.awal.date.getMonth() === rp.akhir.date.getMonth();
+                const label = `${rp.awal.date.getDate()}${sama ? "" : " " + rp.awal.tgl.split(" ")[1]}–${rp.akhir.tgl}`;
+                return (
+                  <text x={cx} y={H - 3} textAnchor="middle" fontSize={6.5} fill={C.muted}>
+                    {label}
+                  </text>
+                );
+              })()}
             </g>
           );
         })}
