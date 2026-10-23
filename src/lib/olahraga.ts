@@ -32,6 +32,9 @@ export const KELOMPOK_LABEL: Record<OlahragaKelompok, string> = {
   akhwat: "Akhwat",
 };
 
+/** Nama "kelas" untuk jurnal harian guru olahraga (tabel jurnal_harian menyimpan kelas sebagai teks). */
+export const kelasJurnalOlahraga = (k: OlahragaKelompok) => `Olahraga ${KELOMPOK_LABEL[k]}`;
+
 /* ═══════════════════════ Rencana kegiatan (per tingkat) ═══════════════════════ */
 
 export type OlahragaEntry = {
@@ -41,16 +44,26 @@ export type OlahragaEntry = {
   pekan2: string;
   pekan3: string;
   pekan4: string;
+  /** Target per pekan (fokus tiap pekan). */
+  target_pekan1: string[];
+  target_pekan2: string[];
+  target_pekan3: string[];
+  target_pekan4: string[];
+  /** Target LAMA: satu target gabungan untuk sebulan. Hanya dibaca (data lama tetap aman); isian baru lewat target per pekan. */
   target: string[];
   alat: string;
   updated_at?: string;
 };
 
-export const PEKAN_FIELDS: { key: keyof OlahragaEntry; label: string }[] = [
-  { key: "pekan1", label: "Kegiatan Pekan 1" },
-  { key: "pekan2", label: "Kegiatan Pekan 2" },
-  { key: "pekan3", label: "Kegiatan Pekan 3" },
-  { key: "pekan4", label: "Kegiatan Pekan 4" },
+export const PEKAN_FIELDS: {
+  key: "pekan1" | "pekan2" | "pekan3" | "pekan4";
+  targetKey: "target_pekan1" | "target_pekan2" | "target_pekan3" | "target_pekan4";
+  label: string;
+}[] = [
+  { key: "pekan1", targetKey: "target_pekan1", label: "Pekan 1" },
+  { key: "pekan2", targetKey: "target_pekan2", label: "Pekan 2" },
+  { key: "pekan3", targetKey: "target_pekan3", label: "Pekan 3" },
+  { key: "pekan4", targetKey: "target_pekan4", label: "Pekan 4" },
 ];
 
 export const emptyOlahraga = (
@@ -63,20 +76,32 @@ export const emptyOlahraga = (
   pekan2: "",
   pekan3: "",
   pekan4: "",
+  target_pekan1: [],
+  target_pekan2: [],
+  target_pekan3: [],
+  target_pekan4: [],
   target: [],
   alat: "",
 });
+
+/** Ada target per pekan yang terisi (target lama gabungan tidak dihitung). */
+export function adaTargetPekan(e: OlahragaEntry | undefined | null): boolean {
+  return !!e && PEKAN_FIELDS.some((f) => e[f.targetKey].length > 0);
+}
 
 export function isRencanaFilled(e: OlahragaEntry | undefined): boolean {
   if (!e) return false;
   return (
     PEKAN_FIELDS.some((f) => String(e[f.key] ?? "").trim() !== "") ||
+    adaTargetPekan(e) ||
     e.target.length > 0 ||
     e.alat.trim() !== ""
   );
 }
 
-function rowToEntry(row: any): OlahragaEntry {
+const daftarTeks = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : []);
+
+export function rowToEntry(row: any): OlahragaEntry {
   return {
     tingkat: row.tingkat,
     bulan: row.bulan,
@@ -84,7 +109,11 @@ function rowToEntry(row: any): OlahragaEntry {
     pekan2: row.pekan2 ?? "",
     pekan3: row.pekan3 ?? "",
     pekan4: row.pekan4 ?? "",
-    target: Array.isArray(row.target) ? row.target : [],
+    target_pekan1: daftarTeks(row.target_pekan1),
+    target_pekan2: daftarTeks(row.target_pekan2),
+    target_pekan3: daftarTeks(row.target_pekan3),
+    target_pekan4: daftarTeks(row.target_pekan4),
+    target: daftarTeks(row.target),
     alat: row.alat ?? "",
     updated_at: row.updated_at,
   };
@@ -116,7 +145,10 @@ export async function saveOlahraga(params: {
   pekan2: string;
   pekan3: string;
   pekan4: string;
-  target: string[];
+  target_pekan1: string[];
+  target_pekan2: string[];
+  target_pekan3: string[];
+  target_pekan4: string[];
   alat: string;
 }): Promise<void> {
   const {
@@ -124,6 +156,7 @@ export async function saveOlahraga(params: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Sesi login habis, coba masuk lagi.");
 
+  // Kolom `target` (target lama gabungan) sengaja tidak ditulis: data lama tetap utuh.
   const { error } = await supabase.from("olahraga_bulanan").upsert(
     {
       user_id: user.id,
@@ -134,7 +167,10 @@ export async function saveOlahraga(params: {
       pekan2: params.pekan2.trim(),
       pekan3: params.pekan3.trim(),
       pekan4: params.pekan4.trim(),
-      target: params.target,
+      target_pekan1: params.target_pekan1,
+      target_pekan2: params.target_pekan2,
+      target_pekan3: params.target_pekan3,
+      target_pekan4: params.target_pekan4,
       alat: params.alat.trim(),
     },
     { onConflict: "kelompok,tingkat,bulan" }

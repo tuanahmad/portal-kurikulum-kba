@@ -2,6 +2,9 @@ import { lembut } from "../lib/warna";
 import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
+import JurnalGabungan from "../components/JurnalGabungan";
+import { supabase } from "../lib/supabaseClient";
+import { readJurnalRange, type JurnalEntry } from "../lib/jurnal";
 import { C, isMonthOpen, olahragaRoster } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { PageLoadingSkeleton } from "../components/Skeleton";
@@ -26,12 +29,13 @@ import {
   saveOlahraga,
   emptyOlahraga,
   isRencanaFilled,
+  adaTargetPekan,
+  kelasJurnalOlahraga,
   readEvaluasiAnak,
   saveEvaluasiAnakBatch,
   emptyEvalAnak,
   isEvalAnakFilled,
   readAbsenOlahragaRange,
-  readEvaluasiAnakGabungan,
   readAbsenOlahragaRangeGabungan,
   type AbsenOlahragaPerKelompok,
   saveAbsenOlahraga,
@@ -50,12 +54,14 @@ import {
   type AbsenOlahragaEntry,
 } from "../lib/olahraga";
 
-type Mode = "rencana" | "evaluasi" | "absen";
-const MODES: Mode[] = ["rencana", "evaluasi", "absen"];
+type Mode = "rencana" | "evaluasi" | "absen" | "jurnal";
+type GuruMode = Exclude<Mode, "jurnal">;
+const MODES: Mode[] = ["rencana", "evaluasi", "absen", "jurnal"];
 const MODE_TITLE: Record<Mode, string> = {
   rencana: "Rencana Kegiatan Olahraga",
   evaluasi: "Evaluasi Kegiatan Olahraga",
   absen: "Absen Olahraga",
+  jurnal: "Jurnal Olahraga",
 };
 
 const GRADIENTS = [
@@ -84,12 +90,15 @@ export default function OlahragaPage() {
     return <Navigate to="/olahraga/rencana" replace />;
   }
 
-  return role === "management" ? <ManagementOlahraga mode={mode} /> : <GuruOlahraga mode={mode} />;
+  if (role === "management") return <ManagementOlahraga mode={mode} />;
+  // Guru olahraga menulis jurnal lewat halaman Daily Jurnal biasa (/jurnal), bukan di sini.
+  if (mode === "jurnal") return <Navigate to="/jurnal" replace />;
+  return <GuruOlahraga mode={mode} />;
 }
 
 /* ═══════════════════════ Guru olahraga ═══════════════════════ */
 
-function GuruOlahraga({ mode }: { mode: Mode }) {
+function GuruOlahraga({ mode }: { mode: GuruMode }) {
   const { kelompok, fullName } = useAuth();
 
   if (kelompok !== "ikhwan" && kelompok !== "akhwat") {
@@ -426,7 +435,7 @@ function TingkatCard({
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const targetKey = entry.target.join("");
+  const targetKey = PEKAN_FIELDS.map((f) => entry[f.targetKey].join("|")).join("||");
   const entryAsForm = (): OlahragaEntry => ({
     tingkat: entry.tingkat,
     bulan: entry.bulan,
@@ -434,6 +443,10 @@ function TingkatCard({
     pekan2: entry.pekan2,
     pekan3: entry.pekan3,
     pekan4: entry.pekan4,
+    target_pekan1: [...entry.target_pekan1],
+    target_pekan2: [...entry.target_pekan2],
+    target_pekan3: [...entry.target_pekan3],
+    target_pekan4: [...entry.target_pekan4],
     target: [...entry.target],
     alat: entry.alat,
   });
@@ -458,8 +471,13 @@ function TingkatCard({
 
   const dirty =
     form.alat !== entry.alat ||
-    form.target.join("") !== targetKey ||
-    PEKAN_FIELDS.some((f) => form[f.key] !== entry[f.key]);
+    PEKAN_FIELDS.some(
+      (f) => form[f.key] !== entry[f.key] || form[f.targetKey].join("|") !== entry[f.targetKey].join("|")
+    );
+
+  // Data lama: dulu target diisi satu untuk sebulan. Selama belum ada target per pekan, tampilkan sebagai catatan
+  // dan beri jalan pintas menyalinnya ke tiap pekan (bisa diubah per pekan setelahnya).
+  const targetLama = entry.target.length > 0 && !adaTargetPekan(form) ? entry.target : null;
 
   const set = <K extends keyof OlahragaEntry>(k: K, v: OlahragaEntry[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
@@ -477,7 +495,10 @@ function TingkatCard({
         pekan2: form.pekan2,
         pekan3: form.pekan3,
         pekan4: form.pekan4,
-        target: form.target,
+        target_pekan1: form.target_pekan1,
+        target_pekan2: form.target_pekan2,
+        target_pekan3: form.target_pekan3,
+        target_pekan4: form.target_pekan4,
         alat: form.alat,
       });
       const saved: OlahragaEntry = { ...form, tingkat, bulan };
@@ -534,22 +555,56 @@ function TingkatCard({
       {open && (
         <div className="px-3.5 pb-4 pt-3" style={{ borderTop: `1px solid ${C.line}` }}>
           <div className="space-y-3 mt-3">
-            {PEKAN_FIELDS.map((f) => (
-              <Field key={f.key} label={f.label}>
-                <textarea
-                  value={form[f.key] as string}
-                  onChange={(e) => set(f.key, e.target.value as OlahragaEntry[typeof f.key])}
-                  rows={2}
-                  placeholder="Kegiatan olahraga pekan ini…"
-                  className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
-                  style={{ border: `1px solid ${C.line}` }}
-                />
-              </Field>
-            ))}
+            {targetLama && (
+              <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: "#FFF8E6", border: "1px solid #EBD9A5", color: "#6B5314" }}>
+                <div className="font-semibold">Target bulan ini masih satu gabungan:</div>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {targetLama.map((x) => (
+                    <span key={x} className="px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: "#FFF", border: "1px solid #EBD9A5" }}>
+                      {x}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-1.5 leading-relaxed">Sekarang target diisi per pekan supaya fokus tiap pekan terlihat jelas.</p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((p) => ({
+                      ...p,
+                      target_pekan1: [...targetLama],
+                      target_pekan2: [...targetLama],
+                      target_pekan3: [...targetLama],
+                      target_pekan4: [...targetLama],
+                    }))
+                  }
+                  className="mt-2 px-3 py-1.5 rounded-lg text-xs font-bold"
+                  style={{ background: "#FFF", color: C.green, border: `1px solid ${C.green}` }}
+                >
+                  Salin ke semua pekan
+                </button>
+              </div>
+            )}
 
-            <Field label="Target olahraga">
-              <TargetPicker value={form.target} onChange={(v) => set("target", v)} />
-            </Field>
+            {PEKAN_FIELDS.map((f) => (
+              <div key={f.key} className="rounded-xl p-3" style={{ background: C.mist, border: `1px solid ${C.line}` }}>
+                <div className="text-xs font-bold uppercase tracking-wider mb-2.5" style={{ color: C.green }}>{f.label}</div>
+                <div className="space-y-3">
+                  <Field label="Kegiatan">
+                    <textarea
+                      value={form[f.key]}
+                      onChange={(e) => set(f.key, e.target.value)}
+                      rows={2}
+                      placeholder="Kegiatan olahraga pekan ini…"
+                      className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
+                      style={{ border: `1px solid ${C.line}`, background: "#FFF" }}
+                    />
+                  </Field>
+                  <Field label="Target olahraga pekan ini">
+                    <TargetPicker value={form[f.targetKey]} onChange={(v) => set(f.targetKey, v)} />
+                  </Field>
+                </div>
+              </div>
+            ))}
 
             <Field label="Alat yang digunakan">
               <textarea
@@ -946,7 +1001,7 @@ export function OlahragaModePicker() {
           <p className="text-sm mt-1" style={{ color: C.muted }}>Kuttab Awwal 1–3 · Ikhwan & Akhwat</p>
         </header>
 
-        <main className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <main className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <AccentCard
             title="Rencana Kegiatan"
             desc="Rencana bulanan tiap kelas"
@@ -968,6 +1023,13 @@ export function OlahragaModePicker() {
             gradient={GRADIENTS[2]}
             to="/olahraga/absen"
           />
+          <AccentCard
+            title="Jurnal"
+            desc="Jurnal harian guru olahraga"
+            icon={<JurnalIcon />}
+            gradient="linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)"
+            to="/olahraga/jurnal"
+          />
         </main>
       </div>
     </div>
@@ -977,16 +1039,17 @@ export function OlahragaModePicker() {
 function ManagementOlahraga({ mode }: { mode: Mode }) {
   if (mode === "rencana") return <ManagementRencana />;
   if (mode === "evaluasi") return <ManagementEvaluasi />;
+  if (mode === "jurnal") return <ManagementJurnalOlahraga />;
   return <ManagementAbsenWrapper />;
 }
 
 /** Bungkus header + tombol back dipakai bareng ke-3 halaman management di bawah. */
-function ManagementShell({ title, children }: { title: string; children: React.ReactNode }) {
+function ManagementShell({ title, children, showBack = true }: { title: string; children: React.ReactNode; showBack?: boolean }) {
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <BackButton to="/olahraga" label="Rekap Olahraga" />
-        <header className="mt-4 text-center">
+        {showBack && <BackButton to="/olahraga" label="Rekap Olahraga" />}
+        <header className={`${showBack ? "mt-4 " : ""}text-center`}>
           <h1
             className="text-xl sm:text-2xl font-semibold"
             style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -1062,7 +1125,7 @@ function ManagementRencana() {
   }, [bulan, kelompok]);
 
   return (
-    <ManagementShell title="Rencana Kegiatan Olahraga">
+    <ManagementShell title="Rencana Kegiatan Olahraga" showBack={!kelompok}>
       {!kelompok ? (
         <KelompokPicker onChange={setKelompok} />
       ) : !bulan ? (
@@ -1107,6 +1170,7 @@ function ManagementRencana() {
 /* ───────── Rekap Evaluasi (management): Kelompok -> Bulan -> Kelas -> Anak -> isi ───────── */
 
 function ManagementEvaluasi() {
+  const [kelompok, setKelompok] = useState<OlahragaKelompok | null>(null);
   const [bulan, setBulan] = useState<string | null>(null);
   const [tingkatI, setTingkatI] = useState<number | null>(null);
   const [anakI, setAnakI] = useState<number | null>(null);
@@ -1115,45 +1179,49 @@ function ManagementEvaluasi() {
   const [error, setError] = useState<string | null>(null);
 
   const tingkat = tingkatI != null ? TINGKAT_LIST[tingkatI] : null;
-  // Langsung per kelas, gak dipisah ikhwan/akhwat: KA 1 & KA 2 rosternya campur (guru ikhwan &
-  // akhwat sama-sama ngisi), KA 3 digabung dari roster ikhwan + akhwat.
-  const roster = useMemo(
-    () => (tingkat ? Array.from(new Set([...olahragaRoster(tingkat, "ikhwan"), ...olahragaRoster(tingkat, "akhwat")])) : []),
-    [tingkat]
-  );
+  // Dipisah per kelompok: santri ikhwan hanya tampil di Ikhwan, santri akhwat hanya di Akhwat.
+  const roster = useMemo(() => (tingkat && kelompok ? olahragaRoster(tingkat, kelompok) : []), [tingkat, kelompok]);
   const anakNama = anakI != null ? roster[anakI] : null;
   const entry = anakNama ? data[anakNama] : undefined;
 
   useEffect(() => {
     setAnakI(null);
-    if (!tingkat || !bulan) return;
+    if (!tingkat || !bulan || !kelompok) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
-    readEvaluasiAnakGabungan(tingkat, bulan)
+    readEvaluasiAnak(tingkat, bulan, { kelompok })
       .then((d) => !cancelled && setData(d))
       .catch((e) => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [tingkat, bulan]);
+  }, [tingkat, bulan, kelompok]);
 
   return (
-    <ManagementShell title="Evaluasi Kegiatan Olahraga">
-      {!bulan ? (
-        <div className="mt-6">
-          <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
-          <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
-        </div>
+    <ManagementShell title="Evaluasi Kegiatan Olahraga" showBack={!kelompok}>
+      {!kelompok ? (
+        <KelompokPicker onChange={setKelompok} />
+      ) : !bulan ? (
+        <>
+          <StepBackPill label={KELOMPOK_LABEL[kelompok]} onClick={() => setKelompok(null)} />
+          <div className="mt-4">
+            <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
+            <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
+          </div>
+        </>
       ) : !tingkat ? (
         <>
-          <StepBackPill label={bulan} onClick={() => setBulan(null)} />
+          <StepBackPill label={`${KELOMPOK_LABEL[kelompok]} · ${bulan}`} onClick={() => setBulan(null)} />
           <TingkatPicker value={tingkatI} onChange={setTingkatI} />
         </>
       ) : anakNama == null ? (
         <>
-          <StepBackPill label={`${bulan} · Kuttab Awwal ${tingkat.replace("KA ", "")}`} onClick={() => setTingkatI(null)} />
+          <StepBackPill
+            label={`${KELOMPOK_LABEL[kelompok]} · ${bulan} · Kuttab Awwal ${tingkat.replace("KA ", "")}`}
+            onClick={() => setTingkatI(null)}
+          />
           {error && (
             <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
               {error}
@@ -1164,7 +1232,7 @@ function ManagementEvaluasi() {
               <PageLoadingSkeleton />
             </div>
           ) : roster.length === 0 ? (
-            <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Belum ada daftar santri buat kelas ini.</p>
+            <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Belum ada santri {KELOMPOK_LABEL[kelompok].toLowerCase()} di kelas ini.</p>
           ) : (
             <div className="mt-4">
               <PickerCard
@@ -1195,6 +1263,90 @@ function ManagementEvaluasi() {
               </div>
             )}
           </div>
+        </>
+      )}
+    </ManagementShell>
+  );
+}
+
+/* ───────── Jurnal olahraga (management): Kelompok -> preview per pekan (tanpa tombol unduh) ───────── */
+
+function ManagementJurnalOlahraga() {
+  const [kelompok, setKelompok] = useState<OlahragaKelompok | null>(null);
+  const thisMonday = useMemo(() => mondayOf(new Date()), []);
+  const [monday, setMonday] = useState(thisMonday);
+  // Guru olahraga hanya bertugas Senin–Rabu (sama seperti absennya).
+  const days = useMemo(() => weekdaysFrom(monday).slice(0, 3), [monday]);
+  const atThisWeek = ymd(monday) >= ymd(thisMonday);
+
+  const [entries, setEntries] = useState<Record<string, JurnalEntry>>({});
+  const [nama, setNama] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!kelompok) return;
+    let cancelled = false;
+    setNama(null);
+    supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("role", "olahraga")
+      .eq("kelompok", kelompok)
+      .limit(1)
+      .then(({ data }) => {
+        if (!cancelled) setNama((data?.[0]?.full_name as string | undefined) || null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [kelompok]);
+
+  useEffect(() => {
+    if (!kelompok) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    readJurnalRange(ymd(days[0]), ymd(days[days.length - 1]), { kelas: kelasJurnalOlahraga(kelompok) })
+      .then((m) => !cancelled && setEntries(m))
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : "Gagal memuat jurnal."))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [kelompok, monday]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <ManagementShell title="Jurnal Olahraga" showBack={!kelompok}>
+      {!kelompok ? (
+        <KelompokPicker onChange={setKelompok} />
+      ) : (
+        <>
+          <StepBackPill label={KELOMPOK_LABEL[kelompok]} onClick={() => setKelompok(null)} />
+          <WeekNav
+            label={labelRentangPekan(days)}
+            sub={atThisWeek ? "Pekan ini" : undefined}
+            onPrev={() => setMonday(shiftWeek(monday, -1))}
+            onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
+          />
+          {error && (
+            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+              {error}
+            </div>
+          )}
+          {loading ? (
+            <div className="mt-5">
+              <PageLoadingSkeleton />
+            </div>
+          ) : (
+            <JurnalGabungan
+              guru={nama ?? `Guru Olahraga ${KELOMPOK_LABEL[kelompok]}`}
+              kelas={kelasJurnalOlahraga(kelompok)}
+              rentang={labelRentangPekan(days)}
+              days={days}
+              entries={entries}
+            />
+          )}
         </>
       )}
     </ManagementShell>
@@ -1240,24 +1392,38 @@ function ReadOnlyTingkat({
       ) : (
         <div className="mt-3 space-y-3">
           {PEKAN_FIELDS.map((f) => (
-            <ReadRow key={f.key} label={f.label} value={entry![f.key] as string} />
-          ))}
-          <div>
-            <div className="text-[11px] font-semibold" style={{ color: C.green }}>Target olahraga</div>
-            {entry!.target.length ? (
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                {entry!.target.map((t) => (
-                  <span key={t} className="px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: C.leaf, color: C.green }}>
-                    {t}
-                  </span>
-                ))}
+            <div key={f.key} className="rounded-xl p-3" style={{ background: C.mist, border: `1px solid ${C.line}` }}>
+              <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>{f.label}</div>
+              <div className="space-y-2.5">
+                <ReadRow label="Kegiatan" value={entry![f.key]} />
+                <TargetChips label="Target olahraga" value={entry![f.targetKey]} />
               </div>
-            ) : (
-              <div className="text-sm" style={{ color: C.muted }}>—</div>
-            )}
-          </div>
+            </div>
+          ))}
+          {!adaTargetPekan(entry) && entry!.target.length > 0 && (
+            <TargetChips label="Target (gabungan sebulan, format lama)" value={entry!.target} />
+          )}
           <ReadRow label="Alat yang digunakan" value={entry!.alat} />
         </div>
+      )}
+    </div>
+  );
+}
+
+function TargetChips({ label, value }: { label: string; value: string[] }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold" style={{ color: C.green }}>{label}</div>
+      {value.length ? (
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {value.map((x) => (
+            <span key={x} className="px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: C.leaf, color: C.green }}>
+              {x}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="text-sm" style={{ color: C.muted }}>—</div>
       )}
     </div>
   );
@@ -1453,6 +1619,16 @@ function EvaluasiIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
       <path d="M4 20V10M11 20V4M18 20v-7" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
       <path d="M3 20h18" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function JurnalIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="4.5" y="3.5" width="15" height="17" rx="2" stroke="#FFF" strokeWidth="1.7" />
+      <path d="M8 3.5v17" stroke="#FFF" strokeWidth="1.7" />
+      <path d="M11.5 9h5M11.5 12.5h5M11.5 16h3.5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }

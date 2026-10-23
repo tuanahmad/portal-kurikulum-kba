@@ -7,7 +7,7 @@ import { readCapaianIlmu, type CapaianIlmuData } from "./capaianIlmuSheet";
 import { readRpbTab, type RpbTabData } from "./rpbSheet";
 import { readReflectionTab, type ReflectionData } from "./refleksiSheet";
 import { readTasmiRekapTahun, type TasmiRekapRow } from "./tasmi";
-import { TINGKAT_LIST, isEvalAnakFilled, type OlahragaEntry, type OlahragaKelompok, type OlahragaTingkat } from "./olahraga";
+import { TINGKAT_LIST, isEvalAnakFilled, rowToEntry, type OlahragaEntry, type OlahragaKelompok, type OlahragaTingkat } from "./olahraga";
 
 // Laporan bulanan seluruh sekolah (card "Sajian Data", management): semua data yang diisi guru
 // dikumpulin di 1 objek `Laporan`, dipakai bareng sama tampilan layar DAN export PDF. Cuma BACA,
@@ -312,18 +312,7 @@ export async function muatLaporan(bulan: string, onProgress?: (p: Progress) => v
       rencana.push({
         kelompok: kel,
         tingkat: t,
-        entry: row
-          ? {
-              tingkat: t,
-              bulan,
-              pekan1: row.pekan1 ?? "",
-              pekan2: row.pekan2 ?? "",
-              pekan3: row.pekan3 ?? "",
-              pekan4: row.pekan4 ?? "",
-              target: Array.isArray(row.target) ? row.target : [],
-              alat: row.alat ?? "",
-            }
-          : null,
+        entry: row ? rowToEntry({ ...row, tingkat: t, bulan }) : null,
       });
     }
   const evalRows = (olahragaRes.evaluasi.data ?? []) as any[];

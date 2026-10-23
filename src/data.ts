@@ -1,4 +1,4 @@
-import { rosterDariDb } from "./lib/roster";
+import { rosterDariDb, kelompokSantri } from "./lib/roster";
 
 // ————— Data & identitas Kuttab Budi Ashari —————
 // ————— Identitas Kuttab Budi Ashari —————
@@ -86,14 +86,20 @@ export function capaianRoster(kelas: string): string[] {
 }
 
 // ————— Roster olahraga per tingkat (KA 1/2/3) + kelompok (ikhwan/akhwat) —————
-// KA 1 & KA 2 kelasnya masih gabung (belum dipisah ikhwan/akhwat secara fisik), jadi rosternya
-// sama buat guru olahraga ikhwan maupun akhwat. KA 3 kelasnya udah kepisah per kelompok, jadi
+// KA 1 & KA 2 kelasnya masih gabung (belum dipisah ikhwan/akhwat secara fisik), jadi disaring pakai penanda
+// kelompok tiap santri (kolom santri_roster.kelompok). KA 3 kelasnya udah kepisah per kelompok, jadi
 // tinggal ambil roster kelas yang sesuai.
 export function olahragaRoster(tingkat: "KA 1" | "KA 2" | "KA 3", kelompok: "ikhwan" | "akhwat"): string[] {
-  if (tingkat === "KA 1") {
-    return [...capaianRoster("Kuttab Awwal 1A"), ...capaianRoster("Kuttab Awwal 1B")];
-  }
-  if (tingkat === "KA 2") return capaianRoster("Kuttab Awwal 2");
+  // KA 1 & KA 2 kelasnya campur, tapi tiap santri punya penanda ikhwan/akhwat di database: santri hanya tampil di
+  // kelompoknya (ikhwan di ikhwan saja, akhwat di akhwat saja). Santri yang penandanya belum diketahui tetap tampil
+  // (lebih baik kelihatan di dua tempat daripada hilang).
+  const saring = (kelas: string) =>
+    capaianRoster(kelas).filter((n) => {
+      const k = kelompokSantri(kelas, n);
+      return k === null || k === kelompok;
+    });
+  if (tingkat === "KA 1") return [...saring("Kuttab Awwal 1A"), ...saring("Kuttab Awwal 1B")];
+  if (tingkat === "KA 2") return saring("Kuttab Awwal 2");
   return capaianRoster(`Kuttab Awwal 3 ${kelompok === "ikhwan" ? "Ikhwan" : "Akhwat"}`);
 }
 

@@ -78,6 +78,16 @@ export function ProfileMenu() {
           {role === "olahraga" && (
             <>
               <div className="h-px my-1" style={{ background: C.line }} />
+              <Link
+                to="/olahraga/absen"
+                onClick={() => setOpen(false)}
+                className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:opacity-80"
+                style={{ color: C.ink }}
+              >
+                <CalendarCheckIcon />
+                <span className="text-sm font-medium">Absen Hari Ini</span>
+              </Link>
+              <div className="h-px my-1" style={{ background: C.line }} />
               <PushNotifToggle variant="light" />
             </>
           )}

@@ -78,9 +78,9 @@ export function Sidebar() {
 
           <ProfileNameField variant="dark" />
 
-          {role === "guru" && (
+          {(role === "guru" || role === "olahraga") && (
             <Link
-              to="/absen"
+              to={role === "olahraga" ? "/olahraga/absen" : "/absen"}
               onClick={() => setOpen(false)}
               className="flex items-center gap-3.5 rounded-xl px-3.5 py-3 transition-colors"
               style={{ color: "rgba(255,255,255,0.88)" }}

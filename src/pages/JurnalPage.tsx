@@ -12,6 +12,7 @@ import { AccentCard } from "../components/PortalComponents";
 import JurnalPerHari from "../components/JurnalPerHari";
 import JurnalGabungan from "../components/JurnalGabungan";
 import { BackButton } from "../components/BackButton";
+import { kelasJurnalOlahraga } from "../lib/olahraga";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   readJurnalRange,
@@ -38,10 +39,10 @@ const QUESTIONS: { key: keyof Pick<JurnalEntry, "kondisi_guru" | "kondisi_santri
   },
 ];
 
-const PERATURAN = [
+const peraturanJurnal = (hari: string) => [
   "Tulis jurnal sesuai format yang sudah ditentukan.",
   "Wajib menuliskan dengan bahasa yang baik dan benar.",
-  "Isi jurnal setiap hari (Senin–Jumat); jurnal satu pekan otomatis terkumpul.",
+  `Isi jurnal setiap hari (${hari}); jurnal satu pekan otomatis terkumpul.`,
 ];
 
 export default function JurnalPage() {
@@ -52,10 +53,15 @@ export default function JurnalPage() {
 /* ═══════════════════════ Guru ═══════════════════════ */
 
 function GuruJurnal() {
-  const { kelas } = useAuth();
+  const { kelas: kelasAkun, role, kelompok } = useAuth();
+  // Guru olahraga tidak punya kelas: jurnalnya dicatat atas nama kelompoknya ("Olahraga Ikhwan"/"Olahraga Akhwat")
+  // dan hanya hari tugasnya (Senin–Rabu, sama seperti absennya).
+  const olahraga = role === "olahraga";
+  const kelas = olahraga ? (kelompok === "ikhwan" || kelompok === "akhwat" ? kelasJurnalOlahraga(kelompok) : null) : kelasAkun;
+  const jumlahHari = olahraga ? 3 : 5;
   const thisMonday = useMemo(() => mondayOf(new Date()), []);
   const [monday, setMonday] = useState(thisMonday);
-  const days = useMemo(() => weekdaysFrom(monday), [monday]);
+  const days = useMemo(() => weekdaysFrom(monday).slice(0, jumlahHari), [monday, jumlahHari]);
   const todayYmd = ymd(new Date());
 
   const [entries, setEntries] = useState<Record<string, JurnalEntry>>({});
@@ -70,7 +76,7 @@ function GuruJurnal() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    readJurnalRange(ymd(days[0]), ymd(days[4]), {})
+    readJurnalRange(ymd(days[0]), ymd(days[days.length - 1]), {})
       .then((m) => {
         if (cancelled) return;
         setEntries(m);
@@ -89,7 +95,7 @@ function GuruJurnal() {
   if (!kelas) {
     return (
       <div className="min-h-dvh flex items-center justify-center" style={{ background: C.mist }}>
-        <p className="text-sm" style={{ color: C.muted }}>Kelas belum diset untuk akun ini.</p>
+        <p className="text-sm" style={{ color: C.muted }}>{olahraga ? "Akun ini belum ditandai sebagai guru olahraga ikhwan / akhwat." : "Kelas belum diset untuk akun ini."}</p>
       </div>
     );
   }
@@ -107,7 +113,7 @@ function GuruJurnal() {
           <p className="text-sm mt-1" style={{ color: C.muted }}>{kelas}</p>
         </header>
 
-        <RuleCard title="Peraturan mengisi jurnal" rules={PERATURAN} icon={<JurnalRuleIcon />} />
+        <RuleCard title="Peraturan mengisi jurnal" rules={peraturanJurnal(olahraga ? "Senin–Rabu" : "Senin–Jumat")} icon={<JurnalRuleIcon />} />
 
         <WeekNav
           label={labelRentangPekan(days)}

@@ -19,7 +19,7 @@ const OLAHRAGA_NAV: NavItem[] = [
   { to: "/olahraga/rencana", label: "Rencana", icon: DocIcon },
   { to: "/home", label: "Home", icon: HomeIcon },
   { to: "/olahraga/evaluasi", label: "Evaluasi", icon: GridIcon },
-  { to: "/olahraga/absen", label: "Absen", icon: CalendarCheckIcon },
+  { to: "/jurnal", label: "Jurnal", icon: NotebookIcon },
 ];
 
 // Semua 6 tujuan yang ada di card Home management (Instrumen Ilmu/Rencana & Refleksi/Capaian
@@ -36,8 +36,8 @@ const MANAGEMENT_NAV_FULL: NavItem[] = [
   { to: "/sajian-data", label: "Sajian Data", icon: BarChartIcon },
 ];
 
-/** Menu navigasi sesuai role. Guru olahraga lihat Home + Panduan + Rencana + Evaluasi + Absen
- *  (gantinya tab Rencana/Evaluasi/Absen yang tadinya ada di dalam halaman Olahraga). */
+/** Menu navigasi sesuai role. Guru olahraga lihat Home + Panduan + Rencana + Evaluasi + Jurnal;
+ *  Absen-nya ada di Menu Profil (HP) / hamburger (desktop), sama seperti guru kelas. */
 export function navItemsFor(role: "management" | "guru" | "olahraga" | null): NavItem[] {
   if (role === "olahraga") return OLAHRAGA_NAV;
   return GURU_NAV;

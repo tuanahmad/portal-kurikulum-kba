@@ -1,7 +1,7 @@
 import type { Laporan, KelasLaporan } from "./laporanBulanan";
 import { quranTerisi, ilmuTerisi, rpbTerisi, refleksiTerisi } from "./laporanBulanan";
 import { ilmuPerAnak, rpbTampil, persen } from "./laporanTampil";
-import { KELOMPOK_LABEL } from "./olahraga";
+import { KELOMPOK_LABEL, PEKAN_FIELDS, adaTargetPekan } from "./olahraga";
 
 // PDF laporan bulanan (A4 portrait) -- dibuat DI BROWSER (jsPDF) dan langsung diunduh ke perangkat yang
 // menekan tombolnya. Isi sama dengan preview di layar: ringkasan dulu, lalu detail lengkap per kelas.
@@ -271,8 +271,13 @@ export async function unduhPdfLaporan(lap: Laporan) {
       kosong("Belum diisi.");
       continue;
     }
-    [r.entry.pekan1, r.entry.pekan2, r.entry.pekan3, r.entry.pekan4].forEach((t, i) => label(`Pekan ${i + 1}`, t));
-    label("Target", r.entry.target.join(", "));
+    const en = r.entry;
+    PEKAN_FIELDS.forEach((f, i) => {
+      label(`Pekan ${i + 1}`, en[f.key]);
+      if (en[f.targetKey].length) label(`Target pekan ${i + 1}`, en[f.targetKey].join(", "));
+    });
+    // target lama (satu gabungan untuk sebulan) hanya ditampilkan kalau belum ada target per pekan
+    if (!adaTargetPekan(en) && en.target.length) label("Target (gabungan)", en.target.join(", "));
     label("Alat", r.entry.alat);
   }
   h2("Kehadiran guru olahraga (sesi)");

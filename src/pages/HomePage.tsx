@@ -114,7 +114,7 @@ function GuruMenu() {
         title="Absen Guru"
         desc="Isi kehadiran harian."
         gradient={`linear-gradient(135deg, #E3A744 0%, #C98A25 100%)`}
-        icon={<CalendarCheckIcon />}
+        icon={<DocIcon />}
       />
       <HomeCard
         to="/jurnal"
@@ -510,6 +510,13 @@ function OlahragaMenu() {
         title="Absen"
         desc="Absen kedatangan Senin, Selasa & Rabu."
         gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
+        icon={<CalendarCheckIcon />}
+      />
+      <HomeCard
+        to="/jurnal"
+        title="Daily Jurnal"
+        desc="Catatan harian guru olahraga."
+        gradient="linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)"
         icon={<NotebookIcon />}
       />
     </main>
