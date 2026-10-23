@@ -436,9 +436,6 @@ function ManagementJurnal() {
                   {pdfBusy ? "Menyiapkan…" : "Download PDF"}
                 </button>
               </div>
-              <div className="text-[11px] mt-1.5" style={{ color: C.muted }}>
-                Isi: seluruh jurnal {namaGuru[kelas] ?? kelas} pada bulan itu, satu dokumen per guru.
-              </div>
               {pdfError && (
                 <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
                   {pdfError}
