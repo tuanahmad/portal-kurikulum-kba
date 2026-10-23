@@ -1,3 +1,5 @@
+import { EmptyState } from "../components/EmptyState";
+import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { C, REFLEKSI_FILES, capaianRoster, jenjangOf, isMonthOpen } from "../data";
@@ -166,7 +168,7 @@ export default function RefleksiFormPage() {
       await writeReflectionTab(file.id, kelas, payload);
       setBaseline(snapshot);
       draft.clear();
-      setSaveMsg("Tersimpan ke sheet (salinan uji coba).");
+      toast.sukses("Tersimpan");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -437,9 +439,7 @@ export default function RefleksiFormPage() {
             {/* G. Refleksi Perkembangan Murid */}
             <SectionHeading no="G" title="Refleksi Perkembangan Murid" subtitle="Klik nama santri buat isi" />
             {roster.length === 0 ? (
-              <div className="text-xs rounded-lg px-3 py-2.5" style={{ background: C.leaf, color: C.muted }}>
-                Belum ada daftar santri buat kelas ini — hubungi koordinator kurikulum.
-              </div>
+              <EmptyState ikon="santri" judul="Belum ada daftar santri" petunjuk="Hubungi koordinator kurikulum untuk menambahkan santri kelas ini." padat />
             ) : (
               <div className="space-y-2">
                 {roster.map((nama, i) => {
@@ -491,7 +491,7 @@ export default function RefleksiFormPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="w-full text-sm font-semibold py-3.5 rounded-xl transition-opacity hover:opacity-90 disabled:opacity-60"
+              className="w-full text-sm font-semibold py-3.5 rounded-xl transition-opacity hover:opacity-90 disabled:opacity-60 sticky z-10 shadow-lg bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-4 tombol-simpan-menempel"
               style={{ background: C.green, color: "#FFF" }}
             >
               {saving ? "Menyimpan…" : "Simpan"}

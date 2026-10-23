@@ -1,3 +1,5 @@
+import { EmptyState } from "../components/EmptyState";
+import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import {
@@ -134,7 +136,7 @@ export default function CapaianIlmuFormPage() {
         cells: bidangFlat.map((b) => ({ bidangKey: b.key, anakIdx: slot, value: form[b.key] ?? "" })),
         names: [{ anakIdx: slot, nama: roster[anakI] }],
       });
-      setSaveMsg("Tersimpan ke sheet.");
+      toast.sukses("Tersimpan");
       draft.clear();
       // update cache lokal biar pindah anak tetep keliatan
       setData((prev) => {
@@ -168,7 +170,7 @@ export default function CapaianIlmuFormPage() {
         cells: roster.map((_, i) => ({ bidangKey, anakIdx: rosterSlots[i], value: val })),
         names: roster.map((nm, i) => ({ anakIdx: rosterSlots[i], nama: nm })),
       });
-      setSaveMsg("Bidang ini diisikan ke semua santri.");
+      toast.sukses("Bidang ini diisikan ke semua santri");
       setData((prev) => {
         if (!prev) return prev;
         const arr = [...(prev.values[bidangKey] ?? [])];
@@ -229,9 +231,7 @@ export default function CapaianIlmuFormPage() {
           {data && !loading && (
             <Step n={2} label="Pilih santri">
               {roster.length === 0 ? (
-                <p className="text-sm" style={{ color: C.muted }}>
-                  Belum ada daftar santri buat kelas ini — hubungi koordinator kurikulum.
-                </p>
+                <EmptyState ikon="santri" judul="Belum ada daftar santri" petunjuk="Hubungi koordinator kurikulum untuk menambahkan santri kelas ini." padat />
               ) : (
                 <PickerCard
                   items={roster.map((n) => ({ label: n }))}
@@ -325,7 +325,7 @@ export default function CapaianIlmuFormPage() {
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="mt-4 w-full py-3 rounded-xl text-sm font-bold transition-opacity"
+                    className="mt-4 w-full py-3.5 rounded-xl text-sm font-bold transition-opacity sticky z-10 shadow-lg bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-4 tombol-simpan-menempel"
                     style={{ background: "#FFF", color: C.green, opacity: saving ? 0.6 : 1 }}
                   >
                     {saving ? "Menyimpan…" : `Simpan capaian ${roster[anakI].split(" ")[0]}`}

@@ -1,3 +1,5 @@
+import { EmptyState } from "../components/EmptyState";
+import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { C, capaianRoster, SERTIFIKAT_TASMI_AKTIF } from "../data";
@@ -123,6 +125,7 @@ export default function TasmiPage() {
               setEditing(null);
             }}
             onSaved={() => {
+              toast.sukses(editing ? "Perubahan tersimpan" : "Tasmi' tersimpan");
               setFormOpen(false);
               setEditing(null);
               reload();
@@ -144,9 +147,11 @@ export default function TasmiPage() {
           {loading ? (
             <PageLoadingSkeleton />
           ) : shown.length === 0 ? (
-            <p className="text-sm text-center py-6" style={{ color: C.muted }}>
-              {records.length === 0 ? "Belum ada riwayat tasmi'." : "Gak ada riwayat buat santri ini."}
-            </p>
+            records.length === 0 ? (
+              <EmptyState ikon="buku" judul="Belum ada tasmi'" petunjuk={`Tekan "Catat Tasmi'" di atas untuk menambah catatan pertama.`} />
+            ) : (
+              <EmptyState ikon="santri" judul="Belum ada riwayat untuk santri ini" petunjuk={`Pilih "Semua" untuk melihat seluruh riwayat kelas.`} padat />
+            )
           ) : (
             <div className="space-y-3">
               {shown.map((r) => (
@@ -159,7 +164,10 @@ export default function TasmiPage() {
                     setEditing(r);
                     setFormOpen(true);
                   }}
-                  onDeleted={reload}
+                  onDeleted={() => {
+                    toast.sukses("Catatan dihapus");
+                    reload();
+                  }}
                 />
               ))}
             </div>
@@ -334,7 +342,10 @@ function TasmiForm({
 
       {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
 
-      <div className="flex gap-2 mt-4">
+      <div
+        className="flex gap-2 mt-4 p-2 rounded-2xl sticky z-10 shadow-lg bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-4 tombol-simpan-menempel"
+        style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+      >
         <button
           onClick={onCancel}
           className="flex-1 text-sm font-semibold py-2.5 rounded-xl"

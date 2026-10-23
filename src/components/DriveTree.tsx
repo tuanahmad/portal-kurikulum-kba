@@ -1,3 +1,4 @@
+import { EmptyState } from "./EmptyState";
 import { Link } from "react-router-dom";
 import { C } from "../data";
 import type { DriveNode } from "../lib/drive";
@@ -9,9 +10,7 @@ import type { DriveNode } from "../lib/drive";
 export function DriveTree({ nodes, section, gradient }: { nodes: DriveNode[]; section?: string; gradient: string }) {
   if (!nodes.length) {
     return (
-      <p className="text-sm px-1 py-2" style={{ color: C.muted }}>
-        Belum ada file di folder ini.
-      </p>
+      <EmptyState ikon="folder" judul="Belum ada file" petunjuk="File akan muncul di sini setelah tim management menambahkannya di Google Drive." />
     );
   }
   const folders = nodes.filter((n): n is DriveNode & { type: "folder" } => n.type === "folder");

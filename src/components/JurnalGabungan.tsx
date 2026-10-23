@@ -1,3 +1,4 @@
+import { EmptyState } from "./EmptyState";
 import { C } from "../data";
 import { labelHari, labelTanggal, ymd, isEntryFilled, PERTANYAAN_JURNAL, NAMA_BULAN, type JurnalEntry } from "../lib/jurnal";
 
@@ -56,9 +57,9 @@ export default function JurnalGabungan({
       </div>
 
       {!adaIsi && (
-        <p className="py-4 text-sm" style={{ color: C.muted }}>
-          Belum ada jurnal pada pekan ini.
-        </p>
+        <div className="pt-4">
+          <EmptyState ikon="jurnal" judul="Belum ada jurnal pekan ini" petunjuk="Jurnal akan tampil di sini setelah guru mengisinya." padat />
+        </div>
       )}
 
       {adaIsi &&

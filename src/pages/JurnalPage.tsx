@@ -1,3 +1,4 @@
+import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
@@ -214,7 +215,7 @@ function DayCard({
       });
       onSaved({ ...form, tanggal: ymd(date) });
       draft.clear();
-      setMsg("Tersimpan.");
+      toast.sukses("Tersimpan");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -292,7 +293,7 @@ function DayCard({
           <button
             onClick={handleSave}
             disabled={saving || !dirty}
-            className="mt-3 w-full py-2.5 rounded-xl text-sm font-bold transition-opacity"
+            className="mt-3 w-full py-3.5 rounded-xl text-sm font-bold transition-opacity sticky z-10 shadow-lg bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-4 tombol-simpan-menempel"
             style={{ background: C.green, color: "#FFF", opacity: saving || !dirty ? 0.5 : 1 }}
           >
             {saving ? "Menyimpan…" : filled ? "Simpan perubahan" : "Simpan"}

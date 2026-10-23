@@ -1,3 +1,4 @@
+import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { C, isMonthOpen, olahragaRoster } from "../data";
@@ -293,7 +294,7 @@ function EvaluasiTingkatCard({
       setData(fresh);
       setForm(fresh);
       draft.clear();
-      setMsg("Tersimpan.");
+      toast.sukses("Tersimpan");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -482,7 +483,7 @@ function TingkatCard({
       onSaved(saved);
       setForm(saved);
       draft.clear();
-      setMsg("Tersimpan.");
+      toast.sukses("Tersimpan");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -800,7 +801,7 @@ function AbsenOlahragaDayCard({
       onSaved(saved);
       setForm(saved);
       draft.clear();
-      setMsg("Tersimpan.");
+      toast.sukses("Tersimpan");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {

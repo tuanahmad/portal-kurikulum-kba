@@ -1,3 +1,5 @@
+import { EmptyState } from "../components/EmptyState";
+import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { C, capaianQuranFileId, capaianRoster, isMonthOpen, sheetUrl, tanggalSlot, rentangPekan, slotUntukTanggal, pekanGridCount, slotsDiPekan, pekanUntukSlot, polaGridBulan } from "../data";
@@ -128,7 +130,7 @@ export default function CapaianQuranFormPage() {
       const fresh = await readCapaianQuran(fileId, bulan);
       setData(fresh);
       draft.clear();
-      setSaveMsg("Tersimpan ke sheet.");
+      toast.sukses("Tersimpan");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -334,9 +336,7 @@ export default function CapaianQuranFormPage() {
 
                 <div className="mt-4 space-y-2.5">
                   {roster.length === 0 && (
-                    <p className="text-sm" style={{ color: "#FFF" }}>
-                      Belum ada daftar santri buat kelas ini — hubungi koordinator kurikulum.
-                    </p>
+                    <EmptyState ikon="santri" judul="Belum ada daftar santri" petunjuk="Hubungi koordinator kurikulum untuk menambahkan santri kelas ini." padat />
                   )}
                   {roster.map((nama, i) => (
                     <div key={i} className="rounded-xl p-3" style={{ background: "#FFF" }}>
@@ -388,7 +388,7 @@ export default function CapaianQuranFormPage() {
                 <button
                   onClick={handleSave}
                   disabled={saving || roster.length === 0}
-                  className="mt-4 w-full py-3 rounded-xl text-sm font-bold transition-opacity"
+                  className="mt-4 w-full py-3.5 rounded-xl text-sm font-bold transition-opacity sticky z-10 shadow-lg bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-4 tombol-simpan-menempel"
                   style={{ background: C.green, color: "#FFF", opacity: saving ? 0.6 : 1 }}
                 >
                   {saving ? "Menyimpan…" : "Simpan"}

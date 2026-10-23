@@ -1,3 +1,4 @@
+import { ToastHost } from "./components/Toast";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -143,6 +144,7 @@ export default function App() {
           />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        <ToastHost />
       </AuthProvider>
     </BrowserRouter>
   );

@@ -1,3 +1,4 @@
+import { EmptyState } from "../components/EmptyState";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { C, capaianQuranFileId, capaianRoster, isMonthOpen, pekanGridCount, rentangPekan, slotsDiPekan, pekanUntukSlot } from "../data";
@@ -220,10 +221,7 @@ export default function CapaianQuranDiagramPage() {
           {loading && <PageLoadingSkeleton />}
 
           {data && !loading && !ready && (
-            <div className="rounded-2xl p-5 text-sm text-center" style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.muted }}>
-              Belum ada capaian yang diisi untuk {bulan}. Diagram muncul otomatis setelah ada isian
-              minimal 1 pekan.
-            </div>
+            <EmptyState ikon="grafik" judul={`Belum ada capaian di ${bulan}`} petunjuk="Diagram muncul otomatis setelah ada isian minimal 1 pekan." />
           )}
 
           {data && !loading && ready && (
