@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { C, getGreeting, KELAS_LIST } from "../data";
 import { useAuth } from "../contexts/AuthContext";
-import { readTodayStatus, type TodayStatus } from "../lib/dashboardStatus";
+import { readTodayStatus, readStatusGuru, type TodayStatus, type StatusGuruHariIni } from "../lib/dashboardStatus";
+import { labelHari, labelTanggal } from "../lib/jurnal";
 import {
   NotebookIcon as NotebookIconOutline,
   CalendarCheckIcon as CalendarCheckIconOutline,
   BookIcon as BookIconOutline,
+  DocIcon as DocIconOutline,
 } from "../components/navIcons";
 
 export default function HomePage() {
@@ -79,7 +81,9 @@ export default function HomePage() {
 /** Menu guru — 5 fitur untuk kelasnya sendiri (Rencana & Refleksi digabung jadi satu). */
 function GuruMenu() {
   return (
-    <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+    <main>
+    <GuruHariIni />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
       <HomeCard
         to="/instrumen"
         title="Instrumen Ilmu"
@@ -115,7 +119,157 @@ function GuruMenu() {
         gradient={`linear-gradient(135deg, #8A6A20 0%, ${C.green} 100%)`}
         icon={<NotebookIcon />}
       />
+    </div>
     </main>
+  );
+}
+
+type HariIniState = "selesai" | "belum" | "sebagian" | "libur";
+
+const CHIP: Record<HariIniState, { bg: string; fg: string; teks: string }> = {
+  selesai: { bg: C.leaf, fg: C.green, teks: "Sudah" },
+  sebagian: { bg: "#FFF1D6", fg: "#8A6A20", teks: "Sebagian" },
+  belum: { bg: "#FFDCD5", fg: "#9F240B", teks: "Belum" },
+  libur: { bg: "#F4F1EC", fg: C.muted, teks: "Libur" },
+};
+
+/** Kartu "Hari Ini" untuk GURU: apa yang sudah/belum diisi hari ini, tiap baris bisa diketuk ke halamannya.
+ *  Sabtu/Ahad: Jurnal & Absen ditandai libur (tidak dihitung). */
+function GuruHariIni() {
+  const { session, kelas } = useAuth();
+  const uid = session?.user?.id;
+  const [s, setS] = useState<StatusGuruHariIni | null>(null);
+
+  useEffect(() => {
+    if (!uid || !kelas) return;
+    let cancelled = false;
+    readStatusGuru(uid, kelas)
+      .then((r) => !cancelled && setS(r))
+      .catch(() => !cancelled && setS({ jurnal: null, absen: null, quran: null, rencana: null }));
+    return () => {
+      cancelled = true;
+    };
+  }, [uid, kelas]);
+
+  const now = new Date();
+  const libur = now.getDay() === 0 || now.getDay() === 6;
+
+  if (!s) {
+    return <div className="mb-5 rounded-2xl animate-pulse" style={{ background: "#FFF", border: `1px solid ${C.line}`, height: 196 }} />;
+  }
+
+  const rows: { key: string; label: string; sub: string; to: string; state: HariIniState | null; icon: React.ReactNode }[] = [
+    {
+      key: "jurnal",
+      label: "Jurnal harian",
+      sub: libur ? "Libur akhir pekan" : s.jurnal ? "Sudah diisi hari ini" : "Belum diisi hari ini",
+      to: "/jurnal",
+      state: libur ? "libur" : s.jurnal == null ? null : s.jurnal ? "selesai" : "belum",
+      icon: <NotebookIconOutline />,
+    },
+    {
+      key: "absen",
+      label: "Absen guru",
+      sub: libur ? "Libur akhir pekan" : s.absen === "lengkap" ? "Pagi dan siang sudah" : s.absen === "sebagian" ? "Baru satu sesi" : "Belum diisi hari ini",
+      to: "/absen",
+      state: libur ? "libur" : s.absen == null ? null : s.absen === "lengkap" ? "selesai" : s.absen === "sebagian" ? "sebagian" : "belum",
+      icon: <CalendarCheckIconOutline />,
+    },
+    {
+      key: "quran",
+      label: "Capaian Al-Qur'an",
+      sub: s.quran ? "Pekan ini sudah ada isian" : "Pekan ini belum ada isian",
+      to: "/capaian/quran",
+      state: s.quran == null ? null : s.quran ? "selesai" : "belum",
+      icon: <BookIconOutline />,
+    },
+    // RPB & Refleksi bulanan: hanya muncul tanggal 1-5 (s.rencana null di tanggal lain)
+    {
+      key: "rencana",
+      label: "Rencana & Refleksi",
+      sub: !s.rencana
+        ? ""
+        : [
+            s.rencana.rpb === null ? null : `RPB ${s.rencana.bulanRpb} ${s.rencana.rpb ? "sudah" : "belum"}`,
+            s.rencana.ref === null ? null : `Refleksi ${s.rencana.bulanRef} ${s.rencana.ref ? "sudah" : "belum"}`,
+          ]
+            .filter(Boolean)
+            .join(", "),
+      to: "/rpb",
+      state: !s.rencana
+        ? null
+        : (() => {
+            const v = [s.rencana.rpb, s.rencana.ref].filter((x): x is boolean => x !== null);
+            return v.length === 0 ? null : v.every(Boolean) ? "selesai" : v.some(Boolean) ? "sebagian" : "belum";
+          })(),
+      icon: <DocIconOutline />,
+    },
+  ];
+  const tampil = rows.filter((r) => r.state !== null);
+  const dihitung = tampil.filter((r) => r.state !== "libur");
+  const selesai = dihitung.filter((r) => r.state === "selesai").length;
+  const semua = dihitung.length > 0 && selesai === dihitung.length;
+  const pct = dihitung.length ? Math.round((selesai / dihitung.length) * 100) : 100;
+
+  return (
+    <section className="mb-5 rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <div className="px-4 sm:px-5 pt-4 pb-3 flex items-end justify-between gap-3">
+        <div>
+          <div className="text-xs font-bold uppercase tracking-[0.16em]" style={{ color: C.green }}>Hari ini</div>
+          <div className="text-sm mt-1" style={{ color: C.muted }}>
+            {labelHari(now)}, {labelTanggal(now)}
+          </div>
+        </div>
+        {dihitung.length > 0 && (
+          <div className="text-right shrink-0">
+            <span className="text-2xl font-semibold" style={{ color: semua ? C.green : C.ink, fontFamily: "Georgia, 'Times New Roman', serif", fontVariantNumeric: "lining-nums" }}>{selesai}</span>
+            <span className="text-sm" style={{ color: C.muted }}> dari {dihitung.length} selesai</span>
+          </div>
+        )}
+      </div>
+      <div className="h-1" style={{ background: C.leaf }}>
+        <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, background: semua ? C.green : C.gold }} />
+      </div>
+      <div>
+        {tampil.map((r, i) => {
+          const chip = CHIP[r.state as HariIniState];
+          return (
+            <Link
+              key={r.key}
+              to={r.to}
+              className="flex items-center gap-3 px-4 sm:px-5 py-3 transition-colors hover:bg-black/[0.02]"
+              style={{ borderTop: i === 0 ? "none" : `1px solid ${C.line}` }}
+            >
+              <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: C.leaf, color: C.green }}>
+                {r.icon}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium leading-tight" style={{ color: C.ink }}>{r.label}</span>
+                <span className="block text-xs mt-0.5" style={{ color: C.muted }}>{r.sub}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0" style={{ background: chip.bg, color: chip.fg }}>
+                {r.state === "selesai" && (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+                {chip.teks}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+      {semua && !libur && (
+        <div className="px-4 sm:px-5 py-3 text-xs text-center" style={{ background: C.leaf, color: C.green }}>
+          Alhamdulillah, semuanya sudah terisi hari ini.
+        </div>
+      )}
+      {libur && (
+        <div className="px-4 sm:px-5 py-3 text-xs text-center" style={{ background: C.leaf, color: C.green }}>
+          Hari ini libur. Jurnal dan absen tidak perlu diisi.
+        </div>
+      )}
+    </section>
   );
 }
 

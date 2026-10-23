@@ -1,6 +1,9 @@
 import { supabase } from "./supabaseClient";
-import { ymd } from "./jurnal";
-import { capaianQuranFileId, pekanUntukSlot, slotUntukTanggal, slotsDiPekan } from "../data";
+import { ymd, readJurnalRange, isEntryFilled } from "./jurnal";
+import { readAbsenRange, isAbsenFilled, isAbsenLengkap } from "./absen";
+import { capaianQuranFileId, pekanUntukSlot, slotUntukTanggal, slotsDiPekan, RPB_FILES, REFLEKSI_FILES } from "../data";
+import { readRpbTab, type RpbTabData } from "./rpbSheet";
+import { readReflectionTab, type ReflectionData } from "./refleksiSheet";
 import { readCapaianQuran } from "./capaianQuranSheet";
 
 export type TodayStatus = {
@@ -39,6 +42,57 @@ function hasFillThisWeek(sections: { type: string; students: { values: string[] 
     }
   }
   return false;
+}
+
+/** Status pengisian MILIK SATU GURU untuk kartu "Hari Ini" di Home. Tiap bagian null kalau gagal dibaca
+ *  (jaringan / tab bulan belum ada) -- jangan dianggap "belum isi". */
+export type StatusGuruHariIni = {
+  jurnal: boolean | null;
+  absen: "lengkap" | "sebagian" | "belum" | null;
+  quran: boolean | null;
+  /** RPB bulan berjalan & Refleksi BULAN LALU -- hanya dibaca tanggal 1-5 (selain itu null). Bagian yang file bulannya
+   *  tidak ada bernilai null (tidak dihitung). */
+  rencana: { rpb: boolean | null; ref: boolean | null; bulanRpb: string; bulanRef: string } | null;
+};
+
+/** Terisi apa nggak (sama dengan aturan di halaman Rencana & Refleksi; "☐" = kotak bawaan template, bukan isian guru). */
+function rpbTerisi(d: RpbTabData | null | undefined): boolean {
+  return !!d && (d.tableB ?? []).some((row) => row.some((c) => (c ?? "").trim()));
+}
+function refleksiTerisi(d: ReflectionData | null | undefined): boolean {
+  if (!d) return false;
+  const anyRow = (rows?: string[][]) => (rows ?? []).some((r) => r.some((c) => (c ?? "").trim() && (c ?? "").trim() !== "☐"));
+  const anyFlat = (vals?: string[]) => (vals ?? []).some((v) => (v ?? "").trim());
+  const anyMurid = (rows?: string[][]) => (rows ?? []).some((r) => r.slice(1).some((c) => (c ?? "").trim())); // kolom Nama Murid (r[0]) tidak dihitung: nama terisi otomatis dari daftar santri
+  return anyRow(d.capaianTarget) || anyFlat(d.keberhasilan) || anyRow(d.kendala) || anyFlat(d.evaluasiDiri) || anyFlat(d.refleksiGuru) || anyRow(d.rencanaPerbaikan) || anyMurid(d.perkembanganMurid);
+}
+
+export async function readStatusGuru(userId: string, kelas: string): Promise<StatusGuruHariIni> {
+  const now = new Date();
+  const today = ymd(now);
+  const bulanNama = MONTH_NAMES[now.getMonth()];
+  const pekanIdx = pekanKeBerapa(now, bulanNama);
+  const fileId = capaianQuranFileId(kelas);
+  const bulanLalu = MONTH_NAMES[new Date(now.getFullYear(), now.getMonth() - 1, 1).getMonth()];
+  const rpbFile = RPB_FILES.find((f) => f.name === bulanNama);
+  const refFile = REFLEKSI_FILES.find((f) => f.name === bulanLalu);
+  const perluRencana = now.getDate() <= 5 && (!!rpbFile || !!refFile);
+  const [j, a, q, rp, rf] = await Promise.allSettled([
+    readJurnalRange(today, today, { userId }),
+    readAbsenRange(today, today, { userId }),
+    fileId ? readCapaianQuran(fileId, bulanNama) : Promise.resolve(null),
+    perluRencana && rpbFile ? readRpbTab(rpbFile.id, kelas) : Promise.resolve(null),
+    perluRencana && refFile ? readReflectionTab(refFile.id, kelas) : Promise.resolve(null),
+  ]);
+  return {
+    jurnal: j.status === "fulfilled" ? isEntryFilled(j.value[today]) : null,
+    absen: a.status === "fulfilled" ? (isAbsenLengkap(a.value[today]) ? "lengkap" : isAbsenFilled(a.value[today]) ? "sebagian" : "belum") : null,
+    quran: q.status === "fulfilled" && q.value ? hasFillThisWeek(q.value.sections, pekanIdx, bulanNama) : null,
+    rencana:
+      perluRencana && rp.status === "fulfilled" && rf.status === "fulfilled"
+        ? { rpb: rpbFile ? rpbTerisi(rp.value) : null, ref: refFile ? refleksiTerisi(rf.value) : null, bulanRpb: bulanNama, bulanRef: bulanLalu }
+        : null,
+  };
 }
 
 /** Ringkasan pengisian Jurnal & Absen HARI INI + Capaian Al-Qur'an MINGGU INI, lintas semua
