@@ -250,7 +250,7 @@ export default function CapaianQuranFormPage() {
                         setSlot(active ? null : n);
                         setSaveMsg(null);
                       }}
-                      className={`rounded-lg font-semibold transition-colors ${nonaktif ? "cursor-not-allowed " : ""}${isPekanSec ? "px-3 h-11 text-sm text-left" : "w-14 h-14 text-sm"}`}
+                      className={`rounded-lg font-semibold transition-colors ${nonaktif ? "cursor-not-allowed " : ""}${isPekanSec ? "px-3 h-11 text-sm text-left" : "flex-1 min-w-0 sm:flex-none sm:w-14 h-14 text-sm"}`}
                       style={{
                         background: active ? C.green : "#FFF",
                         color: active ? "#FFF" : C.ink,
@@ -286,7 +286,7 @@ export default function CapaianQuranFormPage() {
                       </button>
                     )}
                     {baris.map((row, i) => (
-                      <div key={i} className="flex flex-wrap items-center gap-1.5">
+                      <div key={i} className={isPekanSec ? "flex flex-wrap items-center gap-1.5" : "flex items-center gap-1 sm:gap-1.5"}>
                         {!isPekanSec && <span className="text-[10px] font-semibold w-9 shrink-0" style={{ color: C.muted }}>Pekan {i + 1}</span>}
                         {row.map(tombol)}
                       </div>
