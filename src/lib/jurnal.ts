@@ -94,6 +94,31 @@ export async function readJurnalRange(
   return out;
 }
 
+export type JurnalHariItem = { userId: string; nama: string; kelas: string; entry: JurnalEntry | undefined };
+
+/** Jurnal semua guru pada satu tanggal (management). Urut menurut `urutKelas`; kelas yang tidak ada di daftar menyusul menurut abjad. */
+export async function readJurnalHari(tanggal: Date, urutKelas: string[]): Promise<JurnalHariItem[]> {
+  const [g, r] = await Promise.all([
+    supabase.from("profiles").select("id, full_name, kelas").eq("role", "guru"),
+    supabase
+      .from("jurnal_harian")
+      .select("user_id, tanggal, kondisi_guru, kondisi_santri, kabar_kendala, updated_at")
+      .eq("tanggal", ymd(tanggal)),
+  ]);
+  if (g.error) throw new Error(g.error.message);
+  if (r.error) throw new Error(r.error.message);
+  const byUser: Record<string, JurnalEntry> = {};
+  for (const row of r.data ?? []) byUser[row.user_id as string] = row as unknown as JurnalEntry;
+  const idx = (k: string) => {
+    const i = urutKelas.indexOf(k);
+    return i < 0 ? 9999 : i;
+  };
+  return (g.data ?? [])
+    .filter((p) => !!p.kelas)
+    .map((p) => ({ userId: p.id as string, nama: ((p.full_name as string) || (p.kelas as string)) ?? "", kelas: p.kelas as string, entry: byUser[p.id as string] }))
+    .sort((a, b) => idx(a.kelas) - idx(b.kelas) || a.kelas.localeCompare(b.kelas) || a.nama.localeCompare(b.nama));
+}
+
 export async function saveJurnalDay(params: {
   kelas: string;
   tanggal: string;

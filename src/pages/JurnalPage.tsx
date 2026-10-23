@@ -6,6 +6,8 @@ import { PageLoadingSkeleton } from "../components/Skeleton";
 import { useDraft } from "../lib/useDraft";
 import { PickerCard } from "../components/PickerCard";
 import { RuleCard } from "../components/RuleCard";
+import { AccentCard } from "../components/PortalComponents";
+import JurnalPerHari from "../components/JurnalPerHari";
 import {
   readJurnalRange,
   saveJurnalDay,
@@ -300,7 +302,32 @@ function DayCard({
 
 /* ═══════════════════════ Management ═══════════════════════ */
 
+function IkonKalender() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="4" y="5.5" width="16" height="14" rx="2.2" stroke="#FFF" strokeWidth="1.7" />
+      <path d="M4 10h16M9 3.8v3.4M15 3.8v3.4" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IkonGuru() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="8.5" r="3.4" stroke="#FFF" strokeWidth="1.7" />
+      <path d="M5 19.5c.8-3.6 3.6-5.4 7-5.4s6.2 1.8 7 5.4" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IkonPanah() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function ManagementJurnal() {
+  const [mode, setMode] = useState<null | "hari" | "guru">(null);
   const [kelasList, setKelasList] = useState<string[]>([]);
   const [namaGuru, setNamaGuru] = useState<Record<string, string>>({});
   const [bulanPdf, setBulanPdf] = useState(() => {
@@ -396,6 +423,40 @@ function ManagementJurnal() {
           <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap jurnal harian guru</p>
         </header>
 
+        {mode === null && (
+          <main className="mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <AccentCard
+                title="Preview per Hari"
+                desc="Baca jurnal semua guru pada satu hari, urut menurut kelas."
+                icon={<IkonKalender />}
+                gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`}
+                onClick={() => setMode("hari")}
+              />
+              <AccentCard
+                title="Per Guru & PDF Bulanan"
+                desc="Baca jurnal satu guru per pekan, atau unduh PDF jurnal sebulan."
+                icon={<IkonGuru />}
+                gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
+                onClick={() => setMode("guru")}
+              />
+            </div>
+          </main>
+        )}
+
+        {mode === "hari" && <JurnalPerHari onBack={() => setMode(null)} />}
+
+        {mode === "guru" && (
+          <>
+        <button
+          onClick={() => setMode(null)}
+          className="mt-6 inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors hover:opacity-80"
+          style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
+        >
+          <IkonPanah />
+          Per Guru & PDF Bulanan
+        </button>
+
         <div className="mt-5">
           <PickerCard
             items={kelasList.map((k) => ({ label: k }))}
@@ -466,6 +527,8 @@ function ManagementJurnal() {
                 })}
               </div>
             )}
+          </>
+        )}
           </>
         )}
       </div>
