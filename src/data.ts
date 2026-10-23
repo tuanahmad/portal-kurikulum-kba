@@ -361,9 +361,10 @@ export function tanggalSlot(monthName: string, slot: number): TanggalSlot | null
 }
 
 /** Mulai bulan ini nomor pertemuan = GRID kalender: pertemuan 1-5 = Senin-Jumat pekan pertama, 6-10 = pekan kedua, dst.
- *  Kalau tanggal 1 jatuh hari Kamis (Okt 2026), pertemuan 1-3 dibiarkan kosong dan 1 Okt = pertemuan 4.
- *  Bulan sebelumnya tetap berurutan dari hari kerja pertama (data lama tidak diubah). */
-const GRID_MULAI_BULAN = "Oktober";
+ *  Kalau tanggal 1 jatuh di tengah pekan (mis. Kamis), pertemuan sebelum hari itu dibiarkan kosong (Des 2026: 1 Des = pertemuan 2).
+ *  Bulan sebelumnya tetap berurutan dari hari kerja pertama: guru mengisi Oktober 2026 dengan kebiasaan berbeda-beda
+ *  (ada yang per tanggal, ada yang berurutan), jadi data lama sengaja tidak digeser. */
+const GRID_MULAI_BULAN = "November";
 
 export function polaGridBulan(monthName: string): boolean {
   return !!kalenderBulan(monthName) && academicIndexOf(monthName) >= academicIndexOf(GRID_MULAI_BULAN);
