@@ -8,6 +8,7 @@ import { PickerCard } from "../components/PickerCard";
 import { RuleCard } from "../components/RuleCard";
 import { AccentCard } from "../components/PortalComponents";
 import JurnalPerHari from "../components/JurnalPerHari";
+import JurnalGabungan from "../components/JurnalGabungan";
 import {
   readJurnalRange,
   saveJurnalDay,
@@ -310,11 +311,11 @@ function IkonKalender() {
     </svg>
   );
 }
-function IkonGuru() {
+function IkonPekan() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="8.5" r="3.4" stroke="#FFF" strokeWidth="1.7" />
-      <path d="M5 19.5c.8-3.6 3.6-5.4 7-5.4s6.2 1.8 7 5.4" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+      <rect x="4" y="5.5" width="16" height="14" rx="2.2" stroke="#FFF" strokeWidth="1.7" />
+      <path d="M4 10h16M8 13.2h8M8 16.2h5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -327,15 +328,10 @@ function IkonPanah() {
 }
 
 function ManagementJurnal() {
-  const [mode, setMode] = useState<null | "hari" | "guru">(null);
+  const [mode, setMode] = useState<null | "hari" | "pekan">(null);
+  const { session } = useAuth();
   const [kelasList, setKelasList] = useState<string[]>([]);
   const [namaGuru, setNamaGuru] = useState<Record<string, string>>({});
-  const [bulanPdf, setBulanPdf] = useState(() => {
-    const n = new Date();
-    return `${n.getFullYear()}-${n.getMonth()}`;
-  });
-  const [pdfBusy, setPdfBusy] = useState(false);
-  const [pdfError, setPdfError] = useState<string | null>(null);
   const [kelasI, setKelasI] = useState<number | null>(null);
   const [monday, setMonday] = useState(() => mondayOf(new Date()));
   const days = useMemo(() => weekdaysFrom(monday), [monday]);
@@ -358,43 +354,10 @@ function ManagementJurnal() {
         for (const r of data ?? []) if (r.kelas && !m[r.kelas as string]) m[r.kelas as string] = (r.full_name as string) || (r.kelas as string);
         setNamaGuru(m);
       });
-  }, []);
+    // diminta ulang begitu sesi login siap (kalau diminta sebelum sesi siap, hasilnya kosong karena aturan akses)
+  }, [session?.user?.id]);
 
   const kelas = kelasI != null ? kelasList[kelasI] : null;
-
-  /** Bulan-bulan yang bisa diunduh: dari awal pemakaian sampai bulan ini (terbaru dulu). */
-  const opsiBulan = useMemo(() => {
-    const out: { value: string; label: string }[] = [];
-    const now = new Date();
-    let y = now.getFullYear();
-    let m = now.getMonth();
-    while (y > MULAI_JURNAL.year || (y === MULAI_JURNAL.year && m >= MULAI_JURNAL.month0)) {
-      out.push({ value: `${y}-${m}`, label: `${NAMA_BULAN[m]} ${y}` });
-      m -= 1;
-      if (m < 0) {
-        m = 11;
-        y -= 1;
-      }
-    }
-    return out;
-  }, []);
-
-  async function unduhPdf() {
-    if (!kelas) return;
-    setPdfBusy(true);
-    setPdfError(null);
-    try {
-      const [yy, mm] = bulanPdf.split("-").map(Number);
-      const akhir = new Date(yy, mm + 1, 0);
-      const entriBulan = await readJurnalRange(ymd(new Date(yy, mm, 1)), ymd(akhir), { kelas });
-      const { unduhPdfJurnalBulanan } = await import("../lib/jurnalPdf");
-      await unduhPdfJurnalBulanan({ guruNama: namaGuru[kelas] ?? kelas, kelas, year: yy, month0: mm, entries: entriBulan });
-    } catch (e) {
-      setPdfError(e instanceof Error ? e.message : "Gagal membuat PDF.");
-    } finally {
-      setPdfBusy(false);
-    }
-  }
 
   useEffect(() => {
     if (!kelas) return;
@@ -428,17 +391,17 @@ function ManagementJurnal() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <AccentCard
                 title="Preview per Hari"
-                desc="Baca jurnal semua guru pada satu hari, urut menurut kelas."
+                desc="Baca jurnal semua guru pada satu hari, urut menurut kelas. Unduh PDF sebulan per guru juga dari sini."
                 icon={<IkonKalender />}
                 gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`}
                 onClick={() => setMode("hari")}
               />
               <AccentCard
-                title="Per Guru & PDF Bulanan"
-                desc="Baca jurnal satu guru per pekan, atau unduh PDF jurnal sebulan."
-                icon={<IkonGuru />}
+                title="Per Pekan"
+                desc="Pilih kelas, lalu baca jurnal gurunya selama satu pekan penuh dalam satu tulisan."
+                icon={<IkonPekan />}
                 gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
-                onClick={() => setMode("guru")}
+                onClick={() => setMode("pekan")}
               />
             </div>
           </main>
@@ -446,90 +409,51 @@ function ManagementJurnal() {
 
         {mode === "hari" && <JurnalPerHari onBack={() => setMode(null)} />}
 
-        {mode === "guru" && (
-          <>
-        <button
-          onClick={() => setMode(null)}
-          className="mt-6 inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors hover:opacity-80"
-          style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
-        >
-          <IkonPanah />
-          Per Guru & PDF Bulanan
-        </button>
+        {mode === "pekan" && (
+          <main className="mt-6">
+            <button
+              onClick={() => setMode(null)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-4 transition-colors hover:opacity-80"
+              style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
+            >
+              <IkonPanah />
+              Per Pekan
+            </button>
 
-        <div className="mt-5">
-          <PickerCard
-            items={kelasList.map((k) => ({ label: k }))}
-            value={kelasI}
-            onChange={setKelasI}
-            placeholderLabel="Pilih kelas"
-            selectedLabel="Kelas"
-            countText={`${kelasList.length} kelas`}
-            numbered={false}
-          />
-        </div>
-
-        {kelas && (
-          <>
-            <div className="mt-4 rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-              <div className="text-xs font-semibold mb-2" style={{ color: C.muted }}>Unduh jurnal sebulan (PDF)</div>
-              <div className="flex items-center gap-2">
-                <select
-                  value={bulanPdf}
-                  onChange={(ev) => setBulanPdf(ev.target.value)}
-                  className="flex-1 min-w-0 rounded-xl px-3 py-2.5 text-sm"
-                  style={{ background: C.leaf, border: `1px solid ${C.line}`, color: C.ink }}
-                  aria-label="Pilih bulan untuk PDF"
-                >
-                  {opsiBulan.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-                <button
-                  onClick={unduhPdf}
-                  disabled={pdfBusy}
-                  className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-2"
-                  style={{ background: C.green, color: "#FFF", opacity: pdfBusy ? 0.7 : 1 }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  {pdfBusy ? "Menyiapkan…" : "Download PDF"}
-                </button>
-              </div>
-              {pdfError && (
-                <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-                  {pdfError}
-                </div>
-              )}
-            </div>
-            <WeekNav
-              label={labelRentangPekan(days)}
-              sub={atThisWeek ? "Pekan ini" : undefined}
-              onPrev={() => setMonday(shiftWeek(monday, -1))}
-              onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
+            <PickerCard
+              items={kelasList.map((k) => ({ label: k }))}
+              value={kelasI}
+              onChange={setKelasI}
+              placeholderLabel="Pilih kelas"
+              selectedLabel="Kelas"
+              countText={`${kelasList.length} kelas`}
+              numbered={false}
             />
 
-            {error && (
-              <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-                {error}
-              </div>
+            {kelas && (
+              <>
+                <WeekNav
+                  label={labelRentangPekan(days)}
+                  sub={atThisWeek ? "Pekan ini" : undefined}
+                  onPrev={() => setMonday(shiftWeek(monday, -1))}
+                  onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
+                />
+
+                {error && (
+                  <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+                    {error}
+                  </div>
+                )}
+                {loading ? (
+                  <div className="mt-5">
+                    <PageLoadingSkeleton />
+                  </div>
+                ) : (
+                  <JurnalGabungan guru={namaGuru[kelas] ?? kelas} kelas={kelas} rentang={labelRentangPekan(days)} days={days} entries={entries} />
+                )}
+              </>
             )}
-            {loading ? (
-              <div className="mt-5">
-                <PageLoadingSkeleton />
-              </div>
-            ) : (
-              <div className="mt-5 space-y-3">
-                {days.map((d) => {
-                  const e = entries[ymd(d)];
-                  return <ReadOnlyDay key={ymd(d)} date={d} entry={e} />;
-                })}
-              </div>
-            )}
-          </>
-        )}
-          </>
+          </main>
         )}
       </div>
     </div>

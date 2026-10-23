@@ -3,6 +3,9 @@ import { C, KELAS_LIST } from "../data";
 import { PageLoadingSkeleton } from "./Skeleton";
 import {
   readJurnalHari,
+  readJurnalRange,
+  ymd,
+  NAMA_BULAN,
   labelHari,
   labelTanggal,
   isEntryFilled,
@@ -61,6 +64,25 @@ export default function JurnalPerHari({ onBack }: { onBack: () => void }) {
   const [tgl, setTgl] = useState<Date>(hariIni);
   const [items, setItems] = useState<JurnalHariItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pdfBusy, setPdfBusy] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
+  /** PDF jurnal SEBULAN (bulan dari tanggal yang sedang dilihat) untuk satu guru. */
+  async function unduhPdf(it: JurnalHariItem) {
+    setPdfBusy(it.userId);
+    setPdfError(null);
+    try {
+      const yy = tgl.getFullYear();
+      const mm = tgl.getMonth();
+      const entriBulan = await readJurnalRange(ymd(new Date(yy, mm, 1)), ymd(new Date(yy, mm + 1, 0)), { kelas: it.kelas });
+      const { unduhPdfJurnalBulanan } = await import("../lib/jurnalPdf");
+      await unduhPdfJurnalBulanan({ guruNama: it.nama, kelas: it.kelas, year: yy, month0: mm, entries: entriBulan });
+    } catch (e) {
+      setPdfError(e instanceof Error ? e.message : "Gagal membuat PDF.");
+    } finally {
+      setPdfBusy(null);
+    }
+  }
 
   const atHariIni = tgl.getTime() >= hariIni.getTime();
 
@@ -114,6 +136,12 @@ export default function JurnalPerHari({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
+      {pdfError && (
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          {pdfError}
+        </div>
+      )}
+
       {items && (
         <>
           <p className="mt-4 text-xs px-1" style={{ color: C.muted }}>
@@ -159,6 +187,20 @@ export default function JurnalPerHari({ onBack }: { onBack: () => void }) {
                       })}
                     </div>
                   )}
+
+                  <div className="mt-3 pt-3 flex justify-end" style={{ borderTop: `1px solid ${C.line}` }}>
+                    <button
+                      onClick={() => unduhPdf(it)}
+                      disabled={pdfBusy === it.userId}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors hover:opacity-80"
+                      style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}`, opacity: pdfBusy === it.userId ? 0.6 : 1 }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      {pdfBusy === it.userId ? "Menyiapkan…" : `Download PDF ${NAMA_BULAN[tgl.getMonth()]}`}
+                    </button>
+                  </div>
                 </article>
               );
             })}
