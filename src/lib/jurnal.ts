@@ -14,6 +14,18 @@ const BULAN = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
 
+export const NAMA_BULAN = BULAN;
+
+/** Tiga pertanyaan jurnal harian (dipakai form guru, tampilan management, dan PDF). */
+export const PERTANYAAN_JURNAL: { key: "kondisi_guru" | "kondisi_santri" | "kabar_kendala"; label: string }[] = [
+  { key: "kondisi_guru", label: "Bagaimana kondisi/kabarmu hari ini, wahai guru?" },
+  { key: "kondisi_santri", label: "Bagaimana kondisi santri-santrimu pada hari ini, wahai guru?" },
+  { key: "kabar_kendala", label: "Momen (baik/buruk) apa yang terjadi pada hari ini, dan bagaimana caramu menyikapinya?" },
+];
+
+/** Bulan paling awal yang bisa diunduh PDF-nya (awal tahun ajaran / awal pemakaian aplikasi). */
+export const MULAI_JURNAL = { year: 2026, month0: 6 }; // Juli 2026
+
 function pad(n: number) {
   return String(n).padStart(2, "0");
 }

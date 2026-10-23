@@ -17,6 +17,8 @@ import {
   labelHari,
   labelTanggal,
   labelRentangPekan,
+  NAMA_BULAN,
+  MULAI_JURNAL,
   type JurnalEntry,
 } from "../lib/jurnal";
 
@@ -300,6 +302,13 @@ function DayCard({
 
 function ManagementJurnal() {
   const [kelasList, setKelasList] = useState<string[]>([]);
+  const [namaGuru, setNamaGuru] = useState<Record<string, string>>({});
+  const [bulanPdf, setBulanPdf] = useState(() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${n.getMonth()}`;
+  });
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [kelasI, setKelasI] = useState<number | null>(null);
   const [monday, setMonday] = useState(() => mondayOf(new Date()));
   const days = useMemo(() => weekdaysFrom(monday), [monday]);
@@ -313,15 +322,52 @@ function ManagementJurnal() {
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("kelas")
+      .select("kelas, full_name")
       .eq("role", "guru")
       .then(({ data, error }) => {
         if (error) return setError(error.message);
         setKelasList((data ?? []).map((r) => r.kelas as string).filter(Boolean).sort());
+        const m: Record<string, string> = {};
+        for (const r of data ?? []) if (r.kelas && !m[r.kelas as string]) m[r.kelas as string] = (r.full_name as string) || (r.kelas as string);
+        setNamaGuru(m);
       });
   }, []);
 
   const kelas = kelasI != null ? kelasList[kelasI] : null;
+
+  /** Bulan-bulan yang bisa diunduh: dari awal pemakaian sampai bulan ini (terbaru dulu). */
+  const opsiBulan = useMemo(() => {
+    const out: { value: string; label: string }[] = [];
+    const now = new Date();
+    let y = now.getFullYear();
+    let m = now.getMonth();
+    while (y > MULAI_JURNAL.year || (y === MULAI_JURNAL.year && m >= MULAI_JURNAL.month0)) {
+      out.push({ value: `${y}-${m}`, label: `${NAMA_BULAN[m]} ${y}` });
+      m -= 1;
+      if (m < 0) {
+        m = 11;
+        y -= 1;
+      }
+    }
+    return out;
+  }, []);
+
+  async function unduhPdf() {
+    if (!kelas) return;
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      const [yy, mm] = bulanPdf.split("-").map(Number);
+      const akhir = new Date(yy, mm + 1, 0);
+      const entriBulan = await readJurnalRange(ymd(new Date(yy, mm, 1)), ymd(akhir), { kelas });
+      const { unduhPdfJurnalBulanan } = await import("../lib/jurnalPdf");
+      await unduhPdfJurnalBulanan({ guruNama: namaGuru[kelas] ?? kelas, kelas, year: yy, month0: mm, entries: entriBulan });
+    } catch (e) {
+      setPdfError(e instanceof Error ? e.message : "Gagal membuat PDF.");
+    } finally {
+      setPdfBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!kelas) return;
@@ -364,6 +410,41 @@ function ManagementJurnal() {
 
         {kelas && (
           <>
+            <div className="mt-4 rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+              <div className="text-xs font-semibold mb-2" style={{ color: C.muted }}>Unduh jurnal sebulan (PDF)</div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={bulanPdf}
+                  onChange={(ev) => setBulanPdf(ev.target.value)}
+                  className="flex-1 min-w-0 rounded-xl px-3 py-2.5 text-sm"
+                  style={{ background: C.leaf, border: `1px solid ${C.line}`, color: C.ink }}
+                  aria-label="Pilih bulan untuk PDF"
+                >
+                  {opsiBulan.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={unduhPdf}
+                  disabled={pdfBusy}
+                  className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-2"
+                  style={{ background: C.green, color: "#FFF", opacity: pdfBusy ? 0.7 : 1 }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {pdfBusy ? "Menyiapkan…" : "Download PDF"}
+                </button>
+              </div>
+              <div className="text-[11px] mt-1.5" style={{ color: C.muted }}>
+                Isi: seluruh jurnal {namaGuru[kelas] ?? kelas} pada bulan itu, satu dokumen per guru.
+              </div>
+              {pdfError && (
+                <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+                  {pdfError}
+                </div>
+              )}
+            </div>
             <WeekNav
               label={labelRentangPekan(days)}
               sub={atThisWeek ? "Pekan ini" : undefined}
