@@ -28,7 +28,7 @@ export function ProfileMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-label="Menu akun"
         aria-expanded={open}
-        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm backdrop-blur-md transition-shadow hover:shadow-md"
+        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-shadow hover:shadow-md"
         style={{
           background: "rgba(255,255,255,0.45)",
           color: C.green,

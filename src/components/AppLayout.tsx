@@ -1,3 +1,5 @@
+import { PageLoadingSkeleton } from "./Skeleton";
+import { Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
@@ -11,7 +13,15 @@ export function AppLayout() {
       <Sidebar />
       <ProfileMenu />
       <div key={pathname} className="halaman-masuk">
-        <Outlet />
+        <Suspense
+          fallback={
+            <div className="max-w-2xl mx-auto px-4 pt-9">
+              <PageLoadingSkeleton />
+            </div>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </div>
       <BottomNav />
     </>

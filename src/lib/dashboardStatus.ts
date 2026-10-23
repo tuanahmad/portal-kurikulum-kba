@@ -14,6 +14,22 @@ export type TodayStatus = {
   quranUnknown: string[]; // gagal dibaca (network/sheet error) - jangan dianggap "belum isi"
 };
 
+/** Cache sementara (di memori; hilang saat halaman dimuat ulang) untuk bacaan Google Sheets yang dipakai ringkasan Home.
+ *  Tanpa ini tiap membuka Home memanggil Google Sheets lagi; kuota baca Google dipakai bersama semua guru, jadi bisa kehabisan
+ *  dan mengganggu penyimpanan. Dihapus otomatis setelah ada penyimpanan (hapusCacheStatus). */
+const CACHE_MS = 5 * 60 * 1000;
+const cacheStatus = new Map<string, { t: number; v: unknown }>();
+export function hapusCacheStatus() {
+  cacheStatus.clear();
+}
+async function dariCache<T>(kunci: string, ambil: () => Promise<T>): Promise<T> {
+  const c = cacheStatus.get(kunci);
+  if (c && Date.now() - c.t < CACHE_MS) return c.v as T;
+  const v = await ambil();
+  cacheStatus.set(kunci, { t: Date.now(), v });
+  return v;
+}
+
 const MONTH_NAMES = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 /** Pekan ke berapa (menurut nomor pertemuan di sheet, lihat data.ts) untuk hari ini; akhir pekan dihitung ikut Jumat terakhir. */
@@ -80,9 +96,9 @@ export async function readStatusGuru(userId: string, kelas: string): Promise<Sta
   const [j, a, q, rp, rf] = await Promise.allSettled([
     readJurnalRange(today, today, { userId }),
     readAbsenRange(today, today, { userId }),
-    fileId ? readCapaianQuran(fileId, bulanNama) : Promise.resolve(null),
-    perluRencana && rpbFile ? readRpbTab(rpbFile.id, kelas) : Promise.resolve(null),
-    perluRencana && refFile ? readReflectionTab(refFile.id, kelas) : Promise.resolve(null),
+    fileId ? dariCache(`quran:${fileId}:${bulanNama}`, () => readCapaianQuran(fileId, bulanNama)) : Promise.resolve(null),
+    perluRencana && rpbFile ? dariCache(`rpb:${rpbFile.id}:${kelas}`, () => readRpbTab(rpbFile.id, kelas)) : Promise.resolve(null),
+    perluRencana && refFile ? dariCache(`ref:${refFile.id}:${kelas}`, () => readReflectionTab(refFile.id, kelas)) : Promise.resolve(null),
   ]);
   return {
     jurnal: j.status === "fulfilled" ? isEntryFilled(j.value[today]) : null,
@@ -112,7 +128,7 @@ export async function readTodayStatus(allKelas: string[]): Promise<TodayStatus> 
       allKelas.map(async (kelas) => {
         const fileId = capaianQuranFileId(kelas);
         if (!fileId) return { kelas, filled: null };
-        const data = await readCapaianQuran(fileId, bulanNama);
+        const data = await dariCache(`quran:${fileId}:${bulanNama}`, () => readCapaianQuran(fileId, bulanNama));
         return { kelas, filled: hasFillThisWeek(data.sections, pekanIdx, bulanNama) };
       })
     ),

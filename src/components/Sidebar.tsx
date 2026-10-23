@@ -32,7 +32,7 @@ export function Sidebar() {
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Tutup menu" : "Buka menu"}
         aria-expanded={open}
-        className="fixed top-4 left-4 z-30 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-shadow hover:shadow-md"
+        className="fixed top-4 left-4 z-30 w-10 h-10 rounded-full flex items-center justify-center transition-shadow hover:shadow-md"
         style={{
           background: "rgba(255,255,255,0.45)",
           border: "1px solid rgba(255,255,255,0.6)",

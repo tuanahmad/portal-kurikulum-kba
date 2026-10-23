@@ -1,3 +1,4 @@
+import { hapusCacheStatus } from "../lib/dashboardStatus";
 import { isianSama } from "../lib/jaringan";
 import { EmptyState } from "../components/EmptyState";
 import { toast } from "../components/Toast";
@@ -150,6 +151,7 @@ export default function CapaianQuranFormPage() {
       }
       setData(fresh);
       draft.clear();
+      hapusCacheStatus();
       toast.sukses("Tersimpan");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

@@ -53,16 +53,19 @@ a:active,
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72' fill='none' stroke='%231C4A33' stroke-width='1'><path d='M18 18h36v36H18z'/><path d='M36 10.5l25.5 25.5L36 61.5 10.5 36z'/><circle cx='36' cy='36' r='7'/><path d='M0 -6l6 6-6 6-6-6zM72 -6l6 6-6 6-6-6zM0 66l6 6-6 6-6-6zM72 66l6 6-6 6-6-6z'/></svg>");
   background-size: 72px 72px;
   opacity: 0.055;
+  will-change: transform; /* lapisan sendiri: wallpaper tetap tidak digambar ulang tiap gulir */
+  transform: translateZ(0);
 }
 /* Home tidak memakai pola (hero sudah punya latar sendiri) */
 .tanpa-pola::before { display: none; }
 
 /* ===== Gerak halus ===== */
 @keyframes halaman-masuk {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-.halaman-masuk { animation: halaman-masuk 0.3s ease-out; }
+/* hanya pudar (tanpa geser): lebih ringan untuk HP saat halaman sedang dimuat */
+.halaman-masuk { animation: halaman-masuk 0.2s ease-out; }
 
 @keyframes kartu-muncul {
   from { opacity: 0; transform: translateY(10px); }

@@ -26,7 +26,7 @@ export default function PreviewPage() {
       <button
         onClick={() => navigate(-1)}
         aria-label="Kembali"
-        className="fixed top-3 left-6 sm:top-4 sm:left-8 z-20 w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md transition-shadow hover:shadow-md"
+        className="fixed top-3 left-6 sm:top-4 sm:left-8 z-20 w-10 h-10 rounded-xl flex items-center justify-center transition-shadow hover:shadow-md"
         style={{
           background: "rgba(255,255,255,0.45)",
           border: "1px solid rgba(255,255,255,0.6)",
@@ -40,7 +40,7 @@ export default function PreviewPage() {
       </button>
 
       <div
-        className="fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 z-20 h-10 flex flex-col items-center justify-center px-5 max-w-[70vw] rounded-xl backdrop-blur-md text-center"
+        className="fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 z-20 h-10 flex flex-col items-center justify-center px-5 max-w-[70vw] rounded-xl text-center"
         style={{
           background: "rgba(255,255,255,0.75)",
           border: "1px solid rgba(255,255,255,0.6)",

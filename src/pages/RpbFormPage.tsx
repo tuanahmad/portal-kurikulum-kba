@@ -1,3 +1,4 @@
+import { hapusCacheStatus } from "../lib/dashboardStatus";
 import { hitungTeksHilang } from "../lib/jaringan";
 import { GagalMuat } from "../components/GagalMuat";
 import { toast } from "../components/Toast";
@@ -204,6 +205,7 @@ export default function RpbFormPage() {
       if (hilang > 0) throw new Error(`${hilang} isian belum terbaca di file setelah disimpan. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.`);
       setBaseline(snapshot);
       draft.clear();
+      hapusCacheStatus();
       toast.sukses("Tersimpan");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
