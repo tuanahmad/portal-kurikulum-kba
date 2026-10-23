@@ -1043,29 +1043,42 @@ function ManagementOlahraga({ mode }: { mode: Mode }) {
   return <ManagementAbsenWrapper />;
 }
 
-/** Bungkus header + tombol back dipakai bareng ke-3 halaman management di bawah. */
-function ManagementShell({ title, children, showBack = true }: { title: string; children: React.ReactNode; showBack?: boolean }) {
+/** Bungkus header dipakai bareng halaman management Olahraga. Tombol kembali selalu di tempat yang sama
+ *  (kiri, sebaris judul): tanpa `onBack` kembali ke Rekap Olahraga, dengan `onBack` mundur satu langkah.
+ *  `sub` = pilihan yang sudah dibuat (mis. "Ikhwan · Oktober · Kuttab Awwal 1"). */
+function ManagementShell({
+  title,
+  sub,
+  onBack,
+  children,
+}: {
+  title: string;
+  sub?: string;
+  onBack?: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        {showBack && <BackButton to="/olahraga" label="Rekap Olahraga" />}
-        <header className={`${showBack ? "mt-4 " : ""}text-center`}>
-          <h1
-            className="text-xl sm:text-2xl font-semibold"
-            style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            {title}
-          </h1>
+        <header className="relative flex flex-col items-center justify-center text-center px-12 min-h-[44px]">
+          {onBack ? (
+            <BackButton onClick={onBack} label="Kembali" className="absolute left-0 inset-y-0 my-auto" />
+          ) : (
+            <BackButton to="/olahraga" label="Rekap Olahraga" className="absolute left-0 inset-y-0 my-auto" />
+          )}
+          <div className="min-w-0">
+            <h1
+              className="text-xl sm:text-2xl font-semibold"
+              style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
+            >
+              {title}
+            </h1>
+            {sub && <p className="text-sm mt-1" style={{ color: C.muted }}>{sub}</p>}
+          </div>
         </header>
         {children}
       </div>
     </div>
-  );
-}
-
-function StepBackPill({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <BackButton onClick={onClick} label={label} className="mt-5" />
   );
 }
 
@@ -1085,7 +1098,7 @@ function KelompokPicker({ onChange }: { onChange: (k: OlahragaKelompok) => void 
 
 function TingkatPicker({ value, onChange }: { value: number | null; onChange: (i: number | null) => void }) {
   return (
-    <div className="mt-4">
+    <div className="mt-6">
       <PickerCard
         items={TINGKAT_LIST.map((t) => ({ label: `Kuttab Awwal ${t.replace("KA ", "")}` }))}
         value={value}
@@ -1124,29 +1137,24 @@ function ManagementRencana() {
     };
   }, [bulan, kelompok]);
 
+  const sub = [kelompok && KELOMPOK_LABEL[kelompok], bulan, tingkat && `Kuttab Awwal ${tingkat.replace("KA ", "")}`]
+    .filter(Boolean)
+    .join(" · ");
+  const onBack = !kelompok ? undefined : !bulan ? () => setKelompok(null) : !tingkat ? () => setBulan(null) : () => setTingkatI(null);
+
   return (
-    <ManagementShell title="Rencana Kegiatan Olahraga" showBack={!kelompok}>
+    <ManagementShell title="Rencana Kegiatan Olahraga" sub={sub || undefined} onBack={onBack}>
       {!kelompok ? (
         <KelompokPicker onChange={setKelompok} />
       ) : !bulan ? (
-        <>
-          <StepBackPill label={KELOMPOK_LABEL[kelompok]} onClick={() => setKelompok(null)} />
-          <div className="mt-4">
-            <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
-            <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
-          </div>
-        </>
+        <div className="mt-6">
+          <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
+          <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
+        </div>
       ) : !tingkat ? (
-        <>
-          <StepBackPill label={`${KELOMPOK_LABEL[kelompok]} · ${bulan}`} onClick={() => setBulan(null)} />
-          <TingkatPicker value={tingkatI} onChange={setTingkatI} />
-        </>
+        <TingkatPicker value={tingkatI} onChange={setTingkatI} />
       ) : (
         <>
-          <StepBackPill
-            label={`${KELOMPOK_LABEL[kelompok]} · ${bulan} · Kuttab Awwal ${tingkat.replace("KA ", "")}`}
-            onClick={() => setTingkatI(null)}
-          />
           {error && (
             <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
               {error}
@@ -1157,7 +1165,7 @@ function ManagementRencana() {
               <PageLoadingSkeleton />
             </div>
           ) : (
-            <div className="mt-5">
+            <div className="mt-6">
               <ReadOnlyTingkat tingkat={tingkat} entry={entries[tingkat]} />
             </div>
           )}
@@ -1199,29 +1207,32 @@ function ManagementEvaluasi() {
     };
   }, [tingkat, bulan, kelompok]);
 
+  const sub = [kelompok && KELOMPOK_LABEL[kelompok], bulan, tingkat && `Kuttab Awwal ${tingkat.replace("KA ", "")}`, anakNama]
+    .filter(Boolean)
+    .join(" · ");
+  const onBack = !kelompok
+    ? undefined
+    : !bulan
+      ? () => setKelompok(null)
+      : !tingkat
+        ? () => setBulan(null)
+        : anakNama == null
+          ? () => setTingkatI(null)
+          : () => setAnakI(null);
+
   return (
-    <ManagementShell title="Evaluasi Kegiatan Olahraga" showBack={!kelompok}>
+    <ManagementShell title="Evaluasi Kegiatan Olahraga" sub={sub || undefined} onBack={onBack}>
       {!kelompok ? (
         <KelompokPicker onChange={setKelompok} />
       ) : !bulan ? (
-        <>
-          <StepBackPill label={KELOMPOK_LABEL[kelompok]} onClick={() => setKelompok(null)} />
-          <div className="mt-4">
-            <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
-            <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
-          </div>
-        </>
+        <div className="mt-6">
+          <span className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Bulan</span>
+          <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
+        </div>
       ) : !tingkat ? (
-        <>
-          <StepBackPill label={`${KELOMPOK_LABEL[kelompok]} · ${bulan}`} onClick={() => setBulan(null)} />
-          <TingkatPicker value={tingkatI} onChange={setTingkatI} />
-        </>
+        <TingkatPicker value={tingkatI} onChange={setTingkatI} />
       ) : anakNama == null ? (
         <>
-          <StepBackPill
-            label={`${KELOMPOK_LABEL[kelompok]} · ${bulan} · Kuttab Awwal ${tingkat.replace("KA ", "")}`}
-            onClick={() => setTingkatI(null)}
-          />
           {error && (
             <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
               {error}
@@ -1234,7 +1245,7 @@ function ManagementEvaluasi() {
           ) : roster.length === 0 ? (
             <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Belum ada santri {KELOMPOK_LABEL[kelompok].toLowerCase()} di kelas ini.</p>
           ) : (
-            <div className="mt-4">
+            <div className="mt-6">
               <PickerCard
                 items={roster.map((nama) => ({
                   label: nama,
@@ -1251,8 +1262,7 @@ function ManagementEvaluasi() {
         </>
       ) : (
         <>
-          <StepBackPill label={anakNama} onClick={() => setAnakI(null)} />
-          <div className="mt-5 rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+          <div className="mt-6 rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
             {!isEvalAnakFilled(entry) ? (
               <p className="text-sm" style={{ color: C.muted }}>Belum diisi.</p>
             ) : (
@@ -1317,12 +1327,15 @@ function ManagementJurnalOlahraga() {
   }, [kelompok, monday]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <ManagementShell title="Jurnal Olahraga" showBack={!kelompok}>
+    <ManagementShell
+      title="Jurnal Olahraga"
+      sub={kelompok ? KELOMPOK_LABEL[kelompok] : undefined}
+      onBack={kelompok ? () => setKelompok(null) : undefined}
+    >
       {!kelompok ? (
         <KelompokPicker onChange={setKelompok} />
       ) : (
         <>
-          <StepBackPill label={KELOMPOK_LABEL[kelompok]} onClick={() => setKelompok(null)} />
           <WeekNav
             label={labelRentangPekan(days)}
             sub={atThisWeek ? "Pekan ini" : undefined}
