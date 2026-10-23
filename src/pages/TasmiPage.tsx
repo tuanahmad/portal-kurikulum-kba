@@ -343,9 +343,7 @@ function TasmiForm({
       {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
 
       <div
-        className="flex gap-2 mt-4 p-2 rounded-2xl sticky z-10 shadow-lg bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-4 tombol-simpan-menempel"
-        style={{ background: "#FFF", border: `1px solid ${C.line}` }}
-      >
+        className="flex gap-2 mt-4">
         <button
           onClick={onCancel}
           className="flex-1 text-sm font-semibold py-2.5 rounded-xl"

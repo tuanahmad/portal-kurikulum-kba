@@ -340,7 +340,7 @@ function AbsenDayCard({
               <button
                 onClick={handleSave}
                 disabled={saving || !dirty}
-                className="mt-3 w-full py-3.5 rounded-xl text-sm font-bold transition-opacity sticky z-10 shadow-lg bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-4 tombol-simpan-menempel"
+                className="mt-3 w-full py-3.5 rounded-xl text-sm font-bold transition-opacity"
                 style={{ background: C.green, color: "#FFF", opacity: saving || !dirty ? 0.5 : 1 }}
               >
                 {saving ? "Menyimpan…" : filled ? "Simpan perubahan" : "Simpan"}
@@ -970,7 +970,7 @@ function GuruAbsenSantri() {
           <button
             onClick={handleSave}
             disabled={saving || belumLengkap}
-            className="mt-2 w-full py-3.5 rounded-xl text-sm font-bold transition-opacity sticky z-10 shadow-lg bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-4 tombol-simpan-menempel"
+            className="mt-2 w-full py-3.5 rounded-xl text-sm font-bold transition-opacity"
             style={{ background: C.green, color: "#FFF", opacity: saving || belumLengkap ? 0.5 : 1 }}
           >
             {saving ? "Menyimpan…" : "Simpan Absen Santri"}

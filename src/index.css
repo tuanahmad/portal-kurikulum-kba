@@ -38,11 +38,6 @@ a:active,
 }
 .toast-masuk { animation: toast-masuk 0.22s ease-out; }
 
-/* Tombol Simpan yang menempel: saat nonaktif jangan transparan (isi form di belakangnya tembus), pakai warna abu solid */
-.tombol-simpan-menempel:disabled {
-  opacity: 1 !important;
-  background: #9BA9AC !important;
-}
 
 /* ===== Sentuhan identitas: pola bintang segi-8 (khatam) yang sangat samar di bagian atas tiap halaman ===== */
 .min-h-dvh {

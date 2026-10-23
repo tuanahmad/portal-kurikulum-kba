@@ -325,7 +325,7 @@ export default function CapaianIlmuFormPage() {
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="mt-4 w-full py-3.5 rounded-xl text-sm font-bold transition-opacity sticky z-10 shadow-lg bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-4 tombol-simpan-menempel"
+                    className="mt-4 w-full py-3.5 rounded-xl text-sm font-bold transition-opacity"
                     style={{ background: "#FFF", color: C.green, opacity: saving ? 0.6 : 1 }}
                   >
                     {saving ? "Menyimpan…" : `Simpan capaian ${roster[anakI].split(" ")[0]}`}
