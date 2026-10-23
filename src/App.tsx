@@ -19,6 +19,7 @@ import CapaianQuranDiagramPage from "./pages/CapaianQuranDiagramPage";
 import CapaianIlmuFormPage from "./pages/CapaianIlmuFormPage";
 import TasmiPage from "./pages/TasmiPage";
 import TasmiSertifikatPage from "./pages/TasmiSertifikatPage";
+import { SERTIFIKAT_TASMI_AKTIF } from "./data";
 import TasmiRekapPage from "./pages/TasmiRekapPage";
 import SajianDataPage from "./pages/SajianDataPage";
 
@@ -128,7 +129,7 @@ export default function App() {
             path="/capaian/tasmi/:id/sertifikat"
             element={
               <ProtectedRoute allowedRoles={["guru", "management"]}>
-                <TasmiSertifikatPage />
+                {SERTIFIKAT_TASMI_AKTIF ? <TasmiSertifikatPage /> : <Navigate to="/capaian/tasmi" replace />}
               </ProtectedRoute>
             }
           />

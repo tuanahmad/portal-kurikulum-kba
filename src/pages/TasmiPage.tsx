@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { C, capaianRoster } from "../data";
+import { C, capaianRoster, SERTIFIKAT_TASMI_AKTIF } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { useDraft } from "../lib/useDraft";
@@ -436,6 +436,7 @@ function TasmiCard({
         ) : (
           <span />
         )}
+        {SERTIFIKAT_TASMI_AKTIF && (
         <Link
           to={`/capaian/tasmi/${record.id}/sertifikat?kelas=${encodeURIComponent(kelas)}`}
           className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold"
@@ -446,6 +447,7 @@ function TasmiCard({
             <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </Link>
+        )}
       </div>
     </div>
   );

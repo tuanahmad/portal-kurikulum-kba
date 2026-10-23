@@ -159,6 +159,9 @@ export function capaianIlmuBidangFlat(kelas: string): IlmuBidang[] {
   return capaianIlmuBidang(kelas).flatMap((g) => g.items);
 }
 
+/** Sertifikat Tasmi' DIKUNCI dulu (format belum final): tombol disembunyikan dan alamatnya dialihkan. Ubah ke true untuk membuka lagi. */
+export const SERTIFIKAT_TASMI_AKTIF = false;
+
 // ————— Section 3: Capaian Santri — 12 kelas, tiap kelas punya 2 dokumen —————
 export const KELAS_LIST = [
   { name: "Kuttab Awwal 1A", ilmuId: "10NLBd_qUjG44UhhUg5vMNZFbCLWdXuXmGpnXxGhlBv0", quranId: "1-7dSky9nQJZOlaf2ffvosn7j4qaKemxhUYvaIBQ3SqQ" },
