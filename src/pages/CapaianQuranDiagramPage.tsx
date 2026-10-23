@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
-import { C, capaianQuranFileId, capaianRoster, isMonthOpen, pekanGridCount, rentangPekan } from "../data";
+import { C, capaianQuranFileId, capaianRoster, isMonthOpen, pekanGridCount, rentangPekan, slotsDiPekan, pekanUntukSlot } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { readCapaianQuran, studentIndexFor, type CapaianQuranData } from "../lib/capaianQuranSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
@@ -81,17 +81,19 @@ function isFilled(v: string | undefined): boolean {
  *  keliatan ke management, bukan disembunyikan.
  *  - section "pertemuan": pekan k = jumlah pertemuan (5k-4 .. 5k).
  *  - section "pekan" (Wirid): pekan k = nilai slot ke-k langsung. */
-function seriesForStudent(data: CapaianQuranData, roster: string[], rosterIndex: number, weeksInMonth: number): Series[] {
+function seriesForStudent(data: CapaianQuranData, roster: string[], rosterIndex: number, weeksInMonth: number, bulan: string | null): Series[] {
   return data.sections.map((sec, i) => {
     const studentIndex = studentIndexFor(sec, roster, rosterIndex);
     const vals = studentIndex >= 0 ? sec.students[studentIndex]?.values ?? [] : [];
     const hasData = vals.some(isFilled);
+    // nomor pertemuan pada pekan kalender ke-(k+1); pekan 1 bisa pendek (mis. 1-2 Okt)
+    const slotsOf = (k: number): number[] => (bulan ? slotsDiPekan(bulan, k + 1, vals.length) : Array.from({ length: 5 }, (_, j) => k * 5 + j + 1));
     const weeks: number[] =
       sec.type === "pekan"
         ? Array.from({ length: weeksInMonth }, (_, k) => parseNum(vals[k] ?? ""))
         : Array.from({ length: weeksInMonth }, (_, k) => {
             let sum = 0;
-            for (let p = k * 5; p < k * 5 + 5; p++) sum += parseNum(vals[p] ?? "");
+            for (const s of slotsOf(k)) sum += parseNum(vals[s - 1] ?? "");
             return sum;
           });
     const weekNotes: string[][] =
@@ -99,8 +101,8 @@ function seriesForStudent(data: CapaianQuranData, roster: string[], rosterIndex:
         ? Array.from({ length: weeksInMonth }, (_, k) => (isTextMarker(vals[k]) ? [String(vals[k]).trim()] : []))
         : Array.from({ length: weeksInMonth }, (_, k) => {
             const notes: string[] = [];
-            for (let p = k * 5; p < k * 5 + 5; p++) {
-              if (isTextMarker(vals[p])) notes.push(String(vals[p]).trim());
+            for (const s of slotsOf(k)) {
+              if (isTextMarker(vals[s - 1])) notes.push(String(vals[s - 1]).trim());
             }
             return notes;
           });
@@ -111,14 +113,14 @@ function seriesForStudent(data: CapaianQuranData, roster: string[], rosterIndex:
 /** Jumlah pekan yang SUDAH kepake isiannya (pertemuan 1-5 = pekan 1, 6-10 = pekan 2, dst) — dipakai
  *  biar diagram gak motong isian guru kalau bulannya cuma punya 4 hari Senin tapi guru ngisi sampai
  *  pertemuan 25 (pekan ke-5). */
-function filledWeeks(data: CapaianQuranData): number {
+function filledWeeks(data: CapaianQuranData, bulan: string | null): number {
   let max = 0;
   for (const sec of data.sections) {
     let lastSlot = 0;
     for (const st of sec.students) {
       (st.values ?? []).forEach((v, k) => { if (isFilled(v) && k + 1 > lastSlot) lastSlot = k + 1; });
     }
-    const w = sec.type === "pekan" ? lastSlot : Math.ceil(lastSlot / 5);
+    const w = lastSlot === 0 ? 0 : sec.type === "pekan" ? lastSlot : bulan ? pekanUntukSlot(bulan, lastSlot) : Math.ceil(lastSlot / 5);
     if (w > max) max = w;
   }
   return max;
@@ -146,7 +148,7 @@ export default function CapaianQuranDiagramPage() {
   const [error, setError] = useState<string | null>(null);
   const calendarWeeks = useMemo(() => (bulan ? pekanGridCount(bulan) : 5), [bulan]);
   // Tampilkan minimal sebanyak pekan kalender, tapi jangan pernah lebih sedikit dari pekan yang udah diisi.
-  const weeksInMonth = useMemo(() => Math.max(calendarWeeks, data ? filledWeeks(data) : 0), [calendarWeeks, data]);
+  const weeksInMonth = useMemo(() => Math.max(calendarWeeks, data ? filledWeeks(data, bulan) : 0), [calendarWeeks, data, bulan]);
 
   useEffect(() => {
     if (!bulan || !fileId) return;
@@ -233,7 +235,7 @@ export default function CapaianQuranDiagramPage() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {roster.map((nama, i) => {
-                  const series = seriesForStudent(data, roster, i, weeksInMonth).filter((s) => s.hasData);
+                  const series = seriesForStudent(data, roster, i, weeksInMonth, bulan).filter((s) => s.hasData);
                   return (
                     <div key={i} className="rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
                       <div className="text-sm font-semibold mb-3" style={{ color: C.ink }}>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
-import { C, capaianQuranFileId, capaianRoster, isMonthOpen, sheetUrl, tanggalSlot, rentangPekan, slotUntukTanggal } from "../data";
+import { C, capaianQuranFileId, capaianRoster, isMonthOpen, sheetUrl, tanggalSlot, rentangPekan, slotUntukTanggal, pekanGridCount, slotsDiPekan, pekanUntukSlot } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import {
   readCapaianQuran,
@@ -220,10 +220,20 @@ export default function CapaianQuranFormPage() {
               {(() => {
                 const isPekanSec = section.type === "pekan";
                 const perBaris = isPekanSec ? 1 : 5;
-                const hariIni = bulan ? slotUntukTanggal(bulan, new Date(), isPekanSec ? section.slotCount * 5 : section.slotCount) : null;
-                const slotHariIni = hariIni == null ? null : isPekanSec ? Math.ceil(hariIni / 5) : hariIni;
+                const hariIni = bulan ? slotUntukTanggal(bulan, new Date(), isPekanSec ? 999 : section.slotCount) : null;
+                const pekanHariIni = hariIni == null || !bulan ? null : pekanUntukSlot(bulan, hariIni);
+                const slotHariIni = hariIni == null ? null : isPekanSec ? (pekanHariIni != null && pekanHariIni <= section.slotCount ? pekanHariIni : null) : hariIni;
                 const baris: number[][] = [];
-                for (let i = 1; i <= section.slotCount; i += perBaris) baris.push(Array.from({ length: Math.min(perBaris, section.slotCount - i + 1) }, (_, j) => i + j));
+                if (!isPekanSec && bulan) {
+                  // satu baris = satu pekan kalender (Senin-Jumat); pekan 1 bisa pendek
+                  for (let w = 1; w <= pekanGridCount(bulan); w++) {
+                    const r = slotsDiPekan(bulan, w, section.slotCount);
+                    if (r.length) baris.push(r);
+                  }
+                } else {
+                  for (let i = 1; i <= section.slotCount; i += perBaris) baris.push(Array.from({ length: Math.min(perBaris, section.slotCount - i + 1) }, (_, j) => i + j));
+                }
+                const pekanTakAda = isPekanSec && bulan ? Math.max(0, pekanGridCount(bulan) - section.slotCount) : 0;
                 const tombol = (n: number) => {
                   const active = n === slot;
                   const rp = bulan && isPekanSec ? rentangPekan(bulan, n) : null;
@@ -279,6 +289,11 @@ export default function CapaianQuranFormPage() {
                         {row.map(tombol)}
                       </div>
                     ))}
+                    {pekanTakAda > 0 && (
+                      <p className="text-[11px]" style={{ color: C.muted }}>
+                        Bulan ini punya {pekanGridCount(bulan as string)} pekan, tetapi kolom Wirid di file baru sampai pekan {section.slotCount}.
+                      </p>
+                    )}
                   </div>
                 );
               })()}
@@ -289,8 +304,8 @@ export default function CapaianQuranFormPage() {
               sekaligus buat section tipe "pertemuan", 1 kolom buat tipe "pekan". */}
           {!isGuru && section && (
             <div className="space-y-3">
-              {Array.from({ length: weekCountFor(section) }, (_, i) => i + 1).map((w) => (
-                <WeekRekapAccordion key={w} section={section} week={w} roster={roster} />
+              {Array.from({ length: weekCountFor(section, bulan) }, (_, i) => i + 1).map((w) => (
+                <WeekRekapAccordion key={w} section={section} week={w} roster={roster} bulan={bulan} />
               ))}
             </div>
           )}
@@ -430,8 +445,9 @@ const DAY_LABELS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 /** Section tipe "pertemuan" (Talaqqi/Ziyadah/dst) punya 25 slot = 5 hari x 5 pekan — pekan ke-w
  *  isinya slot 5(w-1)+1..5w (lihat catatan "Pertemuan" di komentar atas file). Tipe "pekan"
  *  (Wirid) udah 1 slot = 1 pekan, jadi jumlah pekan-nya ya slotCount itu sendiri. */
-function weekCountFor(section: CapaianQuranSection): number {
-  return section.type === "pekan" ? section.slotCount : Math.ceil(section.slotCount / 5);
+function weekCountFor(section: CapaianQuranSection, bulan: string | null): number {
+  if (section.type === "pekan") return section.slotCount;
+  return bulan ? pekanGridCount(bulan) : Math.ceil(section.slotCount / 5);
 }
 
 function isFilled(v: string | undefined): boolean {
@@ -444,14 +460,17 @@ function WeekRekapAccordion({
   section,
   week,
   roster,
+  bulan,
 }: {
   section: CapaianQuranSection;
   week: number;
   roster: string[];
+  bulan: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const isPekan = section.type === "pekan";
-  const slots = isPekan ? [week] : [1, 2, 3, 4, 5].map((d) => (week - 1) * 5 + d);
+  const slots = isPekan ? [week] : bulan ? slotsDiPekan(bulan, week, section.slotCount) : [1, 2, 3, 4, 5].map((d) => (week - 1) * 5 + d);
+  const rp = bulan ? rentangPekan(bulan, week) : null;
   const validSlots = slots.filter((s) => s <= section.slotCount);
   const hasAny = roster.some((_nama, ri) => {
     const idx = studentIndexFor(section, roster, ri);
@@ -466,7 +485,10 @@ function WeekRekapAccordion({
         className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
         style={{ background: open ? C.leaf : "#FFF" }}
       >
-        <span className="flex-1 text-sm font-semibold" style={{ color: C.ink }}>Pekan {week}</span>
+        <span className="flex-1 text-sm font-semibold" style={{ color: C.ink }}>
+          Pekan {week}
+          {rp && <span className="ml-2 text-xs font-normal" style={{ color: C.muted }}>{rp.awal.tgl} – {rp.akhir.tgl}</span>}
+        </span>
         {!hasAny && (
           <span className="text-xs" style={{ color: C.muted }}>Belum diisi</span>
         )}
@@ -491,7 +513,10 @@ function WeekRekapAccordion({
                   ) : (
                     validSlots.map((s, di) => (
                       <th key={s} className="text-center font-semibold pb-2 px-1" style={{ color: C.muted }}>
-                        {DAY_LABELS[di]}
+                        {(() => {
+                          const tg = bulan ? tanggalSlot(bulan, s) : null;
+                          return tg ? DAY_LABELS[tg.date.getDay() - 1] : DAY_LABELS[di] ?? `Ke-${s}`;
+                        })()}
                       </th>
                     ))
                   )}

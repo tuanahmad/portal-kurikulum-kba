@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { ymd } from "./jurnal";
-import { capaianQuranFileId } from "../data";
+import { capaianQuranFileId, pekanKalenderKe, slotsDiPekan } from "../data";
 import { readCapaianQuran } from "./capaianQuranSheet";
 
 export type TodayStatus = {
@@ -13,17 +13,9 @@ export type TodayStatus = {
 
 const MONTH_NAMES = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-/** Ke berapa Senin (pekan) sejak awal bulan sampai hari ini (inklusif) — convention yang sama
- *  dipakai lib/jurnal.ts (mondayOf) & send-daily-reminders edge function. */
+/** Pekan kalender (Senin-Jumat) ke berapa dalam bulan ini; pekan 1 bisa pendek (lihat data.ts). */
 function pekanKeBerapa(d: Date): number {
-  const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
-  let count = 0;
-  const cursor = new Date(monthStart);
-  while (cursor <= d) {
-    if (cursor.getDay() === 1) count++;
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return Math.max(1, count);
+  return pekanKalenderKe(d);
 }
 
 function isFilled(v: string | undefined): boolean {
@@ -31,15 +23,14 @@ function isFilled(v: string | undefined): boolean {
   return t !== "" && t !== "-";
 }
 
-function hasFillThisWeek(sections: { type: string; students: { values: string[] }[] }[], pekanIdx: number): boolean {
+function hasFillThisWeek(sections: { type: string; students: { values: string[] }[] }[], pekanIdx: number, bulanNama: string): boolean {
   for (const sec of sections) {
     for (const st of sec.students) {
       if (sec.type === "pekan") {
         if (isFilled(st.values[pekanIdx - 1])) return true;
       } else {
-        const start = (pekanIdx - 1) * 5;
-        for (let i = start; i < start + 5; i++) {
-          if (isFilled(st.values[i])) return true;
+        for (const s of slotsDiPekan(bulanNama, pekanIdx, st.values.length)) {
+          if (isFilled(st.values[s - 1])) return true;
         }
       }
     }
@@ -65,7 +56,7 @@ export async function readTodayStatus(allKelas: string[]): Promise<TodayStatus> 
         const fileId = capaianQuranFileId(kelas);
         if (!fileId) return { kelas, filled: null };
         const data = await readCapaianQuran(fileId, bulanNama);
-        return { kelas, filled: hasFillThisWeek(data.sections, pekanIdx) };
+        return { kelas, filled: hasFillThisWeek(data.sections, pekanIdx, bulanNama) };
       })
     ),
   ]);
