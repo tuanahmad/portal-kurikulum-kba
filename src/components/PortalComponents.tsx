@@ -43,7 +43,6 @@ export function BackButton({
  *  drill-down di Instrumen Ilmu) — tetap 1 komponen visual biar konsisten di seluruh app. */
 export function AccentCard({
   title,
-  desc,
   icon,
   gradient,
   to,
@@ -51,6 +50,7 @@ export function AccentCard({
   onClick,
 }: {
   title: string;
+  /** Keterangan di bawah judul sengaja TIDAK ditampilkan lagi (tampilan kartu dibuat bersih); prop dibiarkan supaya pemanggil lama tetap valid. */
   desc?: string;
   icon: ReactNode;
   gradient: string;
@@ -74,11 +74,6 @@ export function AccentCard({
       </span>
       <div className="relative mt-4">
         <span className="font-semibold text-white block">{title}</span>
-        {desc && (
-          <span className="text-xs block mt-1 leading-relaxed" style={{ color: "rgba(255,255,255,0.82)" }}>
-            {desc}
-          </span>
-        )}
       </div>
     </>
   );

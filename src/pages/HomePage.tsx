@@ -361,13 +361,13 @@ function OlahragaMenu() {
 function HomeCard({
   to,
   title,
-  desc,
   gradient,
   icon,
 }: {
   to: string;
   title: string;
-  desc: string;
+  /** Keterangan sengaja tidak ditampilkan (kartu dibuat bersih); prop dibiarkan supaya pemanggil lama tetap valid. */
+  desc?: string;
   gradient: string;
   icon: React.ReactNode;
 }) {
@@ -391,9 +391,6 @@ function HomeCard({
       </span>
       <div className="relative mt-4">
         <span className="font-semibold text-white block">{title}</span>
-        <span className="text-xs block mt-1 leading-relaxed" style={{ color: "rgba(255,255,255,0.82)" }}>
-          {desc}
-        </span>
       </div>
     </Link>
   );
