@@ -20,12 +20,12 @@ export default function HomePage() {
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
 
       {/* Hero foto — full width, parallax di layar besar (md ke atas), scroll biasa di mobile */}
-      <div className="relative h-[26rem] sm:h-[30rem] md:h-[34rem] overflow-hidden" style={{ background: "#1B3327" }}>
+      <div className="relative h-[26rem] sm:h-[30rem] md:h-[34rem] overflow-hidden" style={{ background: "#1B3327 url(/images/hero-banner.jpg) center / cover no-repeat" }}>
         {/* Parallax di layar besar: lapisan foto menempel ke layar (fixed) lalu dipotong seukuran hero (clip-path).
             Sedikit melebar ke kiri-kanan supaya tidak ada garis celah di tepi (yang muncul pada background-attachment: fixed). */}
         <div className="absolute inset-0" style={{ clipPath: "inset(0)" }} aria-hidden="true">
           <div
-            className="absolute inset-0 md:fixed md:-left-1 md:-right-1"
+            className="absolute inset-0 md:fixed md:-left-8 md:-right-8"
             style={{ backgroundImage: "url(/images/hero-banner.jpg)", backgroundSize: "cover", backgroundPosition: "center" }}
           />
         </div>
@@ -106,21 +106,21 @@ function GuruMenu() {
         to="/capaian"
         title="Capaian Santri"
         desc="Capaian ilmu & Al-Qur'an santri di kelasmu."
-        gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`}
+        gradient={`linear-gradient(135deg, #2F8A63 0%, #1F6244 100%)`}
         icon={<ChartIcon />}
       />
       <HomeCard
         to="/absen"
         title="Absen Guru"
         desc="Isi kehadiran harian."
-        gradient={`linear-gradient(135deg, ${C.greenDeep} 0%, ${C.gold} 100%)`}
+        gradient={`linear-gradient(135deg, #E3A744 0%, #C98A25 100%)`}
         icon={<CalendarCheckIcon />}
       />
       <HomeCard
         to="/jurnal"
         title="Daily Jurnal"
         desc="Catatan harian kelas."
-        gradient={`linear-gradient(135deg, #8A6A20 0%, ${C.green} 100%)`}
+        gradient={`linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)`}
         icon={<NotebookIcon />}
       />
     </div>
@@ -301,28 +301,28 @@ function ManagementMenu() {
         to="/capaian"
         title="Capaian Santri"
         desc="Pilih kelas untuk lihat capaian ilmu & Al-Qur'an."
-        gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`}
+        gradient={`linear-gradient(135deg, #2F8A63 0%, #1F6244 100%)`}
         icon={<ChartIcon />}
       />
       <HomeCard
         to="/absen"
         title="Rekap Absen Guru"
         desc="Pilih kelas untuk lihat kehadiran guru per pekan."
-        gradient={`linear-gradient(135deg, ${C.greenDeep} 0%, ${C.gold} 100%)`}
+        gradient={`linear-gradient(135deg, #E3A744 0%, #C98A25 100%)`}
         icon={<CalendarCheckIcon />}
       />
       <HomeCard
         to="/jurnal"
         title="Rekap Daily Jurnal"
         desc="Pilih kelas untuk lihat jurnal harian guru per pekan."
-        gradient={`linear-gradient(135deg, #8A6A20 0%, ${C.green} 100%)`}
+        gradient={`linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)`}
         icon={<NotebookIcon />}
       />
       <HomeCard
         to="/olahraga"
         title="Rekap Olahraga"
         desc="Rencana, evaluasi & absen olahraga Kuttab Awwal 1–3 (ikhwan & akhwat)."
-        gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`}
+        gradient={`linear-gradient(135deg, #2F8A63 0%, #1F6244 100%)`}
         icon={<ChartIcon />}
       />
       </div>
@@ -495,7 +495,7 @@ function OlahragaMenu() {
         to="/olahraga/rencana"
         title="Rencana Kegiatan Olahraga"
         desc="Isi rencana kegiatan olahraga Kuttab Awwal 1–3, per pekan tiap bulan."
-        gradient={`linear-gradient(135deg, ${C.greenDeep} 0%, ${C.gold} 100%)`}
+        gradient={`linear-gradient(135deg, #E3A744 0%, #C98A25 100%)`}
         icon={<CalendarCheckIcon />}
       />
       <HomeCard

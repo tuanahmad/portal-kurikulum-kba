@@ -11,7 +11,7 @@ import { listDriveFolders, type DriveNode } from "../lib/drive";
 const GRADIENTS = [
   `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`,
   "linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)",
-  `linear-gradient(135deg, ${C.green} 0%, ${C.gold} 100%)`,
+  `linear-gradient(135deg, #2F8A63 0%, #1F6244 100%)`,
 ];
 
 /** Guru olahraga cuma boleh lihat materi olahraga: ambil item (file/folder) yang namanya mengandung
