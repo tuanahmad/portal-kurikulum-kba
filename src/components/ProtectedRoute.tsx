@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { PageLoadingSkeleton } from "./Skeleton";
+import { FullPageSkeleton } from "./Skeleton";
 
 export function ProtectedRoute({
   children,
@@ -13,7 +13,7 @@ export function ProtectedRoute({
   const { session, role, loading, rosterReady } = useAuth();
 
   if (loading || (session && !rosterReady)) {
-    return <PageLoadingSkeleton />;
+    return <FullPageSkeleton />;
   }
 
   if (!session) return <Navigate to="/login" replace />;

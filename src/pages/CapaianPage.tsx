@@ -156,8 +156,8 @@ function CapaianLinks({
 function TrendIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <path d="M4 17l5-6 4 3 6-8" stroke="#FFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M15 6h5v5" stroke="#FFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 17l5-6 4 3 6-8" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 6h5v5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -174,9 +174,9 @@ function BookIcon() {
 function TasmiIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <path d="M9 12.5l2 2 4.5-5" stroke="#FFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M12 3a9 9 0 1 0 9 9" stroke="#FFF" strokeWidth="1.9" strokeLinecap="round" />
-      <path d="M17.5 3.5v4h-4" stroke="#FFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 12.5l2 2 4.5-5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 3a9 9 0 1 0 9 9" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M17.5 3.5v4h-4" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

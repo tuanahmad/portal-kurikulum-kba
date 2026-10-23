@@ -43,3 +43,74 @@ a:active,
   opacity: 1 !important;
   background: #9BA9AC !important;
 }
+
+/* ===== Sentuhan identitas: pola bintang segi-8 (khatam) yang sangat samar di bagian atas tiap halaman ===== */
+.min-h-dvh {
+  position: relative;
+  z-index: 0;
+}
+.min-h-dvh::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 280px;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72' fill='none' stroke='%231C4A33' stroke-width='1'><path d='M18 18h36v36H18z'/><path d='M36 10.5l25.5 25.5L36 61.5 10.5 36z'/><circle cx='36' cy='36' r='7'/><path d='M0 -6l6 6-6 6-6-6zM72 -6l6 6-6 6-6-6zM0 66l6 6-6 6-6-6zM72 66l6 6-6 6-6-6z'/></svg>");
+  background-size: 72px 72px;
+  opacity: 0.07;
+  -webkit-mask-image: linear-gradient(to bottom, #000 25%, transparent);
+  mask-image: linear-gradient(to bottom, #000 25%, transparent);
+}
+/* versi putih untuk latar gelap (hero Home) */
+.pola-hero {
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72' fill='none' stroke='%23FFFFFF' stroke-width='1'><path d='M18 18h36v36H18z'/><path d='M36 10.5l25.5 25.5L36 61.5 10.5 36z'/><circle cx='36' cy='36' r='7'/><path d='M0 -6l6 6-6 6-6-6zM72 -6l6 6-6 6-6-6zM0 66l6 6-6 6-6-6zM72 66l6 6-6 6-6-6z'/></svg>");
+  background-size: 72px 72px;
+  opacity: 0.09;
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent);
+  mask-image: linear-gradient(to bottom, #000 40%, transparent);
+}
+
+/* ===== Gerak halus ===== */
+@keyframes halaman-masuk {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.halaman-masuk { animation: halaman-masuk 0.3s ease-out; }
+
+@keyframes kartu-muncul {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+/* hanya "backwards": setelah selesai gaya biasa (hover dll) kembali berlaku */
+.kartu-muncul { animation: kartu-muncul 0.45s ease-out backwards; }
+.kartu-muncul:nth-child(2) { animation-delay: 0.05s; }
+.kartu-muncul:nth-child(3) { animation-delay: 0.1s; }
+.kartu-muncul:nth-child(4) { animation-delay: 0.15s; }
+.kartu-muncul:nth-child(5) { animation-delay: 0.2s; }
+.kartu-muncul:nth-child(6) { animation-delay: 0.25s; }
+.kartu-muncul:nth-child(7) { animation-delay: 0.3s; }
+.kartu-muncul:nth-child(8) { animation-delay: 0.35s; }
+
+/* Skeleton: kilau yang bergeser pelan */
+.skeleton-kilau { position: relative; overflow: hidden; }
+.skeleton-kilau::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: kilau 1.4s ease-in-out infinite;
+}
+@keyframes kilau { to { transform: translateX(100%); } }
+
+/* Pengguna yang mematikan animasi di perangkatnya: semua gerak dimatikan */
+@media (prefers-reduced-motion: reduce) {
+  .halaman-masuk,
+  .kartu-muncul,
+  .toast-masuk,
+  .skeleton-kilau::after { animation: none !important; }
+}

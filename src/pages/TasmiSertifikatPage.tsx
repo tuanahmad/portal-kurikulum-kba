@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { C, LOGO } from "../data";
 import { readTasmiById, type TasmiRecord } from "../lib/tasmi";
-import { PageLoadingSkeleton } from "../components/Skeleton";
+import { FullPageSkeleton } from "../components/Skeleton";
 
 /** Kelas Qonuni dipisah Ikhwan/Akhwat -- dipakai buat nebak gender santri (Kuttab Awwal belum
  *  dipisah di nama kelasnya, default cewek). Gak ada field gender santri tersimpan di sistem,
@@ -54,7 +54,7 @@ export default function TasmiSertifikatPage() {
   if (loading) {
     return (
       <div className="min-h-dvh flex items-center justify-center" style={{ background: C.mist }}>
-        <PageLoadingSkeleton />
+        <FullPageSkeleton />
       </div>
     );
   }

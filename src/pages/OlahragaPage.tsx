@@ -1442,7 +1442,7 @@ function RencanaIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
       <path d="M6 3.5h9l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" stroke="#FFF" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M8.5 11.5h7M8.5 15h5" stroke="#FFF" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M8.5 11.5h7M8.5 15h5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -1462,7 +1462,7 @@ function AbsenIcon() {
       <rect x="3.5" y="5" width="17" height="15" rx="2" stroke="#FFF" strokeWidth="1.7" />
       <path d="M3.5 9.5h17" stroke="#FFF" strokeWidth="1.7" />
       <path d="M8 3v3.5M16 3v3.5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M8.5 14.5l2 2 4.5-4.5" stroke="#FFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8.5 14.5l2 2 4.5-4.5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

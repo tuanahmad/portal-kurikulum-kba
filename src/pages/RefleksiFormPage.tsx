@@ -557,8 +557,8 @@ function InfoValue({ label, value, large }: { label: string; value: string; larg
 function PencilIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-      <path d="M4 20h4L18.5 9.5a2 2 0 0 0 0-2.83l-1.17-1.17a2 2 0 0 0-2.83 0L4 15.5V20Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M13 6l4.5 4.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M4 20h4L18.5 9.5a2 2 0 0 0 0-2.83l-1.17-1.17a2 2 0 0 0-2.83 0L4 15.5V20Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M13 6l4.5 4.5" stroke="currentColor" strokeWidth="1.7" />
     </svg>
   );
 }

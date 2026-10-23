@@ -27,6 +27,8 @@ export default function HomePage() {
         />
         <div className="absolute inset-0" style={{ background: "rgba(20, 40, 30, 0.58)" }} aria-hidden="true" />
 
+        <div className="absolute inset-0 pola-hero" aria-hidden="true" />
+
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-5 sm:px-8">
           <h1
             className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white max-w-xl"
@@ -212,7 +214,7 @@ function GuruHariIni() {
   const pct = dihitung.length ? Math.round((selesai / dihitung.length) * 100) : 100;
 
   return (
-    <section className="mb-5 rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <section className="kartu-muncul mb-5 rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
       <div className="px-4 sm:px-5 pt-4 pb-3 flex items-end justify-between gap-3">
         <div>
           <div className="text-xs font-bold uppercase tracking-[0.16em]" style={{ color: C.green }}>Hari ini</div>
@@ -528,7 +530,7 @@ function HomeCard({
   return (
     <Link
       to={to}
-      className="group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between min-h-[172px] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2"
+      className="kartu-muncul group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between min-h-[172px] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2"
       style={{ background: gradient, boxShadow: "0 4px 14px rgba(28,74,51,0.14)", "--tw-ring-color": C.gold } as any}
     >
       {/* dekorasi lingkaran samar, membesar pas di-hover */}
@@ -584,7 +586,7 @@ function CalendarCheckIcon() {
       <rect x="3.5" y="5" width="17" height="15" rx="2" stroke="#FFF" strokeWidth="1.7" />
       <path d="M3.5 9.5h17" stroke="#FFF" strokeWidth="1.7" />
       <path d="M8 3v3.5M16 3v3.5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M8.5 14.5l2 2 4.5-4.5" stroke="#FFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8.5 14.5l2 2 4.5-4.5" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

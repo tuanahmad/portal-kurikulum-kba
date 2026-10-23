@@ -3,14 +3,14 @@ import { C } from "../data";
 export function SkeletonBlock({ className = "", style = {} }: { className?: string; style?: React.CSSProperties }) {
   return (
     <div
-      className={`animate-pulse rounded-lg ${className}`}
+      className={`skeleton-kilau rounded-lg ${className}`}
       style={{ background: "#E4E1D6", ...style }}
     />
   );
 }
 
-/** Skeleton generik dipakai selagi cek sesi login (ProtectedRoute) */
-export function PageLoadingSkeleton() {
+/** Skeleton satu halaman penuh: dipakai selagi cek sesi login (ProtectedRoute) */
+export function FullPageSkeleton() {
   return (
     <div className="min-h-dvh" style={{ background: C.mist }}>
       <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${C.green}, ${C.gold}, ${C.green})` }} />
@@ -25,6 +25,27 @@ export function PageLoadingSkeleton() {
           <SkeletonBlock className="h-32 rounded-2xl" />
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Skeleton untuk isi di dalam halaman: kartu-kartu putih dengan garis teks (dipakai selagi memuat daftar/form). */
+export function PageLoadingSkeleton() {
+  return (
+    <div className="space-y-3" aria-busy="true" aria-label="Memuat">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+          <div className="flex items-center gap-3">
+            <SkeletonBlock className="w-10 h-10 rounded-xl shrink-0" />
+            <div className="flex-1 space-y-2">
+              <SkeletonBlock className="h-3.5 w-2/3" />
+              <SkeletonBlock className="h-3 w-1/3" />
+            </div>
+          </div>
+          <SkeletonBlock className="h-3 w-full mt-4" />
+          <SkeletonBlock className="h-3 w-5/6 mt-2" />
+        </div>
+      ))}
     </div>
   );
 }

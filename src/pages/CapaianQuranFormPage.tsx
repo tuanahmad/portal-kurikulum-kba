@@ -407,7 +407,7 @@ export default function CapaianQuranFormPage() {
             >
               Buka versi Google Sheets
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <path d="M14 4h6v6M20 4l-9 9M9 5H5v14h14v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M14 4h6v6M20 4l-9 9M9 5H5v14h14v-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </a>
           )}
@@ -437,7 +437,7 @@ function Step({ n, label, children }: { n: number; label: string; children: Reac
 function BookmarkIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M6 4h12v16l-6-4-6 4V4Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 4h12v16l-6-4-6 4V4Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
