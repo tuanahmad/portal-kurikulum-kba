@@ -16,7 +16,7 @@ export default function HomePage() {
   const displayName = fullName || kelas || (role === "management" ? "Management" : "");
 
   return (
-    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
+    <div className="min-h-dvh tanpa-pola" style={{ background: C.mist, color: C.ink }}>
 
       {/* Hero foto — full width, parallax di layar besar (md ke atas), scroll biasa di mobile */}
       <div className="relative h-[26rem] sm:h-[30rem] md:h-[34rem] overflow-hidden">
@@ -26,8 +26,6 @@ export default function HomePage() {
           aria-hidden="true"
         />
         <div className="absolute inset-0" style={{ background: "rgba(20, 40, 30, 0.58)" }} aria-hidden="true" />
-
-        <div className="absolute inset-0 pola-hero" aria-hidden="true" />
 
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-5 sm:px-8">
           <h1

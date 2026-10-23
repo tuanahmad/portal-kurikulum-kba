@@ -46,28 +46,16 @@ a:active,
 }
 .min-h-dvh::before {
   content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 280px;
+  position: fixed; /* wallpaper tetap: tidak ikut bergulir, kartu bergulir di atasnya */
+  inset: 0;
   z-index: -1;
   pointer-events: none;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72' fill='none' stroke='%231C4A33' stroke-width='1'><path d='M18 18h36v36H18z'/><path d='M36 10.5l25.5 25.5L36 61.5 10.5 36z'/><circle cx='36' cy='36' r='7'/><path d='M0 -6l6 6-6 6-6-6zM72 -6l6 6-6 6-6-6zM0 66l6 6-6 6-6-6zM72 66l6 6-6 6-6-6z'/></svg>");
   background-size: 72px 72px;
-  opacity: 0.07;
-  -webkit-mask-image: linear-gradient(to bottom, #000 25%, transparent);
-  mask-image: linear-gradient(to bottom, #000 25%, transparent);
+  opacity: 0.055;
 }
-/* versi putih untuk latar gelap (hero Home) */
-.pola-hero {
-  pointer-events: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72' fill='none' stroke='%23FFFFFF' stroke-width='1'><path d='M18 18h36v36H18z'/><path d='M36 10.5l25.5 25.5L36 61.5 10.5 36z'/><circle cx='36' cy='36' r='7'/><path d='M0 -6l6 6-6 6-6-6zM72 -6l6 6-6 6-6-6zM0 66l6 6-6 6-6-6zM72 66l6 6-6 6-6-6z'/></svg>");
-  background-size: 72px 72px;
-  opacity: 0.09;
-  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent);
-  mask-image: linear-gradient(to bottom, #000 40%, transparent);
-}
+/* Home tidak memakai pola (hero sudah punya latar sendiri) */
+.tanpa-pola::before { display: none; }
 
 /* ===== Gerak halus ===== */
 @keyframes halaman-masuk {
