@@ -1000,15 +1000,7 @@ function ManagementShell({ title, children }: { title: string; children: React.R
 
 function StepBackPill({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors hover:opacity-80"
-      style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
-    >
-      <BackArrowIcon />
-      {label}
-    </button>
+    <BackButton onClick={onClick} label={label} className="mt-5" />
   );
 }
 

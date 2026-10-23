@@ -3,18 +3,38 @@ import { Link } from "react-router-dom";
 import { C, sheetUrl, fileUrl, folderUrl } from "../data";
 
 /** Tombol back — pola pill sekunder yang sama dipakai di seluruh app (leaf bg + border hijau). */
-export function BackButton({ to = "/home", label = "Home" }: { to?: string; label?: string }) {
+/** Tombol kembali standar di seluruh app: kotak kecil berisi ikon panah SAJA (tanpa tulisan), di kiri atas halaman.
+ *  `to` = pindah halaman (tautan), `onClick` = kembali ke tampilan sebelumnya di halaman yang sama.
+ *  `label` hanya untuk pembaca layar / tooltip. */
+export function BackButton({
+  to,
+  onClick,
+  label = "Kembali",
+  className = "",
+}: {
+  to?: string;
+  onClick?: () => void;
+  label?: string;
+  className?: string;
+}) {
+  const cls = `w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-shadow hover:shadow-md ${className}`;
+  const style = { background: "#FFF", border: `1px solid ${C.line}`, color: C.green };
+  const icon = (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+  if (to) {
+    return (
+      <Link to={to} aria-label={label} title={label} className={cls} style={style}>
+        {icon}
+      </Link>
+    );
+  }
   return (
-    <Link
-      to={to}
-      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full transition-colors hover:opacity-80"
-      style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
-    >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      {label}
-    </Link>
+    <button type="button" onClick={onClick} aria-label={label} title={label} className={cls} style={style}>
+      {icon}
+    </button>
   );
 }
 

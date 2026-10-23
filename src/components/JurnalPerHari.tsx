@@ -23,14 +23,6 @@ function geserHariKerja(d: Date, arah: -1 | 1): Date {
   return x;
 }
 
-function BackArrowIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function ArrowBtn({ dir, disabled, onClick }: { dir: "prev" | "next"; disabled?: boolean; onClick?: () => void }) {
   return (
     <button
@@ -54,7 +46,7 @@ function ArrowBtn({ dir, disabled, onClick }: { dir: "prev" | "next"; disabled?:
   );
 }
 
-export default function JurnalPerHari({ onBack }: { onBack: () => void }) {
+export default function JurnalPerHari() {
   const hariIni = useMemo(() => {
     const n = new Date();
     const d = new Date(n.getFullYear(), n.getMonth(), n.getDate());
@@ -102,15 +94,6 @@ export default function JurnalPerHari({ onBack }: { onBack: () => void }) {
 
   return (
     <main className="mt-6">
-      <button
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-4 transition-colors hover:opacity-80"
-        style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
-      >
-        <BackArrowIcon />
-        Preview Jurnal per Hari
-      </button>
-
       <div className="flex items-center gap-2">
         <ArrowBtn dir="prev" onClick={() => setTgl(geserHariKerja(tgl, -1))} />
         <div className="flex-1 text-center rounded-xl px-3 py-2" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>

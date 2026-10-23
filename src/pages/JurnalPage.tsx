@@ -9,6 +9,8 @@ import { RuleCard } from "../components/RuleCard";
 import { AccentCard } from "../components/PortalComponents";
 import JurnalPerHari from "../components/JurnalPerHari";
 import JurnalGabungan from "../components/JurnalGabungan";
+import { BackButton } from "../components/BackButton";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   readJurnalRange,
   saveJurnalDay,
@@ -319,16 +321,18 @@ function IkonPekan() {
     </svg>
   );
 }
-function IkonPanah() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 function ManagementJurnal() {
-  const [mode, setMode] = useState<null | "hari" | "pekan">(null);
+  // mode yang terbuka disimpan di alamat (?m=hari) supaya tombol kembali (dan tombol back HP) kembali ke tampilan sebelumnya
+  const navigate = useNavigate();
+  const [sp, setSp] = useSearchParams();
+  const mParam = sp.get("m");
+  const mode: null | "hari" | "pekan" = mParam === "hari" || mParam === "pekan" ? mParam : null;
+  const setMode = (m: null | "hari" | "pekan") => {
+    if (m) setSp({ m });
+    else if (window.history.state?.idx > 0) navigate(-1);
+    else setSp({}, { replace: true });
+  };
   const { session } = useAuth();
   const [kelasList, setKelasList] = useState<string[]>([]);
   const [namaGuru, setNamaGuru] = useState<Record<string, string>>({});
@@ -376,14 +380,19 @@ function ManagementJurnal() {
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <header>
-          <h1
-            className="text-xl sm:text-2xl font-semibold"
-            style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Daily Jurnal
-          </h1>
-          <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap jurnal harian guru</p>
+        <header className="flex items-center gap-3">
+          {mode !== null && <BackButton onClick={() => setMode(null)} />}
+          <div className="min-w-0">
+            <h1
+              className="text-xl sm:text-2xl font-semibold"
+              style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
+            >
+              Daily Jurnal
+            </h1>
+            <p className="text-sm mt-1" style={{ color: C.muted }}>
+              {mode === "hari" ? "Preview per hari" : mode === "pekan" ? "Per pekan" : "Rekap jurnal harian guru"}
+            </p>
+          </div>
         </header>
 
         {mode === null && (
@@ -407,19 +416,10 @@ function ManagementJurnal() {
           </main>
         )}
 
-        {mode === "hari" && <JurnalPerHari onBack={() => setMode(null)} />}
+        {mode === "hari" && <JurnalPerHari />}
 
         {mode === "pekan" && (
           <main className="mt-6">
-            <button
-              onClick={() => setMode(null)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-4 transition-colors hover:opacity-80"
-              style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
-            >
-              <IkonPanah />
-              Per Pekan
-            </button>
-
             <PickerCard
               items={kelasList.map((k) => ({ label: k }))}
               value={kelasI}

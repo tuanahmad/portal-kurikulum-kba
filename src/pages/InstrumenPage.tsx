@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { C, INSTRUMEN_FOLDERS } from "../data";
 import { DriveTree } from "../components/DriveTree";
 import { AccentCard } from "../components/PortalComponents";
 import { SkeletonBlock } from "../components/Skeleton";
+import { BackButton } from "../components/BackButton";
 import { useAuth } from "../contexts/AuthContext";
 import { listDriveFolders, type DriveNode } from "../lib/drive";
 
@@ -39,7 +41,16 @@ export default function InstrumenPage() {
   const { role } = useAuth();
   // Guru olahraga cuma butuh Panduan (belum ada Modul/Target khusus olahraga) — kategori-nya langsung dikunci.
   const isOlahraga = role === "olahraga";
-  const [activeKey, setActiveKey] = useState<string | null>(isOlahraga ? "panduan" : null);
+  // folder yang terbuka disimpan di alamat (?k=modul) supaya tombol kembali (dan tombol back HP) kembali ke folder itu
+  const navigate = useNavigate();
+  const [sp, setSp] = useSearchParams();
+  const kParam = sp.get("k");
+  const activeKey: string | null = isOlahraga ? "panduan" : INSTRUMEN_FOLDERS.some((f) => f.key === kParam) ? kParam : null;
+  const setActiveKey = (k: string | null) => {
+    if (k) setSp({ k });
+    else if (window.history.state?.idx > 0) navigate(-1);
+    else setSp({}, { replace: true });
+  };
 
   const [state, setState] = useState<{
     loading: boolean;
@@ -68,7 +79,8 @@ export default function InstrumenPage() {
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-3xl mx-auto px-4 pt-7 sm:pt-10 pb-28">
-        <header className="text-center">
+        <header className="relative text-center">
+          {activeFolder && !isOlahraga && <BackButton onClick={() => setActiveKey(null)} className="absolute left-0 top-0" />}
           <h1
             className="text-xl sm:text-2xl font-semibold"
             style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -113,17 +125,6 @@ export default function InstrumenPage() {
         {/* Isi kategori yang dipilih — seluruh isi Drive, semua jenjang */}
         {activeFolder && (
           <main className="mt-6">
-            {!isOlahraga && (
-              <button
-                onClick={() => setActiveKey(null)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-4 transition-colors hover:opacity-80"
-                style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}` }}
-              >
-                <BackArrowIcon />
-                {activeFolder.name}
-              </button>
-            )}
-
             {state.loading && (
               <div className="space-y-2">
                 <SkeletonBlock className="h-12 rounded-xl" />
@@ -154,14 +155,6 @@ export default function InstrumenPage() {
         )}
       </div>
     </div>
-  );
-}
-
-function BackArrowIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 
