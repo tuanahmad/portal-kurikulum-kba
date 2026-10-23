@@ -936,7 +936,7 @@ export function OlahragaModePicker() {
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <header>
+        <header className="text-center">
           <h1
             className="text-xl sm:text-2xl font-semibold"
             style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -986,7 +986,7 @@ function ManagementShell({ title, children }: { title: string; children: React.R
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
         <BackButton to="/olahraga" label="Rekap Olahraga" />
-        <header className="mt-4">
+        <header className="mt-4 text-center">
           <h1
             className="text-xl sm:text-2xl font-semibold"
             style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -1369,7 +1369,7 @@ function HeaderCard({ title, name, sub }: { title: string; name: string; sub: st
   return (
     <div
       className="relative rounded-2xl p-4 sm:p-5 overflow-hidden"
-      style={{ background: lembut(`linear-gradient(135deg, ${C.greenDeep} 0%, ${C.green} 100%)`), boxShadow: "0 4px 14px rgba(28,74,51,0.16)" }}
+      style={{ background: lembut(`linear-gradient(135deg, ${C.greenDeep} 0%, ${C.green} 100%)`), boxShadow: "0 4px 14px rgba(28,74,51,0.16), inset 0 0 0 1px rgba(255,255,255,0.28)" }}
     >
       <span
         className="absolute -right-6 -top-6 w-28 h-28 rounded-full"

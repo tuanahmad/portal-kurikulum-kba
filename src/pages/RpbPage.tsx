@@ -53,7 +53,7 @@ export default function RpbPage() {
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <header>
+        <header className="text-center">
           <h1
             className="text-xl sm:text-2xl font-semibold"
             style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -627,7 +627,7 @@ function InfoCard({
   rows: { label: string; value: string }[][];
 }) {
   return (
-    <div className="relative rounded-2xl p-4 sm:p-5" style={{ background: lembut(gradient), boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}>
+    <div className="relative rounded-2xl p-4 sm:p-5" style={{ background: lembut(gradient), boxShadow: "0 4px 14px rgba(28,74,51,0.14), inset 0 0 0 1px rgba(255,255,255,0.28)" }}>
       <div className="absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">
         <span className="absolute -right-6 -top-6 w-28 h-28 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
       </div>

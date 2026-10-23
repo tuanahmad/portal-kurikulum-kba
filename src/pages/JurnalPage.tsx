@@ -97,7 +97,7 @@ function GuruJurnal() {
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <header>
+        <header className="text-center">
           <h1
             className="text-xl sm:text-2xl font-semibold"
             style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -380,8 +380,8 @@ function ManagementJurnal() {
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <header className="flex items-center gap-3">
-          {mode !== null && <BackButton onClick={() => setMode(null)} />}
+        <header className="relative flex flex-col items-center justify-center text-center px-12 min-h-[44px]">
+          {mode !== null && <BackButton onClick={() => setMode(null)} className="absolute left-0 inset-y-0 my-auto" />}
           <div className="min-w-0">
             <h1
               className="text-xl sm:text-2xl font-semibold"

@@ -61,7 +61,7 @@ export function AccentCard({
 }) {
   const className =
     "kartu-muncul group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between min-h-[152px] text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2";
-  const style = { background: lembut(gradient), boxShadow: "0 4px 14px rgba(28,74,51,0.14)", "--tw-ring-color": C.gold } as any;
+  const style = { background: lembut(gradient), boxShadow: "0 4px 14px rgba(28,74,51,0.14), inset 0 0 0 1px rgba(255,255,255,0.28)", "--tw-ring-color": C.gold } as any;
 
   const inner = (
     <>

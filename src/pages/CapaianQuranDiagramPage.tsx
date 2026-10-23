@@ -178,13 +178,13 @@ export default function CapaianQuranDiagramPage() {
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-3xl mx-auto px-4 pt-6 sm:pt-9 pb-28">
-        <div className="flex items-center gap-3">
+        <div className="relative flex flex-col items-center justify-center text-center px-12 min-h-[44px]">
           <button
             onClick={() =>
               navigate(role === "guru" ? "/capaian/quran" : `/capaian?kelas=${encodeURIComponent(kelas ?? "")}`)
             }
             aria-label="Kembali"
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            className="absolute left-0 inset-y-0 my-auto w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -193,7 +193,7 @@ export default function CapaianQuranDiagramPage() {
           </button>
           <div className="min-w-0">
             <h1
-              className="text-lg sm:text-xl font-semibold truncate"
+              className="text-lg sm:text-xl font-semibold"
               style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
               Diagram Perkembangan Al-Qur'an

@@ -20,12 +20,15 @@ export default function HomePage() {
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
 
       {/* Hero foto — full width, parallax di layar besar (md ke atas), scroll biasa di mobile */}
-      <div className="relative h-[26rem] sm:h-[30rem] md:h-[34rem] overflow-hidden">
-        <div
-          className="absolute inset-0 bg-center bg-cover bg-scroll md:bg-fixed"
-          style={{ backgroundImage: "url(/images/hero-banner.jpg)" }}
-          aria-hidden="true"
-        />
+      <div className="relative h-[26rem] sm:h-[30rem] md:h-[34rem] overflow-hidden" style={{ background: "#1B3327" }}>
+        {/* Parallax di layar besar: lapisan foto menempel ke layar (fixed) lalu dipotong seukuran hero (clip-path).
+            Sedikit melebar ke kiri-kanan supaya tidak ada garis celah di tepi (yang muncul pada background-attachment: fixed). */}
+        <div className="absolute inset-0" style={{ clipPath: "inset(0)" }} aria-hidden="true">
+          <div
+            className="absolute inset-0 md:fixed md:-left-1 md:-right-1"
+            style={{ backgroundImage: "url(/images/hero-banner.jpg)", backgroundSize: "cover", backgroundPosition: "center" }}
+          />
+        </div>
         <div className="absolute inset-0" style={{ background: "rgba(20, 40, 30, 0.58)" }} aria-hidden="true" />
 
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-5 sm:px-8">
@@ -530,7 +533,7 @@ function HomeCard({
     <Link
       to={to}
       className="kartu-muncul group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between min-h-[172px] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2"
-      style={{ background: lembut(gradient), boxShadow: "0 4px 14px rgba(28,74,51,0.14)", "--tw-ring-color": C.gold } as any}
+      style={{ background: lembut(gradient), boxShadow: "0 4px 14px rgba(28,74,51,0.14), inset 0 0 0 1px rgba(255,255,255,0.28)", "--tw-ring-color": C.gold } as any}
     >
       {/* dekorasi lingkaran samar, membesar pas di-hover */}
       <span

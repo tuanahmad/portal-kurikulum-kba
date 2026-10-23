@@ -267,8 +267,8 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-3xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
         <BackButton to="/home" label="Home" />
-        <header className="mt-4">
-          <div className="flex items-start justify-between gap-3">
+        <header className="mt-4 text-center">
+          <div className="flex flex-col items-center gap-3">
             <h1 className="text-xl sm:text-2xl font-semibold" style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>
               Sajian Data
             </h1>

@@ -252,11 +252,11 @@ export default function RpbFormPage() {
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-28">
         {/* Header */}
-        <div className="flex items-center gap-3">
+        <div className="relative flex flex-col items-center justify-center text-center px-12 min-h-[44px]">
           <button
             onClick={() => navigate(`/rpb/${bulan}`)}
             aria-label="Kembali"
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            className="absolute left-0 inset-y-0 my-auto w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -265,7 +265,7 @@ export default function RpbFormPage() {
           </button>
           <div className="min-w-0">
             <h1
-              className="text-lg sm:text-xl font-semibold truncate"
+              className="text-lg sm:text-xl font-semibold"
               style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
               Rencana Pembelajaran Bulanan — {bulan}
@@ -360,7 +360,7 @@ export default function RpbFormPage() {
             ) : (
               <div
                 className="relative rounded-2xl p-4 sm:p-5"
-                style={{ background: lembut(`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`), boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}
+                style={{ background: lembut(`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`), boxShadow: "0 4px 14px rgba(28,74,51,0.14), inset 0 0 0 1px rgba(255,255,255,0.28)" }}
               >
                 {/* Lingkaran dekorasi di lapisan terpisah — biar overflow-hidden-nya gak ikut motong teks di atasnya */}
                 <div className="absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">

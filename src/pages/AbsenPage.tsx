@@ -129,7 +129,7 @@ function GuruAbsen() {
 
   return (
     <>
-      <header className="mt-5">
+      <header className="mt-5 text-center">
         <h1
           className="text-xl sm:text-2xl font-semibold"
           style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -488,7 +488,7 @@ function ManagementAbsen() {
 
   return (
     <>
-      <header className="mt-5">
+      <header className="mt-5 text-center">
         <h1
           className="text-xl sm:text-2xl font-semibold"
           style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -927,7 +927,7 @@ function GuruAbsenSantri() {
 
   return (
     <>
-      <header className="mt-5">
+      <header className="mt-5 text-center">
         <h1
           className="text-xl sm:text-2xl font-semibold"
           style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}
@@ -1114,7 +1114,7 @@ function ManagementAbsenSantri() {
 
   return (
     <>
-      <header className="mt-5">
+      <header className="mt-5 text-center">
         <h1
           className="text-xl sm:text-2xl font-semibold"
           style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}

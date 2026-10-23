@@ -18,11 +18,11 @@ export default function RpbBulanPage() {
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-[10px] sm:pt-[18px] pb-28">
-        <div className="flex items-center gap-3">
+        <div className="relative flex flex-col items-center justify-center text-center px-12 min-h-[44px]">
           <button
             onClick={() => navigate("/rpb")}
             aria-label="Kembali"
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            className="absolute left-0 inset-y-0 my-auto w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
