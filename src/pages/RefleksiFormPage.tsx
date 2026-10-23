@@ -1,3 +1,4 @@
+import { lembut } from "../lib/warna";
 import { hapusCacheStatus } from "../lib/dashboardStatus";
 import { hitungTeksHilang } from "../lib/jaringan";
 import { GagalMuat } from "../components/GagalMuat";
@@ -299,7 +300,7 @@ export default function RefleksiFormPage() {
                 </div>
               </div>
             ) : (
-              <div className="relative rounded-2xl p-4 sm:p-5" style={{ background: `linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)`, boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}>
+              <div className="relative rounded-2xl p-4 sm:p-5" style={{ background: lembut(`linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)`), boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}>
                 <div className="absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">
                   <span className="absolute -right-6 -top-6 w-28 h-28 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
                 </div>

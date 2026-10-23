@@ -1,3 +1,4 @@
+import { lembut } from "../lib/warna";
 import { isianSama } from "../lib/jaringan";
 import { EmptyState } from "../components/EmptyState";
 import { toast } from "../components/Toast";
@@ -264,7 +265,7 @@ export default function CapaianIlmuFormPage() {
           {data && anakI != null && (
             <div
               className="relative rounded-2xl p-4 sm:p-5"
-              style={{ background: GREEN_GRAD, boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}
+              style={{ background: lembut(GREEN_GRAD), boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}
             >
               <div className="absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">
                 <span className="absolute -right-6 -top-6 w-28 h-28 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }} />

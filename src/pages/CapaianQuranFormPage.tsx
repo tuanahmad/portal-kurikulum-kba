@@ -1,3 +1,4 @@
+import { lembut } from "../lib/warna";
 import { hapusCacheStatus } from "../lib/dashboardStatus";
 import { isianSama } from "../lib/jaringan";
 import { EmptyState } from "../components/EmptyState";
@@ -340,7 +341,7 @@ export default function CapaianQuranFormPage() {
           {isGuru && section && slot && (
             <div
               className="relative rounded-2xl p-4 sm:p-5"
-              style={{ background: GOLD, boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}
+              style={{ background: lembut(GOLD), boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}
             >
               <div className="absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">
                 <span className="absolute -right-6 -top-6 w-28 h-28 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />

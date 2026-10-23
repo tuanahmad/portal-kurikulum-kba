@@ -1,3 +1,4 @@
+import { lembut } from "../lib/warna";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -626,7 +627,7 @@ function InfoCard({
   rows: { label: string; value: string }[][];
 }) {
   return (
-    <div className="relative rounded-2xl p-4 sm:p-5" style={{ background: gradient, boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}>
+    <div className="relative rounded-2xl p-4 sm:p-5" style={{ background: lembut(gradient), boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}>
       <div className="absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">
         <span className="absolute -right-6 -top-6 w-28 h-28 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
       </div>

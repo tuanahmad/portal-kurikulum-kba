@@ -1,3 +1,4 @@
+import { lembut } from "../lib/warna";
 import { EmptyState } from "./EmptyState";
 import { Link } from "react-router-dom";
 import { C } from "../data";
@@ -70,7 +71,7 @@ function DriveFile({
     <Link
       to={`/preview?${params.toString()}`}
       className="group relative overflow-hidden rounded-2xl p-4 flex flex-col justify-between min-h-[128px] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2"
-      style={{ background: gradient, boxShadow: "0 4px 14px rgba(28,74,51,0.14)", "--tw-ring-color": C.gold } as any}
+      style={{ background: lembut(gradient), boxShadow: "0 4px 14px rgba(28,74,51,0.14)", "--tw-ring-color": C.gold } as any}
     >
       <span
         className="absolute -right-5 -top-5 w-20 h-20 rounded-full transition-transform duration-500 group-hover:scale-125"

@@ -1,3 +1,4 @@
+import { lembut } from "../lib/warna";
 import { hapusCacheStatus } from "../lib/dashboardStatus";
 import { hitungTeksHilang } from "../lib/jaringan";
 import { GagalMuat } from "../components/GagalMuat";
@@ -359,7 +360,7 @@ export default function RpbFormPage() {
             ) : (
               <div
                 className="relative rounded-2xl p-4 sm:p-5"
-                style={{ background: `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`, boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}
+                style={{ background: lembut(`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`), boxShadow: "0 4px 14px rgba(28,74,51,0.14)" }}
               >
                 {/* Lingkaran dekorasi di lapisan terpisah — biar overflow-hidden-nya gak ikut motong teks di atasnya */}
                 <div className="absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">

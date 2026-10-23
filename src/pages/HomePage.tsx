@@ -1,3 +1,4 @@
+import { lembut } from "../lib/warna";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { C, getGreeting, KELAS_LIST } from "../data";
@@ -16,7 +17,7 @@ export default function HomePage() {
   const displayName = fullName || kelas || (role === "management" ? "Management" : "");
 
   return (
-    <div className="min-h-dvh tanpa-pola" style={{ background: C.mist, color: C.ink }}>
+    <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
 
       {/* Hero foto — full width, parallax di layar besar (md ke atas), scroll biasa di mobile */}
       <div className="relative h-[26rem] sm:h-[30rem] md:h-[34rem] overflow-hidden">
@@ -529,7 +530,7 @@ function HomeCard({
     <Link
       to={to}
       className="kartu-muncul group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between min-h-[172px] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2"
-      style={{ background: gradient, boxShadow: "0 4px 14px rgba(28,74,51,0.14)", "--tw-ring-color": C.gold } as any}
+      style={{ background: lembut(gradient), boxShadow: "0 4px 14px rgba(28,74,51,0.14)", "--tw-ring-color": C.gold } as any}
     >
       {/* dekorasi lingkaran samar, membesar pas di-hover */}
       <span

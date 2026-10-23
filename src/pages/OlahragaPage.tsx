@@ -1,3 +1,4 @@
+import { lembut } from "../lib/warna";
 import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
@@ -1368,7 +1369,7 @@ function HeaderCard({ title, name, sub }: { title: string; name: string; sub: st
   return (
     <div
       className="relative rounded-2xl p-4 sm:p-5 overflow-hidden"
-      style={{ background: `linear-gradient(135deg, ${C.greenDeep} 0%, ${C.green} 100%)`, boxShadow: "0 4px 14px rgba(28,74,51,0.16)" }}
+      style={{ background: lembut(`linear-gradient(135deg, ${C.greenDeep} 0%, ${C.green} 100%)`), boxShadow: "0 4px 14px rgba(28,74,51,0.16)" }}
     >
       <span
         className="absolute -right-6 -top-6 w-28 h-28 rounded-full"

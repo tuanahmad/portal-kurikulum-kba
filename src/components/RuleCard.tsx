@@ -1,3 +1,4 @@
+import { lembut } from "../lib/warna";
 import { useState, type ReactNode } from "react";
 import { C } from "../data";
 
@@ -27,7 +28,7 @@ export function RuleCard({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left"
-        style={{ background: `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)` }}
+        style={{ background: lembut(`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`) }}
       >
         <span
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"

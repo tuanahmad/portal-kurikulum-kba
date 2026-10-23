@@ -56,7 +56,7 @@ a:active,
   will-change: transform; /* lapisan sendiri: wallpaper tetap tidak digambar ulang tiap gulir */
   transform: translateZ(0);
 }
-/* Home tidak memakai pola (hero sudah punya latar sendiri) */
+/* Halaman gelap (Login) tidak memakai pola. Di Home pola tetap ada, tetapi hero (di atasnya) menutupi, jadi hanya tampak di bawah hero. */
 .tanpa-pola::before { display: none; }
 
 /* ===== Gerak halus ===== */
