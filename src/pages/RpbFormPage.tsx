@@ -1,3 +1,5 @@
+import { hitungTeksHilang } from "../lib/jaringan";
+import { GagalMuat } from "../components/GagalMuat";
 import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
@@ -45,6 +47,8 @@ export default function RpbFormPage() {
   const { kelas, fullName } = useAuth();
 
   const [loading, setLoading] = useState(true);
+  const [gagalMuat, setGagalMuat] = useState(false);
+  const [muatUlang, setMuatUlang] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -83,6 +87,7 @@ export default function RpbFormPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setGagalMuat(false);
     setSaveMsg(null);
     readRpbTab(file.id, kelas)
       .then((data) => {
@@ -121,13 +126,18 @@ export default function RpbFormPage() {
         });
         setBidangCount(lastFilled + 1);
       })
-      .catch((e) => !cancelled && setError(e.message))
+      .catch((e) => {
+        if (!cancelled) {
+          setError(e.message);
+          setGagalMuat(true);
+        }
+      })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file?.id, kelas]);
+  }, [file?.id, kelas, muatUlang]);
 
   // Seluruh isian form dijadiin 1 "snapshot" buat draf otomatis (lihat lib/useDraft.ts).
   const snapshot = useMemo(
@@ -188,6 +198,10 @@ export default function RpbFormPage() {
     };
     try {
       await writeRpbTab(file.id, kelas, payload);
+      // Cek ulang: semua teks yang ditulis harus terbaca balik dari file.
+      const fresh = await readRpbTab(file.id, kelas);
+      const hilang = hitungTeksHilang([payload.tableB, payload.tableC], [fresh.tableB, fresh.tableC]);
+      if (hilang > 0) throw new Error(`${hilang} isian belum terbaca di file setelah disimpan. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.`);
       setBaseline(snapshot);
       draft.clear();
       toast.sukses("Tersimpan");
@@ -260,6 +274,8 @@ export default function RpbFormPage() {
           <div className="mt-6">
             <PageLoadingSkeleton />
           </div>
+        ) : gagalMuat ? (
+          <GagalMuat pesan={error ?? ""} onUlang={() => setMuatUlang((n) => n + 1)} />
         ) : (
           <div className="mt-6 space-y-7">
             {error && (

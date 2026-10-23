@@ -1,3 +1,5 @@
+import { hitungTeksHilang } from "../lib/jaringan";
+import { GagalMuat } from "../components/GagalMuat";
 import { EmptyState } from "../components/EmptyState";
 import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
@@ -56,6 +58,8 @@ export default function RefleksiFormPage() {
   const { kelas, fullName } = useAuth();
 
   const [loading, setLoading] = useState(true);
+  const [gagalMuat, setGagalMuat] = useState(false);
+  const [muatUlang, setMuatUlang] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -87,6 +91,7 @@ export default function RefleksiFormPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setGagalMuat(false);
     setSaveMsg(null);
     readReflectionTab(file.id, kelas)
       .then((data) => {
@@ -103,13 +108,18 @@ export default function RefleksiFormPage() {
         setRencanaPerbaikan(padRows(data.rencanaPerbaikan, PERBAIKAN_ROWS, 3));
         setMurid(padRows(data.perkembanganMurid, ROSTER_ROWS, 4));
       })
-      .catch((e) => !cancelled && setError(e.message))
+      .catch((e) => {
+        if (!cancelled) {
+          setError(e.message);
+          setGagalMuat(true);
+        }
+      })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file?.id, kelas]);
+  }, [file?.id, kelas, muatUlang]);
 
   // Seluruh isian form dijadiin 1 "snapshot" buat draf otomatis (lihat lib/useDraft.ts).
   const snapshot = useMemo(
@@ -166,6 +176,13 @@ export default function RefleksiFormPage() {
     };
     try {
       await writeReflectionTab(file.id, kelas, payload);
+      // Cek ulang: semua teks yang ditulis harus terbaca balik dari file.
+      const fresh = await readReflectionTab(file.id, kelas);
+      const hilang = hitungTeksHilang(
+        [payload.capaianTarget, payload.keberhasilan, payload.kendala, payload.evaluasiDiri, payload.refleksiGuru, payload.rencanaPerbaikan, payload.perkembanganMurid],
+        [fresh.capaianTarget, fresh.keberhasilan, fresh.kendala, fresh.evaluasiDiri, fresh.refleksiGuru, fresh.rencanaPerbaikan, fresh.perkembanganMurid]
+      );
+      if (hilang > 0) throw new Error(`${hilang} isian belum terbaca di file setelah disimpan. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.`);
       setBaseline(snapshot);
       draft.clear();
       toast.sukses("Tersimpan");
@@ -232,6 +249,8 @@ export default function RefleksiFormPage() {
           <div className="mt-6">
             <PageLoadingSkeleton />
           </div>
+        ) : gagalMuat ? (
+          <GagalMuat pesan={error ?? ""} onUlang={() => setMuatUlang((n) => n + 1)} />
         ) : (
           <div className="mt-6 space-y-7">
             {error && (

@@ -1,3 +1,4 @@
+import { GagalMuat } from "../components/GagalMuat";
 import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { C } from "../data";
@@ -97,6 +98,7 @@ function GuruAbsen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDay, setOpenDay] = useState<string | null>(null);
+  const [muatUlang, setMuatUlang] = useState(0);
 
   const atThisWeek = ymd(monday) >= ymd(thisMonday);
 
@@ -117,7 +119,7 @@ function GuruAbsen() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monday]);
+  }, [monday, muatUlang]);
 
   if (!kelas) {
     return (
@@ -146,15 +148,12 @@ function GuruAbsen() {
         onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
       />
 
-      {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-          {error}
-        </div>
-      )}
       {loading ? (
         <div className="mt-5">
           <PageLoadingSkeleton />
         </div>
+      ) : error ? (
+        <GagalMuat pesan={error} onUlang={() => setMuatUlang((n) => n + 1)} />
       ) : (
         <div className="mt-5 space-y-3">
           {days.map((d) => {
@@ -848,6 +847,8 @@ function GuruAbsenSantri() {
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [baseline, setBaseline] = useState<Record<string, FormEntry>>({});
+  const [gagalMuat, setGagalMuat] = useState(false);
+  const [muatUlang, setMuatUlang] = useState(0);
 
   const draft = useDraft({
     formKey: kelas && editable ? `absen-santri:${kelas}:${dateYmd}` : null,
@@ -862,6 +863,7 @@ function GuruAbsenSantri() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setGagalMuat(false);
     setMsg(null);
     readAbsenSantriDay(kelas, dateYmd)
       .then((saved) => {
@@ -871,13 +873,18 @@ function GuruAbsenSantri() {
         setForm(next);
         setBaseline(JSON.parse(JSON.stringify(next)));
       })
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
+      .catch((e) => {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : String(e));
+          setGagalMuat(true);
+        }
+      })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kelas, dateYmd]);
+  }, [kelas, dateYmd, muatUlang]);
 
   function setSesi(nama: string, sesi: "pagi" | "siang", next: FormSesiEntry) {
     setForm((p) => ({ ...p, [nama]: { ...p[nama], [sesi]: next } }));
@@ -947,6 +954,8 @@ function GuruAbsenSantri() {
         <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Tanggal ini belum tiba.</p>
       ) : loading ? (
         <div className="mt-5"><PageLoadingSkeleton /></div>
+      ) : gagalMuat ? (
+        <GagalMuat pesan={error ?? ""} onUlang={() => setMuatUlang((n) => n + 1)} />
       ) : roster.length === 0 ? (
         <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Roster santri kelas ini belum ada.</p>
       ) : (

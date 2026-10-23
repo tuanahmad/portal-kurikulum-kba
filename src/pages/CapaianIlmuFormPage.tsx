@@ -1,3 +1,4 @@
+import { isianSama } from "../lib/jaringan";
 import { EmptyState } from "../components/EmptyState";
 import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
@@ -136,6 +137,12 @@ export default function CapaianIlmuFormPage() {
         cells: bidangFlat.map((b) => ({ bidangKey: b.key, anakIdx: slot, value: form[b.key] ?? "" })),
         names: [{ anakIdx: slot, nama: roster[anakI] }],
       });
+      // Cek ulang: isian yang ditulis harus terbaca balik dari file, kalau tidak jangan anggap tersimpan.
+      const fresh = await readCapaianIlmu(fileId, bulan);
+      const belumTerbaca = bidangFlat.filter((b) => (form[b.key] ?? "").trim() && !isianSama(form[b.key] ?? "", fresh.values[b.key]?.[slot] ?? "")).length;
+      if (belumTerbaca > 0) {
+        throw new Error(`${belumTerbaca} isian belum terbaca di file setelah disimpan. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.`);
+      }
       toast.sukses("Tersimpan");
       draft.clear();
       // update cache lokal biar pindah anak tetep keliatan
@@ -170,6 +177,11 @@ export default function CapaianIlmuFormPage() {
         cells: roster.map((_, i) => ({ bidangKey, anakIdx: rosterSlots[i], value: val })),
         names: roster.map((nm, i) => ({ anakIdx: rosterSlots[i], nama: nm })),
       });
+      if (val.trim()) {
+        const fresh = await readCapaianIlmu(fileId, bulan);
+        const belum = roster.filter((_n, i) => !isianSama(val, fresh.values[bidangKey]?.[rosterSlots[i]] ?? "")).length;
+        if (belum > 0) throw new Error(`${belum} santri belum terisi di file setelah disimpan. Tekan sekali lagi.`);
+      }
       toast.sukses("Bidang ini diisikan ke semua santri");
       setData((prev) => {
         if (!prev) return prev;

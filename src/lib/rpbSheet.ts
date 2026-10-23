@@ -1,3 +1,4 @@
+import { panggilFungsi, bacaJson } from "./jaringan";
 import { supabase } from "./supabaseClient";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -25,25 +26,24 @@ async function authHeaders() {
 
 /** Baca isi tab RPB (kelas) di file bulan tertentu, lewat edge function `sheet-rpb`. */
 export async function readRpbTab(fileId: string, sheetName: string): Promise<RpbTabData> {
-  const headers = await authHeaders();
-  const res = await fetch(
+  const res = await panggilFungsi(
     `${SUPABASE_URL}/functions/v1/sheet-rpb?fileId=${encodeURIComponent(fileId)}&sheetName=${encodeURIComponent(sheetName)}`,
-    { headers }
+    async () => ({ headers: await authHeaders() })
   );
-  const json = await res.json();
+  const json = await bacaJson(res);
   if (!res.ok) throw new Error(json?.error || `Gagal memuat RPB (${res.status})`);
+  if (!json?.result) throw new Error("Jawaban dari server tidak terbaca. Coba lagi.");
   return json.result as RpbTabData;
 }
 
 /** Simpan isi tab RPB — butuh GOOGLE_SERVICE_ACCOUNT_JSON di-set di Supabase secrets. */
 export async function writeRpbTab(fileId: string, sheetName: string, payload: RpbTabData): Promise<void> {
-  const headers = await authHeaders();
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/sheet-rpb`, {
+  const res = await panggilFungsi(`${SUPABASE_URL}/functions/v1/sheet-rpb`, async () => ({
     method: "POST",
-    headers: { ...headers, "Content-Type": "application/json" },
+    headers: { ...(await authHeaders()), "Content-Type": "application/json" },
     body: JSON.stringify({ fileId, sheetName, ...payload }),
-  });
-  const json = await res.json();
+  }));
+  const json = await bacaJson(res);
   if (!res.ok) throw new Error(json?.error || `Gagal menyimpan RPB (${res.status})`);
 }
 

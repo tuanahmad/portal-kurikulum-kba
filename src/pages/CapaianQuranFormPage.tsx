@@ -1,3 +1,4 @@
+import { isianSama } from "../lib/jaringan";
 import { EmptyState } from "../components/EmptyState";
 import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
@@ -10,6 +11,8 @@ import {
   studentIndexFor,
   type CapaianQuranData,
   type CapaianQuranSection,
+  susunPenulisan,
+  matchRosterToStudents,
 } from "../lib/capaianQuranSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
@@ -116,18 +119,35 @@ export default function CapaianQuranFormPage() {
     setError(null);
     setSaveMsg(null);
     try {
+      // 1) Baca keadaan TERBARU file, supaya yang ditulis cocok dengan baris sebenarnya dan tidak menimpa isi yang baru berubah.
+      const terbaru = await readCapaianQuran(fileId, bulan);
+      const secBaru = terbaru.sections.find((s) => s.name === section.name);
+      if (!secBaru) throw new Error("Bagian ini tidak ditemukan di file. Muat ulang halaman lalu coba lagi.");
+      const rencana = susunPenulisan(secBaru, roster, values, baselineValues, slot);
       await writeCapaianQuranSlot({
         fileId,
         tab: bulan,
         sectionName: section.name,
         slotIndex: slot,
-        roster,
-        values,
+        roster: rencana.roster,
+        values: rencana.values,
       });
       // Refetch abis simpan -- tanpa ini, `data` di state tetap versi SEBELUM disimpan, jadi
       // kalau guru pindah slot/section terus balik lagi ke slot yang baru diedit, useEffect di
       // atas nge-populate ulang `values` dari data LAMA itu (keliatan kaya editannya "ilang").
       const fresh = await readCapaianQuran(fileId, bulan);
+      // 2) Cek ulang: semua isian yang guru ubah harus terbaca balik dari file. Kalau tidak, JANGAN anggap tersimpan.
+      const secFresh = fresh.sections.find((s) => s.name === section.name);
+      const petaFresh = secFresh ? matchRosterToStudents(secFresh, roster) : [];
+      let belumTerbaca = 0;
+      roster.forEach((_n, r) => {
+        if (values[r] === baselineValues[r] || !values[r].trim()) return;
+        const terbaca = secFresh && petaFresh[r] >= 0 ? secFresh.students[petaFresh[r]]?.values?.[slot - 1] ?? "" : "";
+        if (!isianSama(values[r], terbaca)) belumTerbaca++;
+      });
+      if (belumTerbaca > 0) {
+        throw new Error(`${belumTerbaca} isian belum terbaca di file setelah disimpan. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.`);
+      }
       setData(fresh);
       draft.clear();
       toast.sukses("Tersimpan");

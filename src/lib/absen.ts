@@ -1,3 +1,4 @@
+import { ramahkanGalat } from "./jaringan";
 import { supabase } from "./supabaseClient";
 
 // helper tanggal/pekan dipakai bareng dgn Jurnal
@@ -190,7 +191,9 @@ export async function saveAbsenDay(params: {
   const p = clean(params.pagi);
   const g = clean(params.siang);
 
-  const { error } = await supabase.from("absen_guru").upsert(
+  const { data, error } = await supabase
+    .from("absen_guru")
+    .upsert(
     {
       user_id: user.id,
       kelas: params.kelas,
@@ -205,8 +208,14 @@ export async function saveAbsenDay(params: {
       keterangan_siang: g.keterangan,
     },
     { onConflict: "user_id,tanggal" }
-  );
-  if (error) throw new Error(error.message);
+    )
+    .select("status_pagi, status_siang")
+    .maybeSingle();
+  if (error) throw new Error(ramahkanGalat(error.message));
+  // Cek ulang: baris harus benar-benar ada dan statusnya sama dengan yang dikirim.
+  if (!data || data.status_pagi !== p.status || data.status_siang !== g.status) {
+    throw new Error("Absen belum tercatat di server. Isianmu masih aman di perangkat; tekan Simpan sekali lagi.");
+  }
 }
 
 export type AbsenBulanRow = { kelas: string; tanggal: string; pagi: SesiEntry; siang: SesiEntry };

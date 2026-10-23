@@ -1,3 +1,4 @@
+import { ramahkanGalat } from "./jaringan";
 import { supabase } from "./supabaseClient";
 
 export type TasmiRecord = {
@@ -65,7 +66,7 @@ export async function createTasmiRecord(kelas: string, draft: TasmiDraft): Promi
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Sesi login habis, coba masuk lagi.");
 
-  const { error } = await supabase.from("tasmi_records").insert({
+  const { data, error } = await supabase.from("tasmi_records").insert({
     user_id: user.id,
     kelas,
     tanggal: draft.tanggal,
@@ -76,12 +77,13 @@ export async function createTasmiRecord(kelas: string, draft: TasmiDraft): Promi
     juz: draft.juz.trim(),
     durasi: draft.durasi.trim(),
     jumlah_kesalahan: draft.jumlah_kesalahan,
-  });
-  if (error) throw new Error(error.message);
+  }).select("id");
+  if (error) throw new Error(ramahkanGalat(error.message));
+  if (!data || data.length === 0) throw new Error("Catatan belum tercatat di server. Isianmu masih aman di perangkat; tekan Simpan sekali lagi.");
 }
 
 export async function updateTasmiRecord(id: string, draft: TasmiDraft): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("tasmi_records")
     .update({
       tanggal: draft.tanggal,
@@ -93,13 +95,17 @@ export async function updateTasmiRecord(id: string, draft: TasmiDraft): Promise<
       durasi: draft.durasi.trim(),
       jumlah_kesalahan: draft.jumlah_kesalahan,
     })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
+    .eq("id", id)
+    .select("id");
+  if (error) throw new Error(ramahkanGalat(error.message));
+  // Tanpa cek ini, ubah catatan yang tidak ditemukan / tidak boleh diubah akan tampak "berhasil" padahal tidak ada yang berubah.
+  if (!data || data.length === 0) throw new Error("Perubahan tidak tersimpan: catatan tidak ditemukan atau tidak boleh diubah. Muat ulang halaman.");
 }
 
 export async function deleteTasmiRecord(id: string): Promise<void> {
-  const { error } = await supabase.from("tasmi_records").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  const { data, error } = await supabase.from("tasmi_records").delete().eq("id", id).select("id");
+  if (error) throw new Error(ramahkanGalat(error.message));
+  if (!data || data.length === 0) throw new Error("Catatan tidak terhapus: tidak ditemukan atau tidak boleh dihapus. Muat ulang halaman.");
 }
 
 export type TasmiRekapRow = {

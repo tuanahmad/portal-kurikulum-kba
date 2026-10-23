@@ -1,3 +1,4 @@
+import { panggilFungsi, bacaJson } from "./jaringan";
 import { supabase } from "./supabaseClient";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -110,13 +111,13 @@ async function authHeaders() {
 }
 
 export async function readCapaianQuran(fileId: string, tab: string): Promise<CapaianQuranData> {
-  const headers = await authHeaders();
-  const res = await fetch(
+  const res = await panggilFungsi(
     `${SUPABASE_URL}/functions/v1/sheet-capaian-quran?fileId=${encodeURIComponent(fileId)}&tab=${encodeURIComponent(tab)}`,
-    { headers }
+    async () => ({ headers: await authHeaders() })
   );
-  const json = await res.json();
+  const json = await bacaJson(res);
   if (!res.ok) throw new Error(json?.error || `Gagal memuat Capaian Al-Qur'an (${res.status})`);
+  if (!json?.result) throw new Error("Jawaban dari server tidak terbaca. Coba lagi.");
   return json.result as CapaianQuranData;
 }
 
@@ -129,12 +130,44 @@ export async function writeCapaianQuranSlot(params: {
   roster: string[];
   values: string[];
 }): Promise<void> {
-  const headers = await authHeaders();
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/sheet-capaian-quran`, {
+  const res = await panggilFungsi(`${SUPABASE_URL}/functions/v1/sheet-capaian-quran`, async () => ({
     method: "POST",
-    headers: { ...headers, "Content-Type": "application/json" },
+    headers: { ...(await authHeaders()), "Content-Type": "application/json" },
     body: JSON.stringify(params),
+  }));
+  const json = await bacaJson(res);
+  if (!res.ok || !json?.ok) throw new Error(json?.error || `Gagal menyimpan Capaian Al-Qur'an (${res.status})`);
+}
+
+/** Susun data yang AKAN DITULIS ke file supaya cocok dengan baris sebenarnya di sheet (server menulis berdasarkan urutan baris):
+ *  - santri ditempatkan di baris tempat namanya benar-benar berada (urutan baris di file boleh beda dari daftar santri);
+ *  - nama yang sudah ada di file tidak diganti;
+ *  - sel yang TIDAK diubah guru memakai isi TERBARU di file (bukan isi lama saat halaman dimuat), jadi tidak menimpa
+ *    perubahan orang lain / data yang baru masuk; hanya sel yang guru ubah yang ditulis. */
+export function susunPenulisan(section: CapaianQuranSection, roster: string[], values: string[], baseline: string[], slot: number): { roster: string[]; values: string[] } {
+  const peta = matchRosterToStudents(section, roster);
+  const siswa = section.students;
+  const dipakai = peta.filter((i) => i >= 0);
+  const panjang = dipakai.length ? Math.max(...dipakai) + 1 : 0;
+  const namaOut: string[] = [];
+  const nilaiOut: string[] = [];
+  for (let j = 0; j < panjang; j++) {
+    const r = peta.indexOf(j);
+    const baris = siswa[j];
+    const ada = baris?.values?.[slot - 1] ?? "";
+    if (r >= 0) {
+      namaOut.push(baris?.nama?.trim() ? baris.nama : roster[r]);
+      nilaiOut.push(values[r] !== baseline[r] ? values[r] : ada);
+    } else {
+      namaOut.push(baris?.nama ?? "");
+      nilaiOut.push(ada);
+    }
+  }
+  roster.forEach((nama, r) => {
+    if (peta[r] < 0) {
+      namaOut.push(nama);
+      nilaiOut.push(values[r] ?? "");
+    }
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json?.error || `Gagal menyimpan Capaian Al-Qur'an (${res.status})`);
+  return { roster: namaOut, values: nilaiOut };
 }

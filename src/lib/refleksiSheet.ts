@@ -1,3 +1,4 @@
+import { panggilFungsi, bacaJson } from "./jaringan";
 import { supabase } from "./supabaseClient";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -28,23 +29,22 @@ async function authHeaders() {
 }
 
 export async function readReflectionTab(fileId: string, sheetName: string): Promise<ReflectionData> {
-  const headers = await authHeaders();
-  const res = await fetch(
+  const res = await panggilFungsi(
     `${SUPABASE_URL}/functions/v1/sheet-refleksi?fileId=${encodeURIComponent(fileId)}&sheetName=${encodeURIComponent(sheetName)}`,
-    { headers }
+    async () => ({ headers: await authHeaders() })
   );
-  const json = await res.json();
+  const json = await bacaJson(res);
   if (!res.ok) throw new Error(json?.error || `Gagal memuat Refleksi (${res.status})`);
+  if (!json?.result) throw new Error("Jawaban dari server tidak terbaca. Coba lagi.");
   return json.result as ReflectionData;
 }
 
 export async function writeReflectionTab(fileId: string, sheetName: string, payload: ReflectionData): Promise<void> {
-  const headers = await authHeaders();
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/sheet-refleksi`, {
+  const res = await panggilFungsi(`${SUPABASE_URL}/functions/v1/sheet-refleksi`, async () => ({
     method: "POST",
-    headers: { ...headers, "Content-Type": "application/json" },
+    headers: { ...(await authHeaders()), "Content-Type": "application/json" },
     body: JSON.stringify({ fileId, sheetName, ...payload }),
-  });
-  const json = await res.json();
+  }));
+  const json = await bacaJson(res);
   if (!res.ok) throw new Error(json?.error || `Gagal menyimpan Refleksi (${res.status})`);
 }

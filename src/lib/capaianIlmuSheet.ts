@@ -1,3 +1,4 @@
+import { panggilFungsi, bacaJson } from "./jaringan";
 import { supabase } from "./supabaseClient";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -23,13 +24,13 @@ async function authHeaders() {
 }
 
 export async function readCapaianIlmu(fileId: string, bulan: string): Promise<CapaianIlmuData> {
-  const headers = await authHeaders();
-  const res = await fetch(
+  const res = await panggilFungsi(
     `${SUPABASE_URL}/functions/v1/sheet-capaian-ilmu?fileId=${encodeURIComponent(fileId)}&bulan=${encodeURIComponent(bulan)}`,
-    { headers }
+    async () => ({ headers: await authHeaders() })
   );
-  const json = await res.json();
+  const json = await bacaJson(res);
   if (!res.ok) throw new Error(json?.error || `Gagal memuat Capaian Ilmu (${res.status})`);
+  if (!json?.result) throw new Error("Jawaban dari server tidak terbaca. Coba lagi.");
   return json.result as CapaianIlmuData;
 }
 
@@ -39,12 +40,11 @@ export async function writeCapaianIlmu(params: {
   cells: { bidangKey: string; anakIdx: number; value: string }[];
   names?: { anakIdx: number; nama: string }[];
 }): Promise<void> {
-  const headers = await authHeaders();
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/sheet-capaian-ilmu`, {
+  const res = await panggilFungsi(`${SUPABASE_URL}/functions/v1/sheet-capaian-ilmu`, async () => ({
     method: "POST",
-    headers: { ...headers, "Content-Type": "application/json" },
+    headers: { ...(await authHeaders()), "Content-Type": "application/json" },
     body: JSON.stringify(params),
-  });
-  const json = await res.json();
+  }));
+  const json = await bacaJson(res);
   if (!res.ok) throw new Error(json?.error || `Gagal menyimpan Capaian Ilmu (${res.status})`);
 }

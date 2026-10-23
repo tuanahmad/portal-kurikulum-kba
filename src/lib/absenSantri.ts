@@ -1,3 +1,4 @@
+import { ramahkanGalat } from "./jaringan";
 import { supabase } from "./supabaseClient";
 
 export type { SesiKey } from "./absen";
@@ -85,8 +86,11 @@ export async function saveAbsenSantriDay(kelas: string, tanggal: string, entries
     };
   });
 
-  const { error } = await supabase.from("absen_santri").upsert(rows, { onConflict: "kelas,tanggal,nama_santri" });
-  if (error) throw new Error(error.message);
+  const { data, error } = await supabase.from("absen_santri").upsert(rows, { onConflict: "kelas,tanggal,nama_santri" }).select("nama_santri");
+  if (error) throw new Error(ramahkanGalat(error.message));
+  if (!data || data.length < rows.length) {
+    throw new Error("Absen santri belum tercatat lengkap di server. Isianmu masih aman di perangkat; tekan Simpan sekali lagi.");
+  }
 }
 
 export type AbsenSantriRekapRow = {

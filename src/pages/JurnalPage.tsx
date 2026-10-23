@@ -1,3 +1,4 @@
+import { GagalMuat } from "../components/GagalMuat";
 import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { C } from "../data";
@@ -61,6 +62,7 @@ function GuruJurnal() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDay, setOpenDay] = useState<string | null>(null);
+  const [muatUlang, setMuatUlang] = useState(0);
 
   const atThisWeek = ymd(monday) >= ymd(thisMonday);
 
@@ -82,7 +84,7 @@ function GuruJurnal() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monday]);
+  }, [monday, muatUlang]);
 
   if (!kelas) {
     return (
@@ -114,15 +116,12 @@ function GuruJurnal() {
           onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
         />
 
-        {error && (
-          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-            {error}
-          </div>
-        )}
         {loading ? (
           <div className="mt-5">
             <PageLoadingSkeleton />
           </div>
+        ) : error ? (
+          <GagalMuat pesan={error} onUlang={() => setMuatUlang((n) => n + 1)} />
         ) : (
           <div className="mt-5 space-y-3">
             {days.map((d) => {

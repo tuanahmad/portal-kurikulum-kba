@@ -1,3 +1,4 @@
+import { ramahkanGalat } from "./jaringan";
 import { supabase } from "./supabaseClient";
 
 export type JurnalEntry = {
@@ -131,18 +132,26 @@ export async function saveJurnalDay(params: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Sesi login habis, coba masuk lagi.");
 
-  const { error } = await supabase.from("jurnal_harian").upsert(
-    {
-      user_id: user.id,
-      kelas: params.kelas,
-      tanggal: params.tanggal,
-      kondisi_guru: params.kondisi_guru,
-      kondisi_santri: params.kondisi_santri,
-      kabar_kendala: params.kabar_kendala,
-    },
-    { onConflict: "user_id,tanggal" }
-  );
-  if (error) throw new Error(error.message);
+  const { data, error } = await supabase
+    .from("jurnal_harian")
+    .upsert(
+      {
+        user_id: user.id,
+        kelas: params.kelas,
+        tanggal: params.tanggal,
+        kondisi_guru: params.kondisi_guru,
+        kondisi_santri: params.kondisi_santri,
+        kabar_kendala: params.kabar_kendala,
+      },
+      { onConflict: "user_id,tanggal" }
+    )
+    .select("kondisi_guru, kondisi_santri, kabar_kendala")
+    .maybeSingle();
+  if (error) throw new Error(ramahkanGalat(error.message));
+  // Cek ulang: baris harus benar-benar ada dan isinya sama dengan yang dikirim.
+  if (!data || data.kondisi_guru !== params.kondisi_guru || data.kondisi_santri !== params.kondisi_santri || data.kabar_kendala !== params.kabar_kendala) {
+    throw new Error("Jurnal belum tercatat di server. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.");
+  }
 }
 
 export function isEntryFilled(e: JurnalEntry | undefined): boolean {
