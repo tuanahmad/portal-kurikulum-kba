@@ -352,72 +352,88 @@ const bentukTanggal = (date: Date): TanggalSlot => ({ date, hari: HARI_PENDEK[da
 
 /** Tanggal untuk "pertemuan ke-N" (null kalau N melebihi jumlah hari kerja di bulan itu). */
 export function tanggalSlot(monthName: string, slot: number): TanggalSlot | null {
+  if (polaGridBulan(monthName)) {
+    const g = tanggalGrid(monthName, slot);
+    return g ? bentukTanggal(g) : null;
+  }
   const d = hariKerjaBulan(monthName)[slot - 1];
   return d ? bentukTanggal(d) : null;
 }
 
-/** Pekan KALENDER (Senin-Jumat) dalam bulan itu: tiap pekan berisi nomor-nomor pertemuan (berurutan) pada pekan itu.
- *  Pekan 1 bisa pendek, mis. Okt 2026: Kamis 1 & Jumat 2 = pertemuan 1-2 (pekan 1); 5-9 Okt = pertemuan 3-7 (pekan 2). */
-function pekanKalender(monthName: string): number[][] {
-  const hk = hariKerjaBulan(monthName);
-  const out: number[][] = [];
-  let kunci = "";
-  hk.forEach((d, i) => {
-    const senin = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() - 1));
-    const k = `${senin.getFullYear()}-${senin.getMonth()}-${senin.getDate()}`;
-    if (k !== kunci) {
-      out.push([]);
-      kunci = k;
-    }
-    out[out.length - 1].push(i + 1);
-  });
-  return out;
+/** Mulai bulan ini nomor pertemuan = GRID kalender: pertemuan 1-5 = Senin-Jumat pekan pertama, 6-10 = pekan kedua, dst.
+ *  Kalau tanggal 1 jatuh hari Kamis (Okt 2026), pertemuan 1-3 dibiarkan kosong dan 1 Okt = pertemuan 4.
+ *  Bulan sebelumnya tetap berurutan dari hari kerja pertama (data lama tidak diubah). */
+const GRID_MULAI_BULAN = "Oktober";
+
+export function polaGridBulan(monthName: string): boolean {
+  return !!kalenderBulan(monthName) && academicIndexOf(monthName) >= academicIndexOf(GRID_MULAI_BULAN);
 }
 
-/** Nomor pertemuan pada pekan ke-W (maks. sampai `maxSlot`). Pekan terakhir juga memuat nomor di luar hari kerja bulan itu. */
-export function slotsDiPekan(monthName: string, pekan: number, maxSlot: number): number[] {
-  const p = pekanKalender(monthName);
-  if (!p.length) return Array.from({ length: 5 }, (_, j) => (pekan - 1) * 5 + j + 1).filter((s) => s <= maxSlot);
-  const isi = [...(p[pekan - 1] ?? [])];
-  if (pekan === p.length) for (let s = p[p.length - 1][p[p.length - 1].length - 1] + 1; s <= maxSlot; s++) isi.push(s);
-  return isi.filter((s) => s <= maxSlot);
+/** Senin pada pekan kalender yang memuat hari kerja pertama bulan itu (bisa jatuh di bulan sebelumnya;
+ *  kalau tanggal 1 jatuh Sabtu/Minggu, pekan 1 = pekan berikutnya, mis. Nov 2026: 2 Nov = pertemuan 1). */
+function seninPekan1(k: { year: number; month0: number }): Date {
+  const pertama = new Date(k.year, k.month0, 1);
+  while (pertama.getDay() === 0 || pertama.getDay() === 6) pertama.setDate(pertama.getDate() + 1);
+  return new Date(pertama.getFullYear(), pertama.getMonth(), pertama.getDate() - ((pertama.getDay() + 6) % 7));
 }
 
-/** Pekan (kalender) tempat pertemuan ke-N berada. */
-export function pekanUntukSlot(monthName: string, slot: number): number {
-  const p = pekanKalender(monthName);
-  if (!p.length) return Math.ceil(slot / 5);
-  const i = p.findIndex((w) => w.includes(slot));
-  return i >= 0 ? i + 1 : p.length;
+/** Tanggal untuk pertemuan ke-N pada pola grid; null kalau jatuh di luar bulan itu. */
+function tanggalGrid(monthName: string, slot: number): Date | null {
+  const k = kalenderBulan(monthName);
+  if (!k || slot < 1) return null;
+  const s0 = slot - 1;
+  const sen = seninPekan1(k);
+  const d = new Date(sen.getFullYear(), sen.getMonth(), sen.getDate() + Math.floor(s0 / 5) * 7 + (s0 % 5));
+  return d.getMonth() === k.month0 && d.getFullYear() === k.year ? d : null;
 }
 
-/** Rentang tanggal "pekan ke-W" (hari kerja pertama .. terakhir pada pekan itu). */
+/** Nomor pertemuan pada pekan ke-W: pekan 1 = pertemuan 1-5, pekan 2 = 6-10, dst (dipotong sampai `maxSlot`). */
+export function slotsDiPekan(_monthName: string, pekan: number, maxSlot: number): number[] {
+  return Array.from({ length: 5 }, (_, j) => (pekan - 1) * 5 + j + 1).filter((s) => s <= maxSlot);
+}
+
+/** Pekan tempat pertemuan ke-N berada. */
+export function pekanUntukSlot(_monthName: string, slot: number): number {
+  return Math.ceil(slot / 5);
+}
+
+/** Rentang tanggal "pekan ke-W": hari pertama .. terakhir yang punya tanggal pada pekan itu (pekan 1 Okt 2026 = 1-2 Okt). */
 export function rentangPekan(monthName: string, pekan: number): { awal: TanggalSlot; akhir: TanggalSlot } | null {
-  const w = pekanKalender(monthName)[pekan - 1];
-  if (!w) return null;
-  const awal = tanggalSlot(monthName, w[0]);
-  const akhir = tanggalSlot(monthName, w[w.length - 1]);
-  return awal && akhir ? { awal, akhir } : null;
+  const ada = slotsDiPekan(monthName, pekan, 25)
+    .map((s) => tanggalSlot(monthName, s))
+    .filter((x): x is TanggalSlot => !!x);
+  return ada.length ? { awal: ada[0], akhir: ada[ada.length - 1] } : null;
 }
 
 /** Nomor pertemuan untuk sebuah tanggal (akhir pekan / di luar bulan -> null). */
 export function slotUntukTanggal(monthName: string, tanggal: Date, maxSlot: number): number | null {
+  if (polaGridBulan(monthName)) {
+    const k = kalenderBulan(monthName);
+    if (!k || tanggal.getFullYear() !== k.year || tanggal.getMonth() !== k.month0) return null;
+    const dow = (tanggal.getDay() + 6) % 7; // 0 = Senin
+    if (dow > 4) return null;
+    const sen = seninPekan1(k);
+    const hari = Math.round((new Date(tanggal.getFullYear(), tanggal.getMonth(), tanggal.getDate()).getTime() - sen.getTime()) / 86400000);
+    const slot = Math.floor(hari / 7) * 5 + dow + 1;
+    return slot <= maxSlot ? slot : null;
+  }
   const hk = hariKerjaBulan(monthName);
   const i = hk.findIndex((d) => d.getFullYear() === tanggal.getFullYear() && d.getMonth() === tanggal.getMonth() && d.getDate() === tanggal.getDate());
   return i >= 0 && i + 1 <= maxSlot ? i + 1 : null;
 }
 
-/** Jumlah pekan kalender dalam sebulan. Okt 2026: 1-2, 5-9, 12-16, 19-23, 26-30 = 5 pekan. */
+/** Jumlah pekan dalam sebulan. Okt 2026 (grid): 1-2, 5-9, 12-16, 19-23, 26-30 = 5 pekan. */
 export function pekanGridCount(monthName: string): number {
-  return pekanKalender(monthName).length || 5;
-}
-
-/** Pekan ke berapa (kalender, dalam bulan tanggal itu) sebuah tanggal. Akhir pekan dihitung ikut pekan yang baru lewat. */
-export function pekanKalenderKe(d: Date): number {
-  const senin = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate() - ((x.getDay() + 6) % 7));
-  const awal = new Date(d.getFullYear(), d.getMonth(), 1);
-  while (awal.getDay() === 0 || awal.getDay() === 6) awal.setDate(awal.getDate() + 1);
-  return Math.max(1, Math.round((senin(d).getTime() - senin(awal).getTime()) / 604800000) + 1);
+  const k = kalenderBulan(monthName);
+  if (!k) return 5;
+  if (polaGridBulan(monthName)) {
+    const akhir = new Date(k.year, k.month0 + 1, 0);
+    while (akhir.getDay() === 0 || akhir.getDay() === 6) akhir.setDate(akhir.getDate() - 1);
+    const s = slotUntukTanggal(monthName, akhir, 999);
+    return s ? Math.ceil(s / 5) : 5;
+  }
+  const n = hariKerjaBulan(monthName).length;
+  return n ? Math.ceil(n / 5) : 5;
 }
 
 /** Posisi "sekarang" dalam urutan tahun ajaran (1-12), atau 0 kalau belum masuk tahun ajaran ini

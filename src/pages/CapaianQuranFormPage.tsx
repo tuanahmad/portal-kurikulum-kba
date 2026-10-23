@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
-import { C, capaianQuranFileId, capaianRoster, isMonthOpen, sheetUrl, tanggalSlot, rentangPekan, slotUntukTanggal, pekanGridCount, slotsDiPekan, pekanUntukSlot } from "../data";
+import { C, capaianQuranFileId, capaianRoster, isMonthOpen, sheetUrl, tanggalSlot, rentangPekan, slotUntukTanggal, pekanGridCount, slotsDiPekan, pekanUntukSlot, polaGridBulan } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import {
   readCapaianQuran,
@@ -240,23 +240,25 @@ export default function CapaianQuranFormPage() {
                   const tg = isPekanSec ? rp?.awal ?? null : bulan ? tanggalSlot(bulan, n) : null;
                   const tgAkhir = rp?.akhir ?? null;
                   const luar = !tg; // melebihi jumlah hari kerja bulan ini
+                  const nonaktif = luar && !isPekanSec && !!bulan && polaGridBulan(bulan); // pola grid: tidak ada tanggalnya, dibiarkan kosong
                   const hariIniIni = slotHariIni === n;
                   return (
                     <button
                       key={n}
+                      disabled={nonaktif}
                       onClick={() => {
                         setSlot(active ? null : n);
                         setSaveMsg(null);
                       }}
-                      className={`rounded-lg font-semibold transition-colors ${isPekanSec ? "px-3 h-11 text-sm text-left" : "w-14 h-14 text-sm"}`}
+                      className={`rounded-lg font-semibold transition-colors ${nonaktif ? "cursor-not-allowed " : ""}${isPekanSec ? "px-3 h-11 text-sm text-left" : "w-14 h-14 text-sm"}`}
                       style={{
                         background: active ? C.green : "#FFF",
                         color: active ? "#FFF" : C.ink,
                         border: `1px solid ${active ? C.green : hariIniIni ? C.gold : C.line}`,
                         boxShadow: hariIniIni && !active ? `0 0 0 2px ${C.goldSoft}` : undefined,
-                        opacity: luar && !active ? 0.5 : 1,
+                        opacity: nonaktif ? 0.35 : luar && !active ? 0.5 : 1,
                       }}
-                      title={tg ? `${tg.hari}, ${tg.tgl}${hariIniIni ? " — hari ini" : ""}` : "melebihi jumlah hari kerja bulan ini"}
+                      title={tg ? `${tg.hari}, ${tg.tgl}${hariIniIni ? " — hari ini" : ""}` : nonaktif ? "tidak ada tanggalnya bulan ini (dibiarkan kosong)" : "melebihi jumlah hari kerja bulan ini"}
                     >
                       {isPekanSec ? (
                         <>Pekan {n}{tg && tgAkhir ? <span className="ml-2 text-xs font-normal opacity-80">{tg.tgl} – {tgAkhir.tgl}</span> : null}</>
@@ -471,7 +473,7 @@ function WeekRekapAccordion({
   const isPekan = section.type === "pekan";
   const slots = isPekan ? [week] : bulan ? slotsDiPekan(bulan, week, section.slotCount) : [1, 2, 3, 4, 5].map((d) => (week - 1) * 5 + d);
   const rp = bulan ? rentangPekan(bulan, week) : null;
-  const validSlots = slots.filter((s) => s <= section.slotCount);
+  const validSlots = slots.filter((s) => s <= section.slotCount && (isPekan || !bulan || !polaGridBulan(bulan) || !!tanggalSlot(bulan, s)));
   const hasAny = roster.some((_nama, ri) => {
     const idx = studentIndexFor(section, roster, ri);
     return idx >= 0 && validSlots.some((s) => isFilled(section.students[idx]?.values?.[s - 1]));

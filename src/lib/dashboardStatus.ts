@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { ymd } from "./jurnal";
-import { capaianQuranFileId, pekanKalenderKe, slotsDiPekan } from "../data";
+import { capaianQuranFileId, pekanUntukSlot, slotUntukTanggal, slotsDiPekan } from "../data";
 import { readCapaianQuran } from "./capaianQuranSheet";
 
 export type TodayStatus = {
@@ -13,9 +13,12 @@ export type TodayStatus = {
 
 const MONTH_NAMES = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-/** Pekan kalender (Senin-Jumat) ke berapa dalam bulan ini; pekan 1 bisa pendek (lihat data.ts). */
-function pekanKeBerapa(d: Date): number {
-  return pekanKalenderKe(d);
+/** Pekan ke berapa (menurut nomor pertemuan di sheet, lihat data.ts) untuk hari ini; akhir pekan dihitung ikut Jumat terakhir. */
+function pekanKeBerapa(d: Date, bulanNama: string): number {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  while (x.getDay() === 0 || x.getDay() === 6) x.setDate(x.getDate() - 1);
+  const slot = slotUntukTanggal(bulanNama, x, 999);
+  return slot ? pekanUntukSlot(bulanNama, slot) : 1;
 }
 
 function isFilled(v: string | undefined): boolean {
@@ -46,7 +49,7 @@ export async function readTodayStatus(allKelas: string[]): Promise<TodayStatus> 
   const today = ymd(new Date());
   const now = new Date();
   const bulanNama = MONTH_NAMES[now.getMonth()];
-  const pekanIdx = pekanKeBerapa(now);
+  const pekanIdx = pekanKeBerapa(now, bulanNama);
 
   const [{ data: jurnalRows }, { data: absenRows }, quranResults] = await Promise.all([
     supabase.from("jurnal_harian").select("kelas").eq("tanggal", today),
