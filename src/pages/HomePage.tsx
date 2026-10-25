@@ -25,8 +25,8 @@ export default function HomePage() {
             Sedikit melebar ke kiri-kanan supaya tidak ada garis celah di tepi (yang muncul pada background-attachment: fixed). */}
         <div className="absolute inset-0" style={{ clipPath: "inset(0)" }} aria-hidden="true">
           <div
-            className="fixed inset-y-0 -left-8 -right-8"
-            style={{ backgroundImage: "url(/images/hero-banner.jpg)", backgroundSize: "cover", backgroundPosition: "center", height: "100lvh" }}
+            className="fixed top-0 -left-8 -right-8 h-[26rem] sm:h-[30rem] md:h-[34rem]"
+            style={{ backgroundImage: "url(/images/hero-banner.jpg)", backgroundSize: "cover", backgroundPosition: "center" }}
           />
         </div>
         <div className="absolute inset-0" style={{ background: "rgba(20, 40, 30, 0.58)" }} aria-hidden="true" />
