@@ -21,12 +21,12 @@ export default function HomePage() {
 
       {/* Hero foto — full width, parallax di layar besar (md ke atas), scroll biasa di mobile */}
       <div className="relative h-[26rem] sm:h-[30rem] md:h-[34rem] overflow-hidden" style={{ background: "#1B3327 url(/images/hero-banner.jpg) center / cover no-repeat" }}>
-        {/* Parallax di layar besar: lapisan foto menempel ke layar (fixed) lalu dipotong seukuran hero (clip-path).
+        {/* Parallax (HP & layar besar): lapisan foto menempel ke layar (fixed) lalu dipotong seukuran hero (clip-path).
             Sedikit melebar ke kiri-kanan supaya tidak ada garis celah di tepi (yang muncul pada background-attachment: fixed). */}
         <div className="absolute inset-0" style={{ clipPath: "inset(0)" }} aria-hidden="true">
           <div
-            className="absolute inset-0 md:fixed md:-left-8 md:-right-8"
-            style={{ backgroundImage: "url(/images/hero-banner.jpg)", backgroundSize: "cover", backgroundPosition: "center" }}
+            className="fixed inset-y-0 -left-8 -right-8"
+            style={{ backgroundImage: "url(/images/hero-banner.jpg)", backgroundSize: "cover", backgroundPosition: "center", height: "100lvh" }}
           />
         </div>
         <div className="absolute inset-0" style={{ background: "rgba(20, 40, 30, 0.58)" }} aria-hidden="true" />
