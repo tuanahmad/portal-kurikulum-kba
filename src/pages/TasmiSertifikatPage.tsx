@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { C, LOGO } from "../data";
+import { C } from "../data";
 import { readTasmiById, type TasmiRecord } from "../lib/tasmi";
 import { FullPageSkeleton } from "../components/Skeleton";
 import { kelompokSantri } from "../lib/roster";
@@ -176,7 +176,7 @@ function Certificate({
 
       {/* Konten -- vertikal (portrait): lambang di atas, logo+nama di bawahnya, baru judul dst.
           turun ke bawah, beda dari versi landscape yang logo & lambang sejajar 2 kolom. */}
-      <div className="absolute inset-0 flex flex-col items-center text-center px-[9%]" style={{ paddingTop: "6%", paddingBottom: "5%" }}>
+      <div className="absolute inset-0 flex flex-col items-center text-center px-[9%]" style={{ paddingTop: "10%", paddingBottom: "11%" }}>
         {/* Lambang bulat Al-Qur'an */}
         <div
           className="rounded-full flex items-center justify-center shrink-0"
@@ -185,19 +185,12 @@ function Certificate({
           <QuranIcon />
         </div>
 
-        {/* Logo + nama muassasah */}
-        <div className="flex flex-col items-center" style={{ marginTop: "3%" }}>
-          <img
-            src={LOGO}
-            alt="Logo Kuttab Budi Ashari"
-            style={{ width: "68px", mixBlendMode: "multiply", filter: "brightness(1.04)" }}
-          />
-          <div style={{ fontFamily: "'Tajawal', sans-serif", fontWeight: 700, fontSize: "clamp(11px, 2vw, 15px)", color: C.green, marginTop: "2%" }}>
-            كُتّاب بودي أزهري
-          </div>
-          <div style={{ fontSize: "clamp(9px, 1.5vw, 11px)", color: C.muted, fontWeight: 600 }} dir="ltr">
-            Kuttab Budi Ashari
-          </div>
+        {/* Nama muassasah (tulisan saja) */}
+        <div
+          style={{ marginTop: "3%", fontWeight: 700, fontSize: "clamp(14px, 2.6vw, 18px)", color: C.green, letterSpacing: "0.02em" }}
+          dir="ltr"
+        >
+          Kuttab Budi Ashari
         </div>
 
         {/* Judul kaligrafi */}
@@ -212,7 +205,7 @@ function Certificate({
             lineHeight: 1,
           }}
         >
-          بُشرى تسميع
+          شهادة تسميع
         </div>
 
         {/* Pita keterangan */}
