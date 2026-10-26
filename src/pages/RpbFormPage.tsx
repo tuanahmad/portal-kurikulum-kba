@@ -1,3 +1,4 @@
+import { AutoTextarea } from "../components/AutoTextarea";
 import { lembut } from "../lib/warna";
 import { hapusCacheStatus } from "../lib/dashboardStatus";
 import { hitungTeksHilang } from "../lib/jaringan";
@@ -642,19 +643,20 @@ function WeeklyBreakdown({
             >
               Pekan {it.pekan}
             </span>
-            <input
+            <AutoTextarea
               value={it.subIlmu}
               onChange={(e) => onChange(it.idx, 2, e.target.value)}
               placeholder="Sub-Ilmu"
-              className="w-full text-xs outline-none px-2.5 py-1.5 rounded-md mb-1.5"
+              satuBaris
+              className="block w-full text-xs outline-none px-2.5 py-1.5 rounded-md mb-1.5"
               style={{ background: "#FFF", border: `1px solid ${C.line}` }}
             />
-            <textarea
+            <AutoTextarea
               value={it.metode}
               onChange={(e) => onChange(it.idx, 3, e.target.value)}
               placeholder="Metode Pengajaran"
               rows={2}
-              className="w-full text-xs outline-none px-2.5 py-1.5 rounded-md resize-none"
+              className="block w-full text-xs outline-none px-2.5 py-1.5 rounded-md"
               style={{ background: "#FFF", border: `1px solid ${C.line}` }}
             />
           </div>
