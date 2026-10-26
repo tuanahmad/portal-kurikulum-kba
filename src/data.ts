@@ -165,8 +165,8 @@ export function capaianIlmuBidangFlat(kelas: string): IlmuBidang[] {
   return capaianIlmuBidang(kelas).flatMap((g) => g.items);
 }
 
-/** Sertifikat Tasmi' DIKUNCI dulu (format belum final): tombol disembunyikan dan alamatnya dialihkan. Ubah ke true untuk membuka lagi. */
-export const SERTIFIKAT_TASMI_AKTIF = false;
+/** Sertifikat (syahadah) Tasmi' DIBUKA. Ubah ke false untuk mengunci lagi (tombol disembunyikan, alamatnya dialihkan). */
+export const SERTIFIKAT_TASMI_AKTIF = true;
 
 // ————— Section 3: Capaian Santri — 12 kelas, tiap kelas punya 2 dokumen —————
 export const KELAS_LIST = [

@@ -3,11 +3,13 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { C, LOGO } from "../data";
 import { readTasmiById, type TasmiRecord } from "../lib/tasmi";
 import { FullPageSkeleton } from "../components/Skeleton";
+import { kelompokSantri } from "../lib/roster";
 
-/** Kelas Qonuni dipisah Ikhwan/Akhwat -- dipakai buat nebak gender santri (Kuttab Awwal belum
- *  dipisah di nama kelasnya, default cewek). Gak ada field gender santri tersimpan di sistem,
- *  jadi ini tebakan dari nama kelas doang. */
-function isMale(kelas: string | null): boolean {
+/** Laki-laki/perempuan: utamakan penanda kelompok santri di roster database (santri_roster.kelompok) -- penting untuk
+ *  kelas Kuttab Awwal yang campur. Kalau penandanya belum ada, baru tebak dari nama kelas (kelas "... Ikhwan"). */
+function isMale(kelas: string | null, nama: string): boolean {
+  const k = kelas ? kelompokSantri(kelas, nama) : null;
+  if (k) return k === "ikhwan";
   return !!kelas?.includes("Ikhwan");
 }
 
@@ -74,7 +76,7 @@ export default function TasmiSertifikatPage() {
     );
   }
 
-  const male = isMale(kelas);
+  const male = isMale(kelas, record.nama_santri);
   const sapaan = binOrBinti(male);
   const namaLengkap = record.nama_ayah
     ? `${record.nama_santri} ${sapaan} ${record.nama_ayah}`
