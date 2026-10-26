@@ -8,6 +8,7 @@ import { readJurnalRange, type JurnalEntry } from "../lib/jurnal";
 import { C, isMonthOpen, olahragaRoster } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { PageLoadingSkeleton } from "../components/Skeleton";
+import { GagalMuat } from "../components/GagalMuat";
 import { useDraft } from "../lib/useDraft";
 import { RuleCard } from "../components/RuleCard";
 import { MonthGrid } from "../components/MonthGrid";
@@ -141,6 +142,7 @@ function GuruRencana({ kelompok }: { kelompok: OlahragaKelompok }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openTingkat, setOpenTingkat] = useState<string | null>("KA 1");
+  const [muatUlang, setMuatUlang] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -153,7 +155,7 @@ function GuruRencana({ kelompok }: { kelompok: OlahragaKelompok }) {
     return () => {
       cancelled = true;
     };
-  }, [bulan]);
+  }, [bulan, muatUlang]);
 
   return (
     <>
@@ -162,16 +164,13 @@ function GuruRencana({ kelompok }: { kelompok: OlahragaKelompok }) {
         <MonthGrid months={BULAN_OLAHRAGA} value={bulan} onSelect={setBulan} isOpen={isMonthOpen} />
       </div>
 
-      {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-          {error}
-        </div>
-      )}
-
       {loading ? (
         <div className="mt-5">
           <PageLoadingSkeleton />
         </div>
+      ) : error ? (
+        // Data gagal dimuat: form disembunyikan, karena menyimpan form kosong akan menimpa rencana yang sudah ada.
+        <GagalMuat pesan={error} onUlang={() => setMuatUlang((n) => n + 1)} />
       ) : (
         <div className="mt-5 space-y-3">
           {TINGKAT_LIST.map((t) => (
@@ -242,12 +241,15 @@ function EvaluasiTingkatCard({
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [gagalMuat, setGagalMuat] = useState<string | null>(null);
+  const [muatUlang, setMuatUlang] = useState(0);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setLoading(true);
     setErr(null);
+    setGagalMuat(null);
     setMsg(null);
     readEvaluasiAnak(tingkat, bulan, {})
       .then((d) => {
@@ -255,13 +257,13 @@ function EvaluasiTingkatCard({
         setData(d);
         setForm(d);
       })
-      .catch((e) => !cancelled && setErr(e instanceof Error ? e.message : String(e)))
+      .catch((e) => !cancelled && setGagalMuat(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, tingkat, bulan]);
+  }, [open, tingkat, bulan, muatUlang]);
 
   const anyFilled = Object.values(data).some((e) => isEvalAnakFilled(e));
   const dirty = JSON.stringify(form) !== JSON.stringify(data);
@@ -353,6 +355,9 @@ function EvaluasiTingkatCard({
             <p className="text-sm" style={{ color: C.muted }}>Belum ada daftar santri buat tingkat ini — hubungi koordinator kurikulum.</p>
           ) : loading ? (
             <PageLoadingSkeleton />
+          ) : gagalMuat ? (
+            // Evaluasi gagal dimuat: form disembunyikan supaya isian lama tidak tertimpa kosong.
+            <GagalMuat pesan={gagalMuat} onUlang={() => setMuatUlang((n) => n + 1)} />
           ) : (
             <>
               <div className="space-y-2 mt-3">
@@ -728,6 +733,7 @@ function GuruAbsenOlahraga({ kelompok }: { kelompok: OlahragaKelompok }) {
   const [openDay, setOpenDay] = useState<string | null>(null);
 
   const atThisWeek = ymd(monday) >= ymd(thisMonday);
+  const [muatUlang, setMuatUlang] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -746,7 +752,7 @@ function GuruAbsenOlahraga({ kelompok }: { kelompok: OlahragaKelompok }) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monday]);
+  }, [monday, muatUlang]);
 
   return (
     <>
@@ -759,15 +765,12 @@ function GuruAbsenOlahraga({ kelompok }: { kelompok: OlahragaKelompok }) {
         onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
       />
 
-      {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
-          {error}
-        </div>
-      )}
       {loading ? (
         <div className="mt-5">
           <PageLoadingSkeleton />
         </div>
+      ) : error ? (
+        <GagalMuat pesan={error} onUlang={() => setMuatUlang((n) => n + 1)} />
       ) : (
         <div className="mt-5 space-y-3">
           {days.map((d) => {

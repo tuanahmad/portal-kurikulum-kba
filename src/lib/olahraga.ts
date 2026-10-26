@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { ramahkanGalat } from "./jaringan";
 import { type AbsenStatus } from "./absen";
 
 export type OlahragaTingkat = "KA 1" | "KA 2" | "KA 3";
@@ -157,7 +158,7 @@ export async function saveOlahraga(params: {
   if (!user) throw new Error("Sesi login habis, coba masuk lagi.");
 
   // Kolom `target` (target lama gabungan) sengaja tidak ditulis: data lama tetap utuh.
-  const { error } = await supabase.from("olahraga_bulanan").upsert(
+  const { data, error } = await supabase.from("olahraga_bulanan").upsert(
     {
       user_id: user.id,
       kelompok: params.kelompok,
@@ -174,8 +175,23 @@ export async function saveOlahraga(params: {
       alat: params.alat.trim(),
     },
     { onConflict: "kelompok,tingkat,bulan" }
-  );
-  if (error) throw new Error(error.message);
+  )
+    .select("pekan1, pekan2, pekan3, pekan4, target_pekan1, target_pekan2, target_pekan3, target_pekan4, alat")
+    .maybeSingle();
+  if (error) throw new Error(ramahkanGalat(error.message));
+  // Cek ulang: baris harus benar-benar ada dan isinya sama dengan yang dikirim.
+  const sama =
+    !!data &&
+    data.pekan1 === params.pekan1.trim() &&
+    data.pekan2 === params.pekan2.trim() &&
+    data.pekan3 === params.pekan3.trim() &&
+    data.pekan4 === params.pekan4.trim() &&
+    data.alat === params.alat.trim() &&
+    JSON.stringify(data.target_pekan1 ?? []) === JSON.stringify(params.target_pekan1) &&
+    JSON.stringify(data.target_pekan2 ?? []) === JSON.stringify(params.target_pekan2) &&
+    JSON.stringify(data.target_pekan3 ?? []) === JSON.stringify(params.target_pekan3) &&
+    JSON.stringify(data.target_pekan4 ?? []) === JSON.stringify(params.target_pekan4);
+  if (!sama) throw new Error("Rencana belum tercatat di server. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.");
 }
 
 /* ═══════════════════════ Evaluasi kegiatan (per anak) ═══════════════════════ */
@@ -340,7 +356,7 @@ export async function saveAbsenOlahraga(params: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Sesi login habis, coba masuk lagi.");
 
-  const { error } = await supabase.from("absen_olahraga").upsert(
+  const { data, error } = await supabase.from("absen_olahraga").upsert(
     {
       user_id: user.id,
       kelompok: params.kelompok,
@@ -349,8 +365,13 @@ export async function saveAbsenOlahraga(params: {
       keterangan: params.status === "hadir" ? "" : params.keterangan.trim(),
     },
     { onConflict: "user_id,tanggal" }
-  );
-  if (error) throw new Error(error.message);
+  )
+    .select("status")
+    .maybeSingle();
+  if (error) throw new Error(ramahkanGalat(error.message));
+  if (!data || data.status !== params.status) {
+    throw new Error("Absen belum tercatat di server. Tekan Simpan sekali lagi.");
+  }
 }
 
 /** Versi management: gabungan SEMUA kelompok (ikhwan + akhwat). KA 1/KA 2 rosternya campur, jadi

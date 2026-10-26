@@ -128,6 +128,12 @@ export default function CapaianIlmuFormPage() {
   async function handleSave() {
     if (!fileId || !bulan || anakI == null) return;
     const slot = rosterSlots[anakI];
+    // Hanya bidang yang diubah guru yang ditulis; bidang lain dibiarkan apa adanya di file.
+    const berubah = bidangFlat.filter((b) => (form[b.key] ?? "") !== (baselineForm[b.key] ?? ""));
+    if (berubah.length === 0) {
+      toast.sukses("Tidak ada perubahan");
+      return;
+    }
     setSaving(true);
     setError(null);
     setSaveMsg(null);
@@ -135,28 +141,23 @@ export default function CapaianIlmuFormPage() {
       await writeCapaianIlmu({
         fileId,
         bulan,
-        cells: bidangFlat.map((b) => ({ bidangKey: b.key, anakIdx: slot, value: form[b.key] ?? "" })),
+        cells: berubah.map((b) => ({ bidangKey: b.key, anakIdx: slot, value: form[b.key] ?? "" })),
         names: [{ anakIdx: slot, nama: roster[anakI] }],
       });
-      // Cek ulang: isian yang ditulis harus terbaca balik dari file, kalau tidak jangan anggap tersimpan.
+      // Cek ulang: isian yang ditulis harus terbaca balik dari file (termasuk yang dikosongkan), kalau tidak jangan anggap tersimpan.
       const fresh = await readCapaianIlmu(fileId, bulan);
-      const belumTerbaca = bidangFlat.filter((b) => (form[b.key] ?? "").trim() && !isianSama(form[b.key] ?? "", fresh.values[b.key]?.[slot] ?? "")).length;
+      const belumTerbaca = berubah.filter((b) => {
+        const kirim = (form[b.key] ?? "").trim();
+        const terbaca = (fresh.values[b.key]?.[slot] ?? "").trim();
+        return kirim ? !isianSama(form[b.key] ?? "", terbaca) : terbaca !== "";
+      }).length;
       if (belumTerbaca > 0) {
         throw new Error(`${belumTerbaca} isian belum terbaca di file setelah disimpan. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.`);
       }
       toast.sukses("Tersimpan");
       draft.clear();
-      // update cache lokal biar pindah anak tetep keliatan
-      setData((prev) => {
-        if (!prev) return prev;
-        const v = { ...prev.values };
-        for (const b of bidangFlat) {
-          const arr = [...(v[b.key] ?? [])];
-          arr[slot] = form[b.key] ?? "";
-          v[b.key] = arr;
-        }
-        return { ...prev, values: v };
-      });
+      // pakai isi file terbaru (yang barusan dibaca) supaya tampilan sama persis dengan file
+      setData(fresh);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
