@@ -89,11 +89,20 @@ export default function TasmiSertifikatPage() {
         href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@500;700;800&family=Quicksand:wght@500;600;700&display=swap"
       />
       <style>{`
+        /* Cetak / Simpan PDF: tepat SATU halaman A4 tegak, hanya sertifikatnya. Elemen lain (menu bawah, tombol profil,
+           latar pola, jarak halaman) disembunyikan dan tidak memakan tempat, jadi tidak ada halaman kosong kedua. */
         @media print {
           @page { size: A4 portrait; margin: 0; }
-          .no-print { display: none !important; }
-          .cert-page { box-shadow: none !important; margin: 0 !important; }
-          body { background: #fff !important; }
+          html, body { width: 210mm !important; height: 297mm !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #fff !important; }
+          body * { visibility: hidden !important; }
+          .min-h-dvh::before { display: none !important; }
+          .cert-page, .cert-page * { visibility: visible !important; }
+          .cert-page {
+            position: fixed !important; left: 0 !important; top: 0 !important;
+            width: 210mm !important; height: 297mm !important; aspect-ratio: auto !important;
+            margin: 0 !important; box-shadow: none !important;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+          }
         }
       `}</style>
 
