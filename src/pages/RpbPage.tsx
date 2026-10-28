@@ -21,6 +21,7 @@ import {
   lookupPekanEntry,
   groupTableBByBidang,
   findOrphanBidangC,
+  LABEL_RENCANA_QURAN,
   type RpbTabData,
   type PekanEntry,
 } from "../lib/rpbSheet";
@@ -345,6 +346,9 @@ export function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
   // lookupPekanEntry di atas dan jadi nggak keliatan sama sekali di app meski datanya ada di
   // sheet. Tampilin apa adanya di bawah, TIDAK ditebak masuk bidang Tabel B yang mana.
   const orphanBidang = isQonuni ? findOrphanBidangC(data.tableC, qonuniGroups.map((g) => g.bidang)) : [];
+  // Bidang tetap Al-Qur'an: rencana per santri (bagian D sheet RPB).
+  const labelQuran = [0, 1, 2].map((j) => data.quranLabel?.[j] || (isQonuni ? LABEL_RENCANA_QURAN.qonuni : LABEL_RENCANA_QURAN.ka)[j]);
+  const quranTerisi = (data.quran ?? []).filter((q) => q.rencana.some((x) => (x ?? "").trim()));
 
   return (
     <div className="space-y-6">
@@ -419,6 +423,21 @@ export function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
             {orphanBidang.map((o, n) => (
               <RekapAccordion key={n} badge={String(n + 1)} title={o.bidang}>
                 <PekanGrid pekan={o.pekan} />
+              </RekapAccordion>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {quranTerisi.length > 0 && (
+        <div>
+          <SectionBar no="D" title="Rencana Al-Qur'an per Santri" subtitle={`${quranTerisi.length} santri`} />
+          <div className="mt-3 space-y-3">
+            {quranTerisi.map((q, n) => (
+              <RekapAccordion key={n} badge={String(n + 1)} title={q.nama}>
+                {labelQuran.map((l, j) => (
+                  <ReadField key={j} label={l} value={q.rencana[j] ?? ""} />
+                ))}
               </RekapAccordion>
             ))}
           </div>

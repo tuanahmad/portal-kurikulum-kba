@@ -47,7 +47,6 @@
 // Awwal, yang formatnya udah diverifikasi konsisten (dipanggil dari RpbFormPage, yang sendirinya
 // cuma dibuka guru buat kelasnya sendiri lewat form live, bukan sheet hasil convert lama yang
 // mungkin punya baris nyelip).
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
 const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -62,6 +61,14 @@ const TABLE_B_RANGE = "C11:E15"; // Bidang Ilmu 1-5 (buat TULIS — Kuttab Awwal
 const TABLE_B_EXTRA_RANGE = "C60:E62"; // Bidang Ilmu 6-8 (buat TULIS — Kuttab Awwal aja)
 const TABLE_C_RANGE = "B19:E58"; // 8 Bidang Ilmu x 5 Pekan (buat TULIS — Kuttab Awwal aja)
 const FULL_SCAN_RANGE = "A1:J200"; // buat BACA — cukup lebar/panjang buat nangkep sheet manapun
+// Bagian D: bidang tetap Al-Qur'an, rencana PER SANTRI (3 isian: KA Talaqqi/Murojaah Jama'i/Baghdadiyah, Qonuni
+// Ziyadah/Murojaah/Wirid). Letaknya di bawah semua bagian lain (bawaan baris 65, kolom B=No, C=Nama, D..F=rencana),
+// dicari lewat penandanya; kalau belum ada, dibuat saat pertama disimpan (hanya kalau tempatnya masih kosong).
+const QURAN_MARKER = "D. Rencana Al-Qur'an per Santri";
+const QURAN_MARKER_CARI = "d. rencana al-qur";
+const QURAN_DEFAULT_ROW0 = 64; // 0-based = baris 65
+const QURAN_MAX_SANTRI = 40;
+type QuranRow = { nama: string; rencana: string[] };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -132,6 +139,20 @@ function headerValue(rows: string[][], row: number): string {
   return idx >= 0 ? b.slice(idx + 1).trim() : "";
 }
 
+const normNama = (s: string) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+/** Baca bagian D (rencana Al-Qur'an per santri) mulai dari baris penandanya. */
+function bacaQuran(rows: string[][], dMarker: number): { label: string[]; santri: QuranRow[] } {
+  if (dMarker < 0) return { label: [], santri: [] };
+  const label = [3, 4, 5].map((c) => cellAt(rows, dMarker + 1, c).trim());
+  const santri: QuranRow[] = [];
+  for (let r = dMarker + 2; r < Math.min(rows.length, dMarker + 2 + QURAN_MAX_SANTRI); r++) {
+    const nama = cellAt(rows, r, 2).trim();
+    if (nama) santri.push({ nama, rencana: [3, 4, 5].map((c) => cellAt(rows, r, c)) });
+  }
+  return { label, santri };
+}
+
 async function fetchGrid(fileId: string, sheetName: string): Promise<string[][]> {
   const url =
     `https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values/` +
@@ -158,6 +179,7 @@ async function readTab(fileId: string, sheetNameRaw: string) {
 
   const bMarker = findMarkerRow(rows, "b. target pembelajaran", namaGuruRow >= 0 ? namaGuruRow : 0);
   const cMarker = findMarkerRow(rows, "c. rencana materi", namaGuruRow >= 0 ? namaGuruRow : 0);
+  const dMarker = findMarkerRow(rows, QURAN_MARKER_CARI, cMarker >= 0 ? cMarker : 0);
 
   // Template baku (marker B di baris 9, marker C di baris 17): Bidang Ilmu TAMBAHAN ke-6..8 yang ditulis
   // form ke C60:E62 diambil kembali sebagai baris Tabel B tambahan (lihat catatan di atas).
@@ -187,14 +209,16 @@ async function readTab(fileId: string, sheetNameRaw: string) {
   const tableC: string[][] = [];
   if (cMarker >= 0) {
     const start = cMarker + 2;
-    for (let r = start; r < rows.length; r++) {
+    const end = dMarker > cMarker ? dMarker : rows.length; // bagian D bukan bagian Tabel C
+    for (let r = start; r < end; r++) {
       if (extraRows.has(r)) continue;
       const row = [1, 2, 3, 4].map((c) => cellAt(rows, r, c));
       if (row.some((v) => v.trim())) tableC.push(row);
     }
   }
 
-  return { namaGuru, kelas, level, bulan, jumlahPertemuan, tableB, tableC };
+  const quran = bacaQuran(rows, dMarker);
+  return { namaGuru, kelas, level, bulan, jumlahPertemuan, tableB, tableC, quran: quran.santri, quranLabel: quran.label };
 }
 
 // ————— OAuth service account (buat POST) —————
@@ -256,6 +280,42 @@ async function getAccessToken(): Promise<string> {
 }
 
 // ————— POST: tulis isi tab (Kuttab Awwal aja, lihat catatan di atas) —————
+/** Range yang ditulis untuk bagian D. Santri yang ada di sheet tapi tidak dikirim (mis. sudah pindah kelas) TIDAK
+ *  dibuang -- ditaruh setelah daftar yang dikirim. */
+async function dataRencanaQuran(fileId: string, sheetName: string, token: string, quran: QuranRow[], label: string[]) {
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values/${encodeURIComponent(`${sheetName}!${FULL_SCAN_RANGE}`)}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) throw new Error(`Sheets API error ${res.status}: ${await res.text()}`);
+  const rows = ((await res.json()).values ?? []) as string[][];
+  const cMarker = findMarkerRow(rows, "c. rencana materi");
+  let d = findMarkerRow(rows, QURAN_MARKER_CARI, cMarker >= 0 ? cMarker : 0);
+  if (d < 0) {
+    d = QURAN_DEFAULT_ROW0;
+    for (let r = d; r < d + 2 + QURAN_MAX_SANTRI; r++) {
+      if ([1, 2, 3, 4, 5].some((c) => cellAt(rows, r, c).trim())) {
+        throw new Error(`Bagian Rencana Al-Qur'an belum ada di tab ini dan baris ${d + 1}-${d + 2 + QURAN_MAX_SANTRI} sudah terisi hal lain. Hubungi admin.`);
+      }
+    }
+  }
+  const dikirim = quran.filter((q) => (q?.nama ?? "").trim());
+  const kunci = new Set(dikirim.map((q) => normNama(q.nama)));
+  const lama = bacaQuran(rows, d).santri.filter((s) => !kunci.has(normNama(s.nama)));
+  const semua = [...dikirim, ...lama];
+  if (semua.length > QURAN_MAX_SANTRI) throw new Error(`Rencana Al-Qur'an maksimal ${QURAN_MAX_SANTRI} santri.`);
+  const isi = Array.from({ length: QURAN_MAX_SANTRI }, (_, i) => {
+    const s = semua[i];
+    return s ? [String(i + 1), s.nama.trim(), ...[0, 1, 2].map((j) => String(s.rencana?.[j] ?? ""))] : ["", "", "", "", ""];
+  });
+  const lbl = [0, 1, 2].map((j) => (label[j] ?? "").trim() || cellAt(rows, d + 1, 3 + j).trim());
+  return [
+    { range: `${sheetName}!B${d + 1}`, values: [[QURAN_MARKER]] },
+    { range: `${sheetName}!B${d + 2}:F${d + 2}`, values: [["No", "Nama Santri", ...lbl]] },
+    { range: `${sheetName}!B${d + 3}:F${d + 2 + QURAN_MAX_SANTRI}`, values: isi },
+  ];
+}
+
 async function writeTab(
   fileId: string,
   sheetNameRaw: string,
@@ -267,6 +327,8 @@ async function writeTab(
     jumlahPertemuan: string;
     tableB: string[][];
     tableC: string[][];
+    quran?: QuranRow[];
+    quranLabel?: string[];
   }
 ) {
   const accessToken = await getAccessToken();
@@ -282,6 +344,8 @@ async function writeTab(
     { range: `${sheetName}!${TABLE_B_EXTRA_RANGE}`, values: tableBExtra },
     { range: `${sheetName}!${TABLE_C_RANGE}`, values: payload.tableC },
   ];
+  // Bagian D hanya ditulis kalau dikirim (form lama yang belum kenal bagian ini tidak menyentuhnya).
+  if (Array.isArray(payload.quran)) data.push(...(await dataRencanaQuran(fileId, sheetName, accessToken, payload.quran, payload.quranLabel ?? [])));
   const res = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values:batchUpdate`,
     {

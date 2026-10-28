@@ -12,7 +12,36 @@ export type RpbTabData = {
   jumlahPertemuan: string;
   tableB: string[][];
   tableC: string[][];
+  /** Bagian D: rencana Al-Qur'an per santri (bidang tetap). Kosong kalau bagian ini belum ada di tab. */
+  quran?: RpbQuranRow[];
+  /** Judul 3 kolom rencana di sheet (kalau ada). */
+  quranLabel?: string[];
 };
+
+export type RpbQuranRow = { nama: string; rencana: string[] };
+
+/** Bidang tetap Al-Qur'an di RPB: 3 rencana per santri. */
+export const LABEL_RENCANA_QURAN = {
+  ka: ["Talaqqi", "Murojaah Jama'i", "Baghdadiyah"],
+  qonuni: ["Ziyadah", "Murojaah", "Wirid"],
+};
+
+const normNamaSantri = (s: string) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+/** Susun daftar rencana Al-Qur'an untuk form: urut roster kelas (dicocokkan lewat NAMA), lalu santri yang hanya ada
+ *  di sheet (mis. sudah pindah) di belakang -- tidak dibuang. */
+export function susunRencanaQuran(roster: string[], dariSheet: RpbQuranRow[]): RpbQuranRow[] {
+  const peta = new Map(dariSheet.map((q) => [normNamaSantri(q.nama), q]));
+  const out: RpbQuranRow[] = roster.map((nama) => {
+    const q = peta.get(normNamaSantri(nama));
+    return { nama, rencana: [0, 1, 2].map((j) => q?.rencana?.[j] ?? "") };
+  });
+  const diRoster = new Set(roster.map(normNamaSantri));
+  for (const q of dariSheet) {
+    if (!diRoster.has(normNamaSantri(q.nama))) out.push({ nama: q.nama, rencana: [0, 1, 2].map((j) => q.rencana?.[j] ?? "") });
+  }
+  return out;
+}
 
 async function authHeaders() {
   const {

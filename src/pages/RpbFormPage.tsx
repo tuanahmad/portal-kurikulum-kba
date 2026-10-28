@@ -6,7 +6,7 @@ import { GagalMuat } from "../components/GagalMuat";
 import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
-import { C, RPB_FILES, jenjangOf, isMonthOpen, sheetUrl } from "../data";
+import { C, RPB_FILES, jenjangOf, capaianRoster, isMonthOpen, sheetUrl } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import {
   readRpbTab,
@@ -14,7 +14,10 @@ import {
   parseTableCByBidang,
   lookupPekanEntry,
   buildTableCPekanMajor,
+  susunRencanaQuran,
+  LABEL_RENCANA_QURAN,
   type RpbTabData,
+  type RpbQuranRow,
 } from "../lib/rpbSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { useDraft } from "../lib/useDraft";
@@ -67,6 +70,8 @@ export default function RpbFormPage() {
   const [tableB, setTableB] = useState<string[][]>(emptyTableB());
   const [tableC, setTableC] = useState<string[][]>(emptyTableC());
   const [bidangCount, setBidangCount] = useState(TABLE_B_ROWS_DEFAULT);
+  // Bidang tetap Al-Qur'an: rencana PER SANTRI (3 isian), disimpan di bagian D sheet RPB.
+  const [quran, setQuran] = useState<RpbQuranRow[]>([]);
   // Data mentah (belum di-pad/rebuild) — cuma dipakai buat tampilan read-only RpbRekap pas
   // qonuniWriteBlocked (Juli–September Qonuni). tableB/tableC di atas udah dipotong/diproses
   // khusus buat form edit, jadi gak cocok dipakai ulang buat rekap (butuh kolom Tabel B lebar,
@@ -75,6 +80,7 @@ export default function RpbFormPage() {
 
   const file = RPB_FILES.find((f) => f.name === bulan);
   const isQonuni = jenjangOf(kelas) === "Qonuni";
+  const labelQuran = isQonuni ? LABEL_RENCANA_QURAN.qonuni : LABEL_RENCANA_QURAN.ka;
   // Juli–September Qonuni udah ditulis tangan sama guru langsung di sheet, dengan struktur yang
   // beda-beda antar guru (lihat catatan di rpbSheet.ts) — form isi-manual di sini (posisi
   // baris/kolom tetap, sama kayak Kuttab Awwal) gak aman dipakai nulis balik ke bulan-bulan itu,
@@ -96,6 +102,7 @@ export default function RpbFormPage() {
       .then((data) => {
         if (cancelled) return;
         setRawData(data);
+        setQuran(susunRencanaQuran(capaianRoster(kelas), data.quran ?? []));
         setNamaGuru(data.namaGuru || fullName || "");
         setKelasField(data.kelas || kelas || "");
         setLevelField(data.level || jenjangOf(kelas) || "");
@@ -144,8 +151,8 @@ export default function RpbFormPage() {
 
   // Seluruh isian form dijadiin 1 "snapshot" buat draf otomatis (lihat lib/useDraft.ts).
   const snapshot = useMemo(
-    () => ({ namaGuru, kelasField, levelField, bulanField, jumlahPertemuan, tableB, tableC, bidangCount }),
-    [namaGuru, kelasField, levelField, bulanField, jumlahPertemuan, tableB, tableC, bidangCount]
+    () => ({ namaGuru, kelasField, levelField, bulanField, jumlahPertemuan, tableB, tableC, bidangCount, quran }),
+    [namaGuru, kelasField, levelField, bulanField, jumlahPertemuan, tableB, tableC, bidangCount, quran]
   );
   type Snap = typeof snapshot;
   const [baseline, setBaseline] = useState<Snap | null>(null);
@@ -162,6 +169,7 @@ export default function RpbFormPage() {
     setTableB(v.tableB);
     setTableC(v.tableC);
     setBidangCount(v.bidangCount);
+    if (Array.isArray(v.quran)) setQuran(v.quran); // draf lama (sebelum ada bagian ini) tidak menghapus isian server
   };
   const draft = useDraft({
     formKey: kelas && bulan && !qonuniWriteBlocked ? `rpb:${kelas}:${bulan}` : null,
@@ -198,12 +206,17 @@ export default function RpbFormPage() {
       jumlahPertemuan,
       tableB,
       tableC: tableCForSave,
+      quran,
+      quranLabel: labelQuran,
     };
     try {
       await writeRpbTab(file.id, kelas, payload);
       // Cek ulang: semua teks yang ditulis harus terbaca balik dari file.
       const fresh = await readRpbTab(file.id, kelas);
-      const hilang = hitungTeksHilang([payload.tableB, payload.tableC], [fresh.tableB, fresh.tableC]);
+      const hilang = hitungTeksHilang(
+        [payload.tableB, payload.tableC, quran.map((q) => q.rencana)],
+        [fresh.tableB, fresh.tableC, (fresh.quran ?? []).map((q) => q.rencana)]
+      );
       if (hilang > 0) throw new Error(`${hilang} isian belum terbaca di file setelah disimpan. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.`);
       setBaseline(snapshot);
       draft.clear();
@@ -214,6 +227,10 @@ export default function RpbFormPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function setQuranIsi(i: number, j: number, val: string) {
+    setQuran((prev) => prev.map((q, qi) => (qi === i ? { ...q, rencana: q.rencana.map((x, xj) => (xj === j ? val : x)) } : q)));
   }
 
   function setBRow(i: number, col: number, val: string) {
@@ -441,9 +458,10 @@ export default function RpbFormPage() {
                 <SectionHeading
                   no="B"
                   title="Target Pembelajaran"
-                  subtitle={`${bidangCount} bidang ilmu yang ditargetkan bulan ini`}
+                  subtitle={`Al-Qur'an + ${bidangCount} bidang ilmu lain yang ditargetkan bulan ini`}
                 />
                 <div className="space-y-3">
+                  <RencanaQuranCard label={labelQuran} quran={quran} onChange={setQuranIsi} />
                   {tableB.slice(0, bidangCount).map((row, i) => (
                     <EntryCard
                       key={i}
@@ -524,6 +542,59 @@ export default function RpbFormPage() {
         )}
       </div>
     </div>
+  );
+}
+
+/** Bidang tetap Al-Qur'an: rencana per santri (bukan sekelas). Tersimpan di bagian D sheet RPB. */
+function RencanaQuranCard({
+  label,
+  quran,
+  onChange,
+}: {
+  label: string[];
+  quran: RpbQuranRow[];
+  onChange: (i: number, j: number, val: string) => void;
+}) {
+  const terisi = quran.filter((q) => q.rencana.some((x) => x.trim())).length;
+  return (
+    <EntryCard badge={<BookIcon color={C.green} />} badgeLabel="Tetap">
+      <div>
+        <div className="text-sm font-bold" style={{ color: C.ink }}>Al-Qur'an</div>
+        <div className="text-xs" style={{ color: C.muted }}>
+          Rencana per santri: {label.join(", ")} · {terisi}/{quran.length} santri terisi
+        </div>
+      </div>
+      {quran.length === 0 ? (
+        <p className="text-xs" style={{ color: C.muted }}>Daftar santri kelas ini belum ada.</p>
+      ) : (
+        <div className="space-y-2">
+          {quran.map((q, i) => (
+            <div key={q.nama + i} className="rounded-xl p-2.5" style={{ background: C.leaf, border: `1px solid ${C.line}` }}>
+              <div className="text-xs font-semibold mb-2" style={{ color: C.green }}>
+                {i + 1}. {q.nama}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {label.map((l, j) => (
+                  <label key={l} className="block">
+                    <span className="block text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: C.muted }}>
+                      {l}
+                    </span>
+                    <AutoTextarea
+                      value={q.rencana[j] ?? ""}
+                      onChange={(e) => onChange(i, j, e.target.value)}
+                      placeholder={`Rencana ${l}`}
+                      rows={1}
+                      className="block w-full text-xs outline-none px-2.5 py-1.5 rounded-md"
+                      style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </EntryCard>
   );
 }
 
