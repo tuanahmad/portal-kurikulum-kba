@@ -1,6 +1,7 @@
 import { GagalMuat } from "../components/GagalMuat";
 import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
@@ -56,7 +57,9 @@ const PERATURAN = [
 
 export default function AbsenPage() {
   const { role } = useAuth();
-  const [tab, setTab] = useState<"guru" | "santri">("guru");
+  // ?tab=santri (dari pengingat di Home) langsung membuka tab Absen Santri
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<"guru" | "santri">(searchParams.get("tab") === "santri" ? "santri" : "guru");
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>

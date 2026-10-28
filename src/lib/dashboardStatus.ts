@@ -1,10 +1,11 @@
 import { supabase } from "./supabaseClient";
 import { ymd, readJurnalRange, isEntryFilled } from "./jurnal";
 import { readAbsenRange, isAbsenFilled, isAbsenLengkap } from "./absen";
-import { capaianQuranFileId, pekanUntukSlot, slotUntukTanggal, slotsDiPekan, RPB_FILES, REFLEKSI_FILES } from "../data";
+import { capaianRoster, capaianQuranFileId, pekanUntukSlot, slotUntukTanggal, slotsDiPekan, RPB_FILES, REFLEKSI_FILES } from "../data";
 import { readRpbTab, type RpbTabData } from "./rpbSheet";
 import { readReflectionTab, type ReflectionData } from "./refleksiSheet";
 import { readCapaianQuran } from "./capaianQuranSheet";
+import { readAbsenSantriDay } from "./absenSantri";
 
 export type TodayStatus = {
   totalKelas: number;
@@ -65,6 +66,8 @@ function hasFillThisWeek(sections: { type: string; students: { values: string[] 
 export type StatusGuruHariIni = {
   jurnal: boolean | null;
   absen: "lengkap" | "sebagian" | "belum" | null;
+  /** Absen santri kelas ini hari ini: lengkap = semua santri di daftar sudah tercatat. */
+  absenSantri: "lengkap" | "sebagian" | "belum" | null;
   quran: boolean | null;
   /** RPB bulan berjalan & Refleksi BULAN LALU -- hanya dibaca tanggal 1-5 (selain itu null). Bagian yang file bulannya
    *  tidak ada bernilai null (tidak dihitung). */
@@ -93,9 +96,10 @@ export async function readStatusGuru(userId: string, kelas: string): Promise<Sta
   const rpbFile = RPB_FILES.find((f) => f.name === bulanNama);
   const refFile = REFLEKSI_FILES.find((f) => f.name === bulanLalu);
   const perluRencana = now.getDate() <= 5 && (!!rpbFile || !!refFile);
-  const [j, a, q, rp, rf] = await Promise.allSettled([
+  const [j, a, sa, q, rp, rf] = await Promise.allSettled([
     readJurnalRange(today, today, { userId }),
     readAbsenRange(today, today, { userId }),
+    readAbsenSantriDay(kelas, today),
     fileId ? dariCache(`quran:${fileId}:${bulanNama}`, () => readCapaianQuran(fileId, bulanNama)) : Promise.resolve(null),
     perluRencana && rpbFile ? dariCache(`rpb:${rpbFile.id}:${kelas}`, () => readRpbTab(rpbFile.id, kelas)) : Promise.resolve(null),
     perluRencana && refFile ? dariCache(`ref:${refFile.id}:${kelas}`, () => readReflectionTab(refFile.id, kelas)) : Promise.resolve(null),
@@ -103,6 +107,14 @@ export async function readStatusGuru(userId: string, kelas: string): Promise<Sta
   return {
     jurnal: j.status === "fulfilled" ? isEntryFilled(j.value[today]) : null,
     absen: a.status === "fulfilled" ? (isAbsenLengkap(a.value[today]) ? "lengkap" : isAbsenFilled(a.value[today]) ? "sebagian" : "belum") : null,
+    absenSantri:
+      sa.status === "fulfilled"
+        ? (() => {
+            const roster = capaianRoster(kelas);
+            const tercatat = roster.length ? roster.filter((n) => sa.value[n]).length : Object.keys(sa.value).length;
+            return tercatat === 0 ? "belum" : roster.length && tercatat < roster.length ? "sebagian" : "lengkap";
+          })()
+        : null,
     quran: q.status === "fulfilled" && q.value ? hasFillThisWeek(q.value.sections, pekanIdx, bulanNama) : null,
     rencana:
       perluRencana && rp.status === "fulfilled" && rf.status === "fulfilled"

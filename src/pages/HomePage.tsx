@@ -137,6 +137,17 @@ const CHIP: Record<HariIniState, { bg: string; fg: string; teks: string }> = {
   libur: { bg: "#F4F1EC", fg: C.muted, teks: "Libur" },
 };
 
+function SantriIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="16.5" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M15.5 14.2c2.6-.3 4.5 1.3 5 4.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /** Kartu "Hari Ini" untuk GURU: apa yang sudah/belum diisi hari ini, tiap baris bisa diketuk ke halamannya.
  *  Sabtu/Ahad: Jurnal & Absen ditandai libur (tidak dihitung). */
 function GuruHariIni() {
@@ -149,7 +160,7 @@ function GuruHariIni() {
     let cancelled = false;
     readStatusGuru(uid, kelas)
       .then((r) => !cancelled && setS(r))
-      .catch(() => !cancelled && setS({ jurnal: null, absen: null, quran: null, rencana: null }));
+      .catch(() => !cancelled && setS({ jurnal: null, absen: null, absenSantri: null, quran: null, rencana: null }));
     return () => {
       cancelled = true;
     };
@@ -178,6 +189,20 @@ function GuruHariIni() {
       to: "/absen",
       state: libur ? "libur" : s.absen == null ? null : s.absen === "lengkap" ? "selesai" : s.absen === "sebagian" ? "sebagian" : "belum",
       icon: <CalendarCheckIconOutline />,
+    },
+    {
+      key: "absenSantri",
+      label: "Absen santri",
+      sub: libur
+        ? "Libur akhir pekan"
+        : s.absenSantri === "lengkap"
+          ? "Semua santri sudah diabsen"
+          : s.absenSantri === "sebagian"
+            ? "Sebagian santri belum diabsen"
+            : "Belum diisi hari ini",
+      to: "/absen?tab=santri",
+      state: libur ? "libur" : s.absenSantri == null ? null : s.absenSantri === "lengkap" ? "selesai" : s.absenSantri === "sebagian" ? "sebagian" : "belum",
+      icon: <SantriIcon />,
     },
     {
       key: "quran",
@@ -270,7 +295,7 @@ function GuruHariIni() {
       )}
       {libur && (
         <div className="px-4 sm:px-5 py-3 text-xs text-center" style={{ background: C.leaf, color: C.green }}>
-          Hari ini libur. Jurnal dan absen tidak perlu diisi.
+          Hari ini libur. Jurnal, absen guru, dan absen santri tidak perlu diisi.
         </div>
       )}
     </section>
