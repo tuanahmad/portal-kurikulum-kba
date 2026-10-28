@@ -3,7 +3,7 @@ import { hapusCacheStatus } from "../lib/dashboardStatus";
 import { isianSama } from "../lib/jaringan";
 import { EmptyState } from "../components/EmptyState";
 import { toast } from "../components/Toast";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { C, capaianQuranFileId, capaianRoster, isMonthOpen, sheetUrl, tanggalSlot, rentangPekan, slotUntukTanggal, pekanGridCount, slotsDiPekan, pekanUntukSlot, polaGridBulan } from "../data";
 import { useAuth } from "../contexts/AuthContext";
@@ -20,6 +20,7 @@ import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { MonthGrid } from "../components/MonthGrid";
 import { useDraft } from "../lib/useDraft";
+import { DAFTAR_SURAT, bagianPunyaSurat, bacaSuratBulan, simpanSurat, kunciSurat } from "../lib/suratQuran";
 
 const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 const QUICK = ["0", "0,5", "1", "2", "3", "4", "5"]; // tombol cepat; guru tetap bisa ketik angka lain
@@ -49,6 +50,13 @@ export default function CapaianQuranFormPage() {
   const [slot, setSlot] = useState<number | null>(null);
   const [values, setValues] = useState<string[]>([]);
   const [baselineValues, setBaselineValues] = useState<string[]>([]);
+  // surat yang dibaca: catatan terpisah di aplikasi (angka baris tetap di Google Sheet)
+  const [suratBulan, setSuratBulan] = useState<Record<string, string>>({});
+  const [suratMuat, setSuratMuat] = useState(false);
+  const [suratGagal, setSuratGagal] = useState(false);
+  const [surat, setSurat] = useState<string[]>([]);
+  const [baselineSurat, setBaselineSurat] = useState<string[]>([]);
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -77,6 +85,22 @@ export default function CapaianQuranFormPage() {
     };
   }, [bulan, fileId]);
 
+  // muat catatan surat bulan ini. Kalau gagal dimuat, pilihan surat dinonaktifkan (supaya tidak menimpa catatan yang tidak terlihat).
+  useEffect(() => {
+    if (!bulan || !kelas) return;
+    let cancelled = false;
+    setSuratBulan({});
+    setSuratGagal(false);
+    setSuratMuat(true);
+    bacaSuratBulan(kelas, bulan)
+      .then((m) => !cancelled && setSuratBulan(m))
+      .catch(() => !cancelled && setSuratGagal(true))
+      .finally(() => !cancelled && setSuratMuat(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [bulan, kelas]);
+
   // isi ulang `values` dari sheet tiap ganti section / slot
   useEffect(() => {
     if (!section || !slot) {
@@ -96,12 +120,29 @@ export default function CapaianQuranFormPage() {
     // titik user GANTI slot/section secara manual (lihat onClick di picker-nya).
   }, [section, slot, roster]);
 
+  useEffect(() => {
+    if (!section || !slot) {
+      setSurat([]);
+      setBaselineSurat([]);
+      return;
+    }
+    const sr = roster.map((nama) => suratBulan[kunciSurat(section.name, slot, nama)] ?? "");
+    setSurat(sr);
+    setBaselineSurat(sr);
+  }, [section, slot, roster, suratBulan]);
+
+  const nilaiDraf = useMemo(() => ({ values, surat }), [values, surat]);
+  const dasarDraf = useMemo(() => ({ values: baselineValues, surat: baselineSurat }), [baselineValues, baselineSurat]);
+  const terapkanDraf = useCallback((x: { values: string[]; surat?: string[] }) => {
+    setValues(x.values);
+    setSurat(x.surat ?? []);
+  }, []);
   const draft = useDraft({
-    formKey: isGuru && kelas && bulan && section && slot ? `quran:${kelas}:${bulan}:${section.name}:${slot}` : null,
-    value: values,
-    baseline: baselineValues,
-    setValue: setValues,
-    ready: !loading && !!section && !!slot,
+    formKey: isGuru && kelas && bulan && section && slot ? `quran2:${kelas}:${bulan}:${section.name}:${slot}` : null,
+    value: nilaiDraf,
+    baseline: dasarDraf,
+    setValue: terapkanDraf,
+    ready: !loading && !suratMuat && !!section && !!slot,
   });
 
   if (isGuru && !kelas) {
@@ -149,6 +190,24 @@ export default function CapaianQuranFormPage() {
       });
       if (belumTerbaca > 0) {
         throw new Error(`${belumTerbaca} isian belum terbaca di file setelah disimpan. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.`);
+      }
+      // 3) Surat (catatan di aplikasi): hanya yang berubah; dibaca balik dan dicek juga.
+      if (bagianPunyaSurat(section.name) && !suratGagal) {
+        const berubah = roster
+          .map((nama, r) => ({ nama, surat: surat[r] ?? "", lama: baselineSurat[r] ?? "" }))
+          .filter((e) => e.surat !== e.lama);
+        if (berubah.length) {
+          await simpanSurat({ kelas: kelas as string, bulan, bagian: section.name, slot, entri: berubah.map((e) => ({ nama: e.nama, surat: e.surat })) });
+          setSuratBulan((prev) => {
+            const baru = { ...prev };
+            for (const e of berubah) {
+              const k = kunciSurat(section.name, slot, e.nama);
+              if (e.surat) baru[k] = e.surat;
+              else delete baru[k];
+            }
+            return baru;
+          });
+        }
       }
       setData(fresh);
       draft.clear();
@@ -332,7 +391,7 @@ export default function CapaianQuranFormPage() {
           {!isGuru && section && (
             <div className="space-y-3">
               {Array.from({ length: weekCountFor(section, bulan) }, (_, i) => i + 1).map((w) => (
-                <WeekRekapAccordion key={w} section={section} week={w} roster={roster} bulan={bulan} />
+                <WeekRekapAccordion key={w} section={section} week={w} roster={roster} bulan={bulan} surat={suratBulan} />
               ))}
             </div>
           )}
@@ -398,9 +457,32 @@ export default function CapaianQuranFormPage() {
                           );
                         })}
                       </div>
+                      {bagianPunyaSurat(section.name) && (
+                        <select
+                          value={surat[i] ?? ""}
+                          onChange={(e) => setSurat((prev) => prev.map((v, vi) => (vi === i ? e.target.value : v)))}
+                          disabled={suratGagal || suratMuat}
+                          aria-label={`Surat yang dibaca ${nama}`}
+                          className="mt-2 w-full text-sm outline-none px-2.5 py-2 rounded-lg"
+                          style={{ border: `1px solid ${C.line}`, background: "#FFF", color: surat[i] ? C.ink : C.muted }}
+                        >
+                          <option value="">Pilih surat yang dibaca…</option>
+                          {DAFTAR_SURAT.map((s, n) => (
+                            <option key={s} value={s}>
+                              {n + 1}. {s}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   ))}
                 </div>
+
+                {suratGagal && bagianPunyaSurat(section.name) && (
+                  <p className="mt-3 text-xs" style={{ color: "#FFF" }}>
+                    Pilihan surat belum bisa dimuat, jadi dinonaktifkan dulu. Angka tetap bisa disimpan. Muat ulang halaman untuk mencoba lagi.
+                  </p>
+                )}
 
                 {saveMsg && (
                   <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "rgba(255,255,255,0.9)", color: C.green }}>
@@ -418,6 +500,29 @@ export default function CapaianQuranFormPage() {
                 </button>
               </div>
             </div>
+          )}
+
+          {!isGuru && data && bulan && (
+            <button
+              type="button"
+              disabled={pdfBusy || suratMuat}
+              onClick={async () => {
+                setPdfBusy(true);
+                setError(null);
+                try {
+                  const { unduhPdfRekapQuran } = await import("../lib/rekapQuranPdf");
+                  await unduhPdfRekapQuran({ kelas: kelas as string, bulan, roster, data, surat: suratBulan });
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Gagal membuat PDF.");
+                } finally {
+                  setPdfBusy(false);
+                }
+              }}
+              className="w-full py-3 rounded-xl text-sm font-bold transition-opacity"
+              style={{ background: C.green, color: "#FFF", opacity: pdfBusy || suratMuat ? 0.6 : 1 }}
+            >
+              {pdfBusy ? "Membuat PDF…" : `Unduh PDF rekap Al-Qur'an ${bulan}`}
+            </button>
           )}
 
           {!isGuru && section && (
@@ -486,11 +591,13 @@ function WeekRekapAccordion({
   week,
   roster,
   bulan,
+  surat,
 }: {
   section: CapaianQuranSection;
   week: number;
   roster: string[];
   bulan: string | null;
+  surat: Record<string, string>;
 }) {
   const [open, setOpen] = useState(false);
   const isPekan = section.type === "pekan";
@@ -558,6 +665,9 @@ function WeekRekapAccordion({
                       return (
                         <td key={s} className="text-center py-2 px-1" style={{ color: isFilled(v) ? C.ink : C.muted }}>
                           {isFilled(v) ? v : "—"}
+                          {isFilled(v) && surat[kunciSurat(section.name, s, nama)] && (
+                            <div className="text-[10px] leading-tight" style={{ color: C.muted }}>{surat[kunciSurat(section.name, s, nama)]}</div>
+                          )}
                         </td>
                       );
                     })}
