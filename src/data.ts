@@ -111,13 +111,12 @@ export function olahragaRoster(tingkat: "KA 1" | "KA 2" | "KA 3", kelompok: "ikh
 export type IlmuBidang = { key: string; label: string };
 export type IlmuGroup = { grup: string | null; items: IlmuBidang[] };
 
-/** Kuttab Awwal: 7 bidang datar (1 grup tanpa nama), urut ngikutin kolom C..I di sheet. */
+/** Kuttab Awwal: 5 bidang datar (1 grup tanpa nama), urut ngikutin kolom di sheet. Al-Qur'an (Talaqqi/Baghdadiyah)
+ *  tidak di sini lagi -- dicatat lewat Capaian Al-Qur'an. */
 export const CAPAIAN_ILMU_KA: IlmuGroup[] = [
   {
     grup: null,
     items: [
-      { key: "talaqqi", label: "Talaqqi" },
-      { key: "baghdadiyah", label: "Baghdadiyah" },
       { key: "kisah", label: "Kisah" },
       { key: "calis", label: "Calis" },
       { key: "berhitung", label: "Berhitung" },
@@ -127,13 +126,9 @@ export const CAPAIAN_ILMU_KA: IlmuGroup[] = [
   },
 ];
 
-/** Qonuni: bidang bertingkat (grup > sub), urut ngikutin baris di sheet (Ziyadah dst di baris 11+). */
+/** Qonuni: bidang bertingkat (grup > sub), urut ngikutin baris di sheet. Al-Qur'an (Ziyadah/Muroja'ah/Wirid) tidak di
+ *  sini lagi -- dicatat lewat Capaian Al-Qur'an. */
 export const CAPAIAN_ILMU_QONUNI: IlmuGroup[] = [
-  { grup: "Al-Qur'an", items: [
-    { key: "ziyadah", label: "Ziyadah" },
-    { key: "murojaah_ziyadah", label: "Muroja'ah Ziyadah" },
-    { key: "wirid", label: "Wirid" },
-  ] },
   { grup: "Mutun Ilmiyyah", items: [
     { key: "ahsanul_akhlak", label: "Ahsanul Akhlak" },
     { key: "urjuzah_shaghirah", label: "Urjuzah Shaghirah" },

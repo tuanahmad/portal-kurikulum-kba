@@ -1,9 +1,10 @@
 // Baca & tulis Capaian Ilmu (deskriptif, per anak x per bidang, bulanan) ke Google Sheets.
-// KA : baris = anak (A=No, B=Nama, bisa RENGGANG antar anak), kolom C..I = 7 bidang. Kolom kadang
+// KA : baris = anak (A=No, B=Nama, bisa RENGGANG antar anak), kolom = bidang (dicari dari judul kolom). Kolom kadang
 //      di-MERGE (1 kalimat sekelas) -> read: nilai top-left disebar; write: unmerge dulu.
 // Qonuni : kolom = anak (nama depan di header+1 mulai kolom C, bisa BOLONG antar anak), baris = bidang (A=grup, B=sub).
 // Tab = bulan (nama kadang ada spasi -> match trim+lowercase).
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// Al-Qur'an (KA: Talaqqi/Baghdadiyah, Qonuni: Ziyadah/Muroja'ah Ziyadah/Wirid) TIDAK lagi di Capaian Ilmu -- sudah lewat
+// Capaian Al-Qur'an. Kolom/barisnya dihapus dari sheet per 2026-10-28.
 
 const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
 const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -14,10 +15,10 @@ const corsHeaders = {
 };
 
 const SCAN_RANGE = "A1:R60";
-const KA_BIDANG = ["talaqqi", "baghdadiyah", "kisah", "calis", "berhitung", "doa_harian", "olahraga"];
-const KA_LABEL: Record<string, string> = { talaqqi: "Talaqqi", baghdadiyah: "Baghdadiyah", kisah: "Kisah", calis: "Calis", berhitung: "Berhitung", doa_harian: "Doa Harian", olahraga: "Olahraga" };
-const QO_BIDANG = ["ziyadah", "murojaah_ziyadah", "wirid", "ahsanul_akhlak", "urjuzah_shaghirah", "tauhid_wal_iman", "urjuzah_miiyyah", "ar_rusyd_al_qarib", "membaca", "menulis", "berhitung", "zikir_setelah_shalat", "zikir_pagi", "zikir_sore", "berenang", "jiujitsu", "keakhwatan"];
-const QO_LABEL: Record<string, string> = { ziyadah: "Ziyadah", murojaah_ziyadah: "Muroja'ah Ziyadah", wirid: "Wirid", ahsanul_akhlak: "Ahsanul Akhlak", urjuzah_shaghirah: "Urjuzah Shaghirah", tauhid_wal_iman: "Tauhid wal Iman", urjuzah_miiyyah: "Urjuzah Mi'iyyah", ar_rusyd_al_qarib: "Ar Rusyd Al Qarib", membaca: "Membaca", menulis: "Menulis", berhitung: "Berhitung", zikir_setelah_shalat: "Zikir Setelah Shalat", zikir_pagi: "Zikir Pagi", zikir_sore: "Sore", berenang: "Berenang", jiujitsu: "JiuJitsu", keakhwatan: "Keakhwatan" };
+const KA_BIDANG = ["kisah", "calis", "berhitung", "doa_harian", "olahraga"];
+const KA_LABEL: Record<string, string> = { kisah: "Kisah", calis: "Calis", berhitung: "Berhitung", doa_harian: "Doa Harian", olahraga: "Olahraga" };
+const QO_BIDANG = ["ahsanul_akhlak", "urjuzah_shaghirah", "tauhid_wal_iman", "urjuzah_miiyyah", "ar_rusyd_al_qarib", "membaca", "menulis", "berhitung", "zikir_setelah_shalat", "zikir_pagi", "zikir_sore", "berenang", "jiujitsu", "keakhwatan"];
+const QO_LABEL: Record<string, string> = { ahsanul_akhlak: "Ahsanul Akhlak", urjuzah_shaghirah: "Urjuzah Shaghirah", tauhid_wal_iman: "Tauhid wal Iman", urjuzah_miiyyah: "Urjuzah Mi'iyyah", ar_rusyd_al_qarib: "Ar Rusyd Al Qarib", membaca: "Membaca", menulis: "Menulis", berhitung: "Berhitung", zikir_setelah_shalat: "Zikir Setelah Shalat", zikir_pagi: "Zikir Pagi", zikir_sore: "Sore", berenang: "Berenang", jiujitsu: "JiuJitsu", keakhwatan: "Keakhwatan" };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -97,8 +98,14 @@ function parseLayout(rows: string[][], merges: SheetMeta["merges"] = []): Layout
   const flat = (level === "ka" ? KA_BIDANG : QO_BIDANG).map((key) => ({ key, label: (level === "ka" ? KA_LABEL : QO_LABEL)[key] }));
 
   if (level === "ka") {
+    // Kolom tiap bidang dicari dari JUDUL di baris header+1 (Kisah, Calis, ...), bukan posisi tetap: kolom Talaqqi &
+    // Baghdadiyah sudah dihapus dari sheet, jadi posisinya bergeser. Bidang yang judulnya tidak ada -> tidak dibaca/ditulis.
     const bidangCol: Record<string, number> = {};
-    for (let j = 0; j < flat.length; j++) bidangCol[flat[j].key] = 2 + j;
+    for (let c = 2; c < 20; c++) {
+      const b = flat.find((x) => norm(x.label) === norm(cell(headerRow + 1, c)));
+      if (b && bidangCol[b.key] == null) bidangCol[b.key] = c;
+    }
+    if (Object.keys(bidangCol).length === 0) for (let j = 0; j < flat.length; j++) bidangCol[flat[j].key] = 2 + j;
     const firstAnakRow0 = headerRow + 2;
     const anak: Anak[] = [];
     const anakRows: number[] = [];
@@ -113,13 +120,14 @@ function parseLayout(rows: string[][], merges: SheetMeta["merges"] = []): Layout
     }
     const rowStep = anakRows.length >= 2 ? Math.max(1, anakRows[1] - anakRows[0]) : 1;
     const values: Record<string, string[]> = {};
-    for (const b of flat) values[b.key] = anakRows.map((r) => cell(r, bidangCol[b.key]));
-    for (let j = 0; j < flat.length; j++) {
-      const col = 2 + j;
+    for (const b of flat) values[b.key] = anakRows.map((r) => (bidangCol[b.key] == null ? "" : cell(r, bidangCol[b.key])));
+    for (const b of flat) {
+      const col = bidangCol[b.key];
+      if (col == null) continue;
       for (const m of merges) {
         if (m.sc <= col && col < m.ec) {
           const v = cell(m.sr, col);
-          anakRows.forEach((r, i) => { if (r >= m.sr && r < m.er && v) values[flat[j].key][i] = v; });
+          anakRows.forEach((r, i) => { if (r >= m.sr && r < m.er && v) values[b.key][i] = v; });
         }
       }
     }
