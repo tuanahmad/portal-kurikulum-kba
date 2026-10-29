@@ -20,6 +20,7 @@ import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { MonthGrid } from "../components/MonthGrid";
 import { useDraft } from "../lib/useDraft";
+import { normalisasiAngkaQuran } from "../lib/angkaQuran";
 import { DAFTAR_SURAT, bagianPunyaSurat, bacaSuratBulan, simpanSurat, kunciSurat } from "../lib/suratQuran";
 
 const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
@@ -162,11 +163,13 @@ export default function CapaianQuranFormPage() {
     setError(null);
     setSaveMsg(null);
     try {
+      // Rapikan titik/pecahan ke koma supaya tidak terbaca sebagai tanggal oleh Google Sheet.
+      const nilai = values.map(normalisasiAngkaQuran);
       // 1) Baca keadaan TERBARU file, supaya yang ditulis cocok dengan baris sebenarnya dan tidak menimpa isi yang baru berubah.
       const terbaru = await readCapaianQuran(fileId, bulan);
       const secBaru = terbaru.sections.find((s) => s.name === section.name);
       if (!secBaru) throw new Error("Bagian ini tidak ditemukan di file. Muat ulang halaman lalu coba lagi.");
-      const rencana = susunPenulisan(secBaru, roster, values, baselineValues, slot);
+      const rencana = susunPenulisan(secBaru, roster, nilai, baselineValues, slot);
       await writeCapaianQuranSlot({
         fileId,
         tab: bulan,
@@ -184,9 +187,9 @@ export default function CapaianQuranFormPage() {
       const petaFresh = secFresh ? matchRosterToStudents(secFresh, roster) : [];
       let belumTerbaca = 0;
       roster.forEach((_n, r) => {
-        if (values[r] === baselineValues[r] || !values[r].trim()) return;
+        if (nilai[r] === baselineValues[r] || !nilai[r].trim()) return;
         const terbaca = secFresh && petaFresh[r] >= 0 ? secFresh.students[petaFresh[r]]?.values?.[slot - 1] ?? "" : "";
-        if (!isianSama(values[r], terbaca)) belumTerbaca++;
+        if (!isianSama(nilai[r], terbaca)) belumTerbaca++;
       });
       if (belumTerbaca > 0) {
         throw new Error(`${belumTerbaca} isian belum terbaca di file setelah disimpan. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.`);
@@ -429,8 +432,9 @@ export default function CapaianQuranFormPage() {
                         <input
                           value={values[i] ?? ""}
                           onChange={(e) =>
-                            setValues((prev) => prev.map((v, vi) => (vi === i ? e.target.value : v)))
+                            setValues((prev) => prev.map((v, vi) => (vi === i ? e.target.value.replace(/(\d)\./g, "$1,") : v)))
                           }
+                          onBlur={() => setValues((prev) => prev.map((v, vi) => (vi === i ? normalisasiAngkaQuran(v) : v)))}
                           inputMode="text"
                           placeholder="— / PT / TS"
                           className="w-20 text-sm text-center outline-none px-2 py-1.5 rounded-lg shrink-0"
