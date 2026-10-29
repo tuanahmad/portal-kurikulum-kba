@@ -18,7 +18,15 @@ export type RpbTabData = {
   quranLabel?: string[];
 };
 
-export type RpbQuranRow = { nama: string; rencana: string[] };
+/** target = angka target ziyadah/talaqqi per pertemuan (baris), teks apa adanya dari sheet. */
+export type RpbQuranRow = { nama: string; rencana: string[]; target?: string };
+
+/** Angka target per pertemuan ("1,5" / "2 baris" -> 1.5 / 2); null kalau kosong / bukan angka. */
+export function angkaTargetQuran(t: string | undefined): number | null {
+  const m = (t ?? "").replace(",", ".").match(/\d+(\.\d+)?/);
+  const n = m ? parseFloat(m[0]) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 
 /** Bidang tetap Al-Qur'an di RPB: 3 rencana per santri. */
 export const LABEL_RENCANA_QURAN = {
@@ -34,11 +42,11 @@ export function susunRencanaQuran(roster: string[], dariSheet: RpbQuranRow[]): R
   const peta = new Map(dariSheet.map((q) => [normNamaSantri(q.nama), q]));
   const out: RpbQuranRow[] = roster.map((nama) => {
     const q = peta.get(normNamaSantri(nama));
-    return { nama, rencana: [0, 1, 2].map((j) => q?.rencana?.[j] ?? "") };
+    return { nama, rencana: [0, 1, 2].map((j) => q?.rencana?.[j] ?? ""), target: q?.target ?? "" };
   });
   const diRoster = new Set(roster.map(normNamaSantri));
   for (const q of dariSheet) {
-    if (!diRoster.has(normNamaSantri(q.nama))) out.push({ nama: q.nama, rencana: [0, 1, 2].map((j) => q.rencana?.[j] ?? "") });
+    if (!diRoster.has(normNamaSantri(q.nama))) out.push({ nama: q.nama, rencana: [0, 1, 2].map((j) => q.rencana?.[j] ?? ""), target: q.target ?? "" });
   }
   return out;
 }

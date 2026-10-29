@@ -213,6 +213,10 @@ export default function RpbFormPage() {
       await writeRpbTab(file.id, kelas, payload);
       // Cek ulang: semua teks yang ditulis harus terbaca balik dari file.
       const fresh = await readRpbTab(file.id, kelas);
+      // Angka target (pendek, mis. "2") tidak tertangkap pengecek teks di bawah -> dicek terpisah per santri.
+      const targetBaru = new Map((fresh.quran ?? []).map((q) => [q.nama.trim(), (q.target ?? "").trim()]));
+      const targetHilang = quran.filter((q) => (q.target ?? "").trim() && targetBaru.get(q.nama.trim()) !== (q.target ?? "").trim()).length;
+      if (targetHilang > 0) throw new Error(`${targetHilang} target Al-Qur'an belum terbaca di file setelah disimpan. Ketikanmu masih aman di perangkat; tekan Simpan sekali lagi.`);
       const hilang = hitungTeksHilang(
         [payload.tableB, payload.tableC, quran.map((q) => q.rencana)],
         [fresh.tableB, fresh.tableC, (fresh.quran ?? []).map((q) => q.rencana)]
@@ -227,6 +231,10 @@ export default function RpbFormPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function setQuranTarget(i: number, val: string) {
+    setQuran((prev) => prev.map((q, qi) => (qi === i ? { ...q, target: val } : q)));
   }
 
   function setQuranIsi(i: number, j: number, val: string) {
@@ -461,7 +469,7 @@ export default function RpbFormPage() {
                   subtitle={`Al-Qur'an + ${bidangCount} bidang ilmu lain yang ditargetkan bulan ini`}
                 />
                 <div className="space-y-3">
-                  <RencanaQuranCard label={labelQuran} quran={quran} onChange={setQuranIsi} />
+                  <RencanaQuranCard label={labelQuran} labelTarget={isQonuni ? "Ziyadah" : "Talaqqi"} quran={quran} onChange={setQuranIsi} onTarget={setQuranTarget} />
                   {tableB.slice(0, bidangCount).map((row, i) => (
                     <EntryCard
                       key={i}
@@ -548,12 +556,16 @@ export default function RpbFormPage() {
 /** Bidang tetap Al-Qur'an: rencana per santri (bukan sekelas). Tersimpan di bagian D sheet RPB. */
 function RencanaQuranCard({
   label,
+  labelTarget,
   quran,
   onChange,
+  onTarget,
 }: {
   label: string[];
+  labelTarget: string;
   quran: RpbQuranRow[];
   onChange: (i: number, j: number, val: string) => void;
+  onTarget: (i: number, val: string) => void;
 }) {
   const terisi = quran.filter((q) => q.rencana.some((x) => x.trim())).length;
   return (
@@ -561,7 +573,8 @@ function RencanaQuranCard({
       <div>
         <div className="text-sm font-bold" style={{ color: C.ink }}>Al-Qur'an</div>
         <div className="text-xs" style={{ color: C.muted }}>
-          Rencana per santri: {label.join(", ")} · {terisi}/{quran.length} santri terisi
+          Rencana per santri: {label.join(", ")} · {terisi}/{quran.length} santri terisi. Isi juga angka target {labelTarget.toLowerCase()}
+          (baris per pertemuan) supaya ketercapaiannya dihitung otomatis di laporan.
         </div>
       </div>
       {quran.length === 0 ? (
@@ -570,8 +583,23 @@ function RencanaQuranCard({
         <div className="space-y-2">
           {quran.map((q, i) => (
             <div key={q.nama + i} className="rounded-xl p-2.5" style={{ background: C.leaf, border: `1px solid ${C.line}` }}>
-              <div className="text-xs font-semibold mb-2" style={{ color: C.green }}>
-                {i + 1}. {q.nama}
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <div className="text-xs font-semibold" style={{ color: C.green }}>
+                  {i + 1}. {q.nama}
+                </div>
+                <label className="flex items-center gap-1.5 text-[11px]" style={{ color: C.muted }}>
+                  Target {labelTarget}
+                  <input
+                    value={q.target ?? ""}
+                    onChange={(e) => onTarget(i, e.target.value.replace(/[^0-9.,]/g, ""))}
+                    inputMode="decimal"
+                    placeholder="0"
+                    aria-label={`Target ${labelTarget} ${q.nama} (baris per pertemuan)`}
+                    className="w-14 text-xs text-center outline-none px-2 py-1 rounded-md"
+                    style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                  />
+                  baris/pertemuan
+                </label>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {label.map((l, j) => (

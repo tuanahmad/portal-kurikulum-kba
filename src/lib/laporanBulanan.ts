@@ -22,6 +22,8 @@ export type QuranSantri = {
   /** Banyaknya kode PT (persiapan tasmi') / TS (tasmi') yang ditulis guru -- cuma dihitung, gak ditafsirkan. */
   pt: number;
   ts: number;
+  /** Isi mentah tiap slot (index 0 = pertemuan/pekan ke-1), untuk grafik pekanan & penilaian wirid. */
+  nilai: string[];
 };
 export type QuranSection = { name: string; type: "pertemuan" | "pekan"; slotCount: number; santri: QuranSantri[] };
 
@@ -137,7 +139,8 @@ function ringkasQuran(raw: Awaited<ReturnType<typeof readCapaianQuran>>, kelas: 
           if (!Number.isNaN(n)) total += n;
         }
       }
-      return { nama, total: Math.round(total * 10) / 10, terisi, pt, ts };
+      const nilai = Array.from({ length: sec.slotCount }, (_, j) => (vals[j] ?? "").trim());
+      return { nama, total: Math.round(total * 10) / 10, terisi, pt, ts, nilai };
     });
     return { name: sec.name, type: sec.type, slotCount: sec.slotCount, santri };
   });
@@ -173,7 +176,17 @@ export async function muatLaporan(bulan: string, onProgress?: (p: Progress) => v
   const tick = () => onProgress?.({ selesai: ++selesai, total });
   onProgress?.({ selesai: 0, total });
 
+  // Kuota baca Google (dipakai bersama semua guru) bisa penuh saat laporan membaca banyak sheet: tunggu lalu coba lagi,
+  // supaya sumber yang sebenarnya ada tidak terlapor "kosong".
+  const kuotaPenuh = (m: string) => /429|rate.?limit|quota|kuota/i.test(m);
   const sheetJobs = slots.map((s) => async () => {
+    for (let coba = 0; ; coba++) {
+      const r = await bacaSatu(s);
+      if (r.ok || coba >= 3 || !kuotaPenuh(r.e)) return r;
+      await new Promise((ok) => setTimeout(ok, 20000 * (coba + 1)));
+    }
+  });
+  async function bacaSatu(s: Slot) {
     try {
       if (s.kind === "quran") {
         const id = capaianQuranFileId(s.kelas);
@@ -194,7 +207,7 @@ export async function muatLaporan(bulan: string, onProgress?: (p: Progress) => v
     } catch (e) {
       return { s, ok: false as const, e: errMsg(e) };
     }
-  });
+  }
 
   const supa = async <T,>(f: () => PromiseLike<T>): Promise<T> => {
     const r = await f();

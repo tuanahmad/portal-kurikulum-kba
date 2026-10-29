@@ -348,7 +348,7 @@ export function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
   const orphanBidang = isQonuni ? findOrphanBidangC(data.tableC, qonuniGroups.map((g) => g.bidang)) : [];
   // Bidang tetap Al-Qur'an: rencana per santri (bagian D sheet RPB).
   const labelQuran = [0, 1, 2].map((j) => data.quranLabel?.[j] || (isQonuni ? LABEL_RENCANA_QURAN.qonuni : LABEL_RENCANA_QURAN.ka)[j]);
-  const quranTerisi = (data.quran ?? []).filter((q) => q.rencana.some((x) => (x ?? "").trim()));
+  const quranTerisi = (data.quran ?? []).filter((q) => q.rencana.some((x) => (x ?? "").trim()) || (q.target ?? "").trim());
 
   return (
     <div className="space-y-6">
@@ -438,6 +438,7 @@ export function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
                 {labelQuran.map((l, j) => (
                   <ReadField key={j} label={l} value={q.rencana[j] ?? ""} />
                 ))}
+                {(q.target ?? "").trim() && <ReadField label={`Target ${isQonuni ? "ziyadah" : "talaqqi"} (baris/pertemuan)`} value={q.target ?? ""} />}
               </RekapAccordion>
             ))}
           </div>

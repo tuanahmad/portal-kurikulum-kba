@@ -19,6 +19,7 @@ import { PageLoadingSkeleton } from "../components/Skeleton";
 import { PickerCard } from "../components/PickerCard";
 import { MonthGrid } from "../components/MonthGrid";
 import { useDraft } from "../lib/useDraft";
+import { TargetIlmuCard } from "../components/TargetIlmuCard";
 
 const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 const GREEN_GRAD = `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`;
@@ -233,6 +234,9 @@ export default function CapaianIlmuFormPage() {
               isOpen={isMonthOpen}
             />
           </Step>
+
+          {/* Tanda ketercapaian target ilmu dari RPB bulan ini (dipakai laporan Sajian Data) */}
+          {bulan && <TargetIlmuCard kelas={kelas} bulan={bulan} bisaUbah={isGuru} />}
 
           {error && (
             <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>

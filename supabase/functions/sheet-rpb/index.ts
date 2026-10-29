@@ -62,13 +62,15 @@ const TABLE_B_EXTRA_RANGE = "C60:E62"; // Bidang Ilmu 6-8 (buat TULIS — Kuttab
 const TABLE_C_RANGE = "B19:E58"; // 8 Bidang Ilmu x 5 Pekan (buat TULIS — Kuttab Awwal aja)
 const FULL_SCAN_RANGE = "A1:J200"; // buat BACA — cukup lebar/panjang buat nangkep sheet manapun
 // Bagian D: bidang tetap Al-Qur'an, rencana PER SANTRI (3 isian: KA Talaqqi/Murojaah Jama'i/Baghdadiyah, Qonuni
-// Ziyadah/Murojaah/Wirid). Letaknya di bawah semua bagian lain (bawaan baris 65, kolom B=No, C=Nama, D..F=rencana),
+// Ziyadah/Murojaah/Wirid) + kolom G = angka target ziyadah/talaqqi (baris per pertemuan, dipakai Sajian Data untuk menilai
+// ketercapaian). Letaknya di bawah semua bagian lain (bawaan baris 65, kolom B=No, C=Nama, D..F=rencana, G=target),
 // dicari lewat penandanya; kalau belum ada, dibuat saat pertama disimpan (hanya kalau tempatnya masih kosong).
 const QURAN_MARKER = "D. Rencana Al-Qur'an per Santri";
 const QURAN_MARKER_CARI = "d. rencana al-qur";
 const QURAN_DEFAULT_ROW0 = 64; // 0-based = baris 65
 const QURAN_MAX_SANTRI = 40;
-type QuranRow = { nama: string; rencana: string[] };
+type QuranRow = { nama: string; rencana: string[]; target?: string };
+const QURAN_LABEL_TARGET = "Target baris/pertemuan";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -148,7 +150,7 @@ function bacaQuran(rows: string[][], dMarker: number): { label: string[]; santri
   const santri: QuranRow[] = [];
   for (let r = dMarker + 2; r < Math.min(rows.length, dMarker + 2 + QURAN_MAX_SANTRI); r++) {
     const nama = cellAt(rows, r, 2).trim();
-    if (nama) santri.push({ nama, rencana: [3, 4, 5].map((c) => cellAt(rows, r, c)) });
+    if (nama) santri.push({ nama, rencana: [3, 4, 5].map((c) => cellAt(rows, r, c)), target: cellAt(rows, r, 6) });
   }
   return { label, santri };
 }
@@ -294,25 +296,30 @@ async function dataRencanaQuran(fileId: string, sheetName: string, token: string
   if (d < 0) {
     d = QURAN_DEFAULT_ROW0;
     for (let r = d; r < d + 2 + QURAN_MAX_SANTRI; r++) {
-      if ([1, 2, 3, 4, 5].some((c) => cellAt(rows, r, c).trim())) {
+      if ([1, 2, 3, 4, 5, 6].some((c) => cellAt(rows, r, c).trim())) {
         throw new Error(`Bagian Rencana Al-Qur'an belum ada di tab ini dan baris ${d + 1}-${d + 2 + QURAN_MAX_SANTRI} sudah terisi hal lain. Hubungi admin.`);
       }
     }
   }
   const dikirim = quran.filter((q) => (q?.nama ?? "").trim());
   const kunci = new Set(dikirim.map((q) => normNama(q.nama)));
-  const lama = bacaQuran(rows, d).santri.filter((s) => !kunci.has(normNama(s.nama)));
+  const diSheet = bacaQuran(rows, d).santri;
+  const lama = diSheet.filter((s) => !kunci.has(normNama(s.nama)));
+  // Aplikasi versi lama tidak mengirim target -> pakai angka target yang sudah ada di sheet (jangan terhapus).
+  const targetLama = new Map(diSheet.map((s) => [normNama(s.nama), s.target ?? ""]));
   const semua = [...dikirim, ...lama];
   if (semua.length > QURAN_MAX_SANTRI) throw new Error(`Rencana Al-Qur'an maksimal ${QURAN_MAX_SANTRI} santri.`);
   const isi = Array.from({ length: QURAN_MAX_SANTRI }, (_, i) => {
     const s = semua[i];
-    return s ? [String(i + 1), s.nama.trim(), ...[0, 1, 2].map((j) => String(s.rencana?.[j] ?? ""))] : ["", "", "", "", ""];
+    return s
+      ? [String(i + 1), s.nama.trim(), ...[0, 1, 2].map((j) => String(s.rencana?.[j] ?? "")), String(s.target ?? targetLama.get(normNama(s.nama)) ?? "")]
+      : ["", "", "", "", "", ""];
   });
   const lbl = [0, 1, 2].map((j) => (label[j] ?? "").trim() || cellAt(rows, d + 1, 3 + j).trim());
   return [
     { range: `${sheetName}!B${d + 1}`, values: [[QURAN_MARKER]] },
-    { range: `${sheetName}!B${d + 2}:F${d + 2}`, values: [["No", "Nama Santri", ...lbl]] },
-    { range: `${sheetName}!B${d + 3}:F${d + 2 + QURAN_MAX_SANTRI}`, values: isi },
+    { range: `${sheetName}!B${d + 2}:G${d + 2}`, values: [["No", "Nama Santri", ...lbl, QURAN_LABEL_TARGET]] },
+    { range: `${sheetName}!B${d + 3}:G${d + 2 + QURAN_MAX_SANTRI}`, values: isi },
   ];
 }
 
