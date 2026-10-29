@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { C } from "../data";
 import { W, JAM_AKTIF } from "../lib/warnaLaporan";
 import { toast } from "./Toast";
+import { TargetIlmuCard } from "./TargetIlmuCard";
 import { refleksiTerisi } from "../lib/laporanBulanan";
 import { KELOMPOK_LABEL } from "../lib/olahraga";
 import {
@@ -27,8 +28,8 @@ const teksRasio = (r: Rasio | null | undefined, satuan = "") => (!r || r.p == nu
 const warnaSimbol: Record<Simbol, string> = { ok: W.ok, belum: W.bad, kosong: C.muted, tanpa: C.muted };
 
 export const ATURAN = [
-  ["Sumber data", "Target diambil dari RPB bulanan. Capaian ilmu dari tanda Sudah/Belum yang diisi guru di Capaian Ilmu; capaian Al-Qur'an dari Capaian Al-Qur'an (angka baris per pertemuan dan surat); refleksi dari Laporan Refleksi Bulanan Guru."],
-  ["Target ilmu", "Setiap target ilmu di RPB dinilai tersendiri: ✓ bila guru menandai Sudah tercapai, ✗ bila Belum tercapai (keterangan dari guru), ○ bila belum ditandai. Target Al-Qur'an tidak dinilai di bagian ilmu; Baghdadiyah tetap dinilai di bagian ilmu."],
+  ["Sumber data", "Target diambil dari RPB bulanan. Capaian ilmu dari Refleksi bulanan guru (bagian A, Capaian Target) dan tanda per target dari tim kurikulum; capaian Al-Qur'an dari Capaian Al-Qur'an (angka baris per pertemuan dan surat); refleksi dari Laporan Refleksi Bulanan Guru."],
+  ["Target ilmu", "Setiap target ilmu di RPB mendapat satu tanda. Bila tim kurikulum menandai per target: ✓ Sudah tercapai atau ✗ Belum tercapai (dengan keterangan). Bila tidak, nilai kelas dari Refleksi guru dipakai untuk semua target kelas itu: Ya = ✓, Sebagian atau Belum = ✗ (target kelas dianggap tercapai hanya bila seluruhnya tercapai). ○ bila Refleksi belum diisi dan belum ditandai. Target Al-Qur'an tidak dinilai di bagian ilmu; Baghdadiyah tetap dinilai di bagian ilmu."],
   ["Persentase ilmu", "Jumlah target ✓ dibagi seluruh target ilmu di RPB, termasuk yang bertanda ○."],
   ["Ziyadah dan talaqqi", "Target per santri = angka target baris per pertemuan di RPB × jumlah pertemuan bulan itu (dari isian Jumlah Pertemuan RPB, atau jumlah hari sekolah). ✓ bila total baris sebulan sama atau melewati target. Santri tanpa angka target diberi – (capaian hanya dicatat)."],
   ["Muroja'ah", "✓ bila jumlah baris muroja'ah bulan itu lebih dari nol dan minimal sama dengan jumlah baris ziyadah bulan yang sama. ○ bila tidak ada catatan."],
@@ -43,12 +44,15 @@ export function LaporanKbm({
   kesimpulan,
   setKesimpulan,
   bisaUbah,
+  onTandaBerubah,
 }: {
   periode: Periode;
   data: NilaiBulan[];
   kesimpulan: string;
   setKesimpulan: (t: string) => void;
   bisaUbah: boolean;
+  /** Dipanggil setelah tim kurikulum menyimpan tanda per target: nilai ilmu bulan itu disusun ulang. */
+  onTandaBerubah: (bulan: string) => void | Promise<void>;
 }) {
   const narasi = useMemo(() => susunNarasi(periode, data), [periode, data]);
   const bidang = useMemo(() => bidangBelumTerbanyak(data).filter(([, v]) => v.some((x) => x > 0)), [data]);
@@ -81,7 +85,7 @@ export function LaporanKbm({
             ["Santri mencapai target muroja'ah", ...data.map((d) => ({ teks: teksRasio(d.ringkas.muroja), p: d.ringkas.muroja.p }))],
             ["Santri mencapai target wirid", ...data.map((d) => ({ teks: teksRasio(d.ringkas.wirid), p: d.ringkas.wirid.p }))],
           ]}
-          catatan="Target ilmu dihitung dari seluruh target RPB di luar Al-Qur'an, termasuk yang belum ditandai. Al-Qur'an dihitung dari santri yang datanya bisa dinilai; santri tanpa data atau tanpa angka target tidak dihitung."
+          catatan="Target ilmu dihitung dari seluruh target RPB di luar Al-Qur'an, termasuk yang belum dapat dinilai. Al-Qur'an dihitung dari santri yang datanya bisa dinilai; santri tanpa data atau tanpa angka target tidak dihitung."
         />
         <GrafikTren data={data} />
       </Bab>
@@ -179,7 +183,7 @@ export function LaporanKbm({
         </div>
       </div>
       {data.map((d, i) => (
-        <LampiranBulan key={d.bulan} d={d} romawi={["I", "II", "III"][i] ?? String(i + 1)} />
+        <LampiranBulan key={d.bulan} d={d} romawi={["I", "II", "III"][i] ?? String(i + 1)} onTandaBerubah={onTandaBerubah} />
       ))}
       <Akordeon judul="Catatan Kualitas Data" sub={`${data.reduce((a, d) => a + d.kualitas.length, 0)} catatan`}>
         {data.every((d) => d.kualitas.length === 0) ? (
@@ -201,25 +205,18 @@ export function LaporanKbm({
 
 /* ───────── lampiran per bulan ───────── */
 
-function LampiranBulan({ d, romawi }: { d: NilaiBulan; romawi: string }) {
+function LampiranBulan({ d, romawi, onTandaBerubah }: { d: NilaiBulan; romawi: string; onTandaBerubah: (bulan: string) => void | Promise<void> }) {
   return (
     <div className="mt-5">
       <div className="text-sm font-bold px-1" style={{ color: C.green }}>
         Bagian {romawi} · {d.bulan} {d.year}{d.berjalan ? " (bulan berjalan)" : ""}
       </div>
       <Akordeon judul={`${romawi}.A Checklist RPB dan Capaian Ilmu`} sub={teksRasio(d.ringkas.ilmu, " target")}>
+        <p className="text-[11px] mb-1" style={{ color: C.muted }}>
+          Nilai kelas dari Refleksi guru. Ketuk "Tandai per target" untuk memperinci per target (menimpa nilai Refleksi).
+        </p>
         {d.ilmu.map((k) => (
-          <div key={k.kelas} className="mt-3 first:mt-0">
-            <SubJudul>{k.kelas}{k.guru ? ` — ${k.guru}` : ""}</SubJudul>
-            {k.items.length === 0 ? (
-              <Kosong>{k.adaRpb ? "RPB belum berisi target ilmu." : "RPB belum bisa dibaca."}</Kosong>
-            ) : (
-              <Tabel
-                kepala={["No", "Bidang", "Target RPB", "", "Keterangan"]}
-                baris={k.items.map((it, i) => [String(i + 1), it.bidang, it.target, { simbol: it.simbol }, it.ket])}
-              />
-            )}
-          </div>
+          <BlokIlmuKelas key={k.kelas} k={k} bulan={d.bulan} onTandaBerubah={onTandaBerubah} />
         ))}
       </Akordeon>
       <Akordeon judul={`${romawi}.B Checklist Capaian Al-Qur'an per Santri`} sub={`Ziyadah/talaqqi ${teksRasio(d.ringkas.ziyadah)}`}>
@@ -254,6 +251,40 @@ function LampiranBulan({ d, romawi }: { d: NilaiBulan; romawi: string }) {
       <Akordeon judul={`${romawi}.E Data Pendukung`} sub="Kelengkapan, kehadiran guru, tasmi', olahraga">
         <DataPendukung d={d} />
       </Akordeon>
+    </div>
+  );
+}
+
+function BlokIlmuKelas({ k, bulan, onTandaBerubah }: { k: NilaiBulan["ilmu"][number]; bulan: string; onTandaBerubah: (bulan: string) => void | Promise<void> }) {
+  const [edit, setEdit] = useState(false);
+  return (
+    <div className="mt-3 first:mt-0">
+      <div className="flex items-center justify-between gap-2">
+        <SubJudul>{k.kelas}{k.guru ? ` — ${k.guru}` : ""}</SubJudul>
+        {k.items.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setEdit((e) => !e)}
+            className="text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0"
+            style={{ background: edit ? C.green : C.leaf, color: edit ? "#FFF" : C.green }}
+          >
+            {edit ? "Tutup" : "Tandai per target"}
+          </button>
+        )}
+      </div>
+      {edit && (
+        <div className="mb-2">
+          <TargetIlmuCard kelas={k.kelas} bulan={bulan} bisaUbah onTersimpan={() => onTandaBerubah(bulan)} />
+        </div>
+      )}
+      {k.items.length === 0 ? (
+        <Kosong>{k.adaRpb ? "RPB belum berisi target ilmu." : "RPB belum bisa dibaca."}</Kosong>
+      ) : (
+        <Tabel
+          kepala={["No", "Bidang", "Target RPB", "", "Keterangan"]}
+          baris={k.items.map((it, i) => [String(i + 1), it.bidang, it.target, { simbol: it.simbol }, it.ket])}
+        />
+      )}
     </div>
   );
 }

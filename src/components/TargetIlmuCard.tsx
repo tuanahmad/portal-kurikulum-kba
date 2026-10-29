@@ -6,9 +6,9 @@ import { useDraft } from "../lib/useDraft";
 import { toast } from "./Toast";
 import { GagalMuat } from "./GagalMuat";
 
-/** Kartu "Target RPB bulan ini" di Capaian Ilmu: tiap target ilmu dari RPB ditandai Sudah / Belum (+ keterangan).
- *  Guru mengubah, management hanya melihat. Hasilnya dipakai Sajian Data untuk menghitung ketercapaian target ilmu. */
-export function TargetIlmuCard({ kelas, bulan, bisaUbah }: { kelas: string; bulan: string; bisaUbah: boolean }) {
+/** Kartu "Target RPB bulan ini": tiap target ilmu dari RPB ditandai Sudah / Belum (+ keterangan). Dipakai tim kurikulum
+ *  di Sajian Data untuk memperinci penilaian per target (menimpa nilai kelas dari Refleksi guru). */
+export function TargetIlmuCard({ kelas, bulan, bisaUbah, onTersimpan }: { kelas: string; bulan: string; bisaUbah: boolean; onTersimpan?: () => void | Promise<void> }) {
   const [targets, setTargets] = useState<TargetIlmu[] | null>(null);
   const [tanda, setTanda] = useState<Record<number, TandaTarget | null>>({});
   const [dasar, setDasar] = useState<Record<number, TandaTarget | null>>({});
@@ -75,6 +75,7 @@ export function TargetIlmuCard({ kelas, bulan, bisaUbah }: { kelas: string; bula
       setDasar(tanda);
       draft.clear();
       toast.sukses("Tanda target tersimpan");
+      await onTersimpan?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -92,7 +93,7 @@ export function TargetIlmuCard({ kelas, bulan, bisaUbah }: { kelas: string; bula
               ? "Memuat target…"
               : targets.length === 0
                 ? "Belum ada target ilmu di RPB bulan ini"
-                : `${sudah} dari ${targets.length} target sudah tercapai${bisaUbah ? " · tandai begitu target tercapai" : ""}`}
+                : `${sudah} dari ${targets.length} target ditandai tercapai${bisaUbah ? " · tandai Sudah/Belum per target" : ""}`}
           </div>
         </div>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: C.muted, transform: buka ? "rotate(180deg)" : "none", transition: "transform .2s" }}>

@@ -50,6 +50,8 @@ export type NilaiBulan = {
     tanpaTargetQuran: number;
   };
   kualitas: { kelas: string; masalah: string; usulan: string }[];
+  /** Surat per santri (database), disimpan supaya nilai ilmu bisa disusun ulang tanpa membaca ulang Google Sheet. */
+  surat: Map<string, Map<string, string[]>>;
 };
 
 /* ───────── util ───────── */
@@ -129,15 +131,30 @@ async function bacaSuratSemua(bulan: string): Promise<Map<string, Map<string, st
 
 /* ───────── penilaian per kelas ───────── */
 
+/** Nilai "Target pembelajaran tercapai" di Refleksi bagian A (baris ke-2): Ya / Sebagian / Belum, atau null kalau belum diisi. */
+function statusRefleksi(r: KelasLaporan["refleksi"]): "ya" | "sebagian" | "belum" | null {
+  const row = r?.capaianTarget?.[1];
+  // Centang bisa berupa kotak centang Google ("TRUE") atau teks seperti "☐✓" (beberapa file lama).
+  const dicentang = (v?: string) => (v ?? "").trim() === "TRUE" || /[✓✔☑]/.test(v ?? "");
+  if (dicentang(row?.[0])) return "ya";
+  if (dicentang(row?.[1])) return "sebagian";
+  if (dicentang(row?.[2])) return "belum";
+  return null;
+}
+
+/** Nilai tiap target ilmu: (1) tanda per target dari tim kurikulum, kalau ada; (2) kalau tidak, nilai kelas dari Refleksi guru
+ *  (Ya = semua target tercapai; Sebagian/Belum = belum, sebab target kelas dianggap tercapai hanya bila seluruhnya tercapai);
+ *  (3) kalau keduanya tidak ada = tidak tercatat. */
 function nilaiIlmu(kl: KelasLaporan, tanda: Map<string, TandaTersimpan> | undefined): KelasIlmu {
+  const sr = statusRefleksi(kl.refleksi);
   const items: ItemIlmu[] = daftarTargetIlmu(kl.rpb).map((t) => {
     const s = tanda?.get(kunciTarget(t.bidang, t.target));
-    return {
-      bidang: t.bidang,
-      target: t.target,
-      simbol: s ? (s.status === "sudah" ? "ok" : "belum") : "kosong",
-      ket: s ? s.keterangan || (s.status === "sudah" ? "Tercapai." : "") : "Belum ditandai guru.",
-    };
+    const dasar = { bidang: t.bidang, target: t.target };
+    if (s) return { ...dasar, simbol: s.status === "sudah" ? "ok" : "belum", ket: s.keterangan || (s.status === "sudah" ? "Tercapai (ditandai tim kurikulum)." : "Belum tercapai (ditandai tim kurikulum).") } as ItemIlmu;
+    if (sr === "ya") return { ...dasar, simbol: "ok", ket: "Tercapai menurut Refleksi guru (target pembelajaran tercapai)." };
+    if (sr === "sebagian") return { ...dasar, simbol: "belum", ket: "Refleksi guru: target pembelajaran baru sebagian tercapai. Rincian per target belum ditandai." };
+    if (sr === "belum") return { ...dasar, simbol: "belum", ket: "Refleksi guru: target pembelajaran belum tercapai." };
+    return { ...dasar, simbol: "kosong", ket: "Belum dapat dinilai: Refleksi guru belum diisi dan belum ditandai tim kurikulum." };
   });
   return { kelas: kl.kelas, guru: kl.guru, items, adaRpb: !!kl.rpb };
 }
@@ -230,6 +247,15 @@ function grafikKelas(kl: KelasLaporan, bulan: string, labelZ: string): GrafikKel
 
 export async function muatNilaiBulan(bulan: string, onProgress?: (p: Progress) => void): Promise<NilaiBulan> {
   const [lap, tanda, surat] = await Promise.all([muatLaporan(bulan, onProgress), bacaTandaTargetBulan(bulan), bacaSuratSemua(bulan)]);
+  return rakit(bulan, lap, tanda, surat);
+}
+
+/** Susun ulang nilai setelah tanda target berubah: hanya membaca tanda dari database, TIDAK membaca ulang Google Sheet. */
+export async function perbaruiIlmu(n: NilaiBulan): Promise<NilaiBulan> {
+  return rakit(n.bulan, n.lap, await bacaTandaTargetBulan(n.bulan), n.surat);
+}
+
+function rakit(bulan: string, lap: Laporan, tanda: Map<string, Map<string, TandaTersimpan>>, surat: Map<string, Map<string, string[]>>): NilaiBulan {
   const berjalan = bulanBerjalan(bulan);
   const ilmu = lap.kelas.map((kl) => nilaiIlmu(kl, tanda.get(kl.kelas)));
   const quran = lap.kelas.map((kl) => nilaiQuran(kl, bulan, berjalan, surat.get(kl.kelas)));
@@ -259,7 +285,7 @@ export async function muatNilaiBulan(bulan: string, onProgress?: (p: Progress) =
     for (const [k, nama] of sumber) if (kl.err[k]) kualitas.push({ kelas: kl.kelas, masalah: `${nama} tidak bisa dibaca: ${kl.err[k]}`, usulan: "Periksa tab bulan ini di file sheet-nya." });
     if (kl.rpb && ilmu[i].items.length === 0) kualitas.push({ kelas: kl.kelas, masalah: "RPB belum berisi target ilmu.", usulan: "Isi Target Pembelajaran di RPB." });
     const tanpaTanda = hit(ilmu[i].items, "kosong");
-    if (tanpaTanda) kualitas.push({ kelas: kl.kelas, masalah: `${tanpaTanda} target ilmu belum ditandai Sudah/Belum.`, usulan: "Tandai di Capaian Ilmu, bagian Target RPB." });
+    if (tanpaTanda) kualitas.push({ kelas: kl.kelas, masalah: `${tanpaTanda} target ilmu belum dapat dinilai (Refleksi guru belum diisi).`, usulan: "Isi Refleksi bagian A (Capaian Target), atau tandai per target di Sajian Data." });
     const tanpaTarget = quran[i].items.filter((x) => x.kategori === "ziyadah" && x.simbol === "tanpa").length;
     if (tanpaTarget) kualitas.push({ kelas: kl.kelas, masalah: `${tanpaTarget} santri belum punya angka target ${quran[i].labelZ.toLowerCase()}.`, usulan: "Isi target baris per pertemuan di RPB bagian Al-Qur'an." });
     const wiridBolong = quran[i].items.filter((x) => x.kategori === "wirid" && (x.pekanKosong ?? 0) > 0).length;
@@ -288,6 +314,7 @@ export async function muatNilaiBulan(bulan: string, onProgress?: (p: Progress) =
       tanpaTargetQuran: semuaQ.filter((x) => x.kategori === "ziyadah" && x.simbol === "tanpa").length,
     },
     kualitas,
+    surat,
   };
 }
 
@@ -406,7 +433,7 @@ export function susunNarasi(p: Periode, bulan: NilaiBulan[]): Narasi {
         ? `Dari hasil tersebut, beberapa target masih belum tercapai sesuai perencanaan, terutama pada ${daftarKata(terendah.slice(0, 2).map((x) => x.nama))}.`
         : "Dari hasil tersebut, sebagian besar target pembelajaran tercapai sesuai perencanaan.",
       kosongIlmu || tanpaTarget
-        ? `Selain itu, kelengkapan pencatatan masih perlu diperhatikan (${[kosongIlmu ? `${kosongIlmu} target ilmu belum ditandai guru` : "", tanpaTarget ? `${tanpaTarget} catatan santri belum memiliki angka target Al-Qur'an` : ""].filter(Boolean).join("; ")}) agar evaluasi dapat menggambarkan perkembangan santri dengan lebih akurat.`
+        ? `Selain itu, kelengkapan pencatatan masih perlu diperhatikan (${[kosongIlmu ? `${kosongIlmu} target ilmu belum dapat dinilai karena Refleksi guru belum diisi` : "", tanpaTarget ? `${tanpaTarget} catatan santri belum memiliki angka target Al-Qur'an` : ""].filter(Boolean).join("; ")}) agar evaluasi dapat menggambarkan perkembangan santri dengan lebih akurat.`
         : "",
       "Hasil evaluasi ini menjadi bahan untuk meninjau pelaksanaan rencana pembelajaran dan menentukan tindak lanjut pada periode berikutnya.",
     ]
@@ -422,7 +449,7 @@ export function susunNarasi(p: Periode, bulan: NilaiBulan[]): Narasi {
           bidang.slice(0, 3).map(([k, v]) => `${k.toLowerCase()} (${bulan.length > 1 ? v.join(", ") : v[0]} target)`)
         )}. Rincian alasan dari guru tercantum pada lampiran checklist RPB dan Capaian Ilmu.`
       : "Belum ada target ilmu yang ditandai belum tercapai.",
-    kosongIlmu ? `Sebanyak ${kosongIlmu} target belum ditandai guru sehingga dihitung sebagai tidak tercatat.` : "",
+    kosongIlmu ? `Sebanyak ${kosongIlmu} target belum dapat dinilai karena Refleksi guru belum diisi dan belum ditandai tim kurikulum, sehingga dihitung sebagai tidak tercatat.` : "",
   ].filter(Boolean);
 
   const berulang = santriBelumBerulang(bulan);

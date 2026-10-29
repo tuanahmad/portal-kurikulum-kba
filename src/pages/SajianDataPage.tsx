@@ -6,7 +6,7 @@ import { C, isMonthOpen } from "../data";
 import { BackButton } from "../components/PortalComponents";
 import { MonthGrid } from "../components/MonthGrid";
 import { LaporanKbm } from "../components/LaporanKbm";
-import { muatPeriode, periodeBulan, periodeTriwulan, bacaKesimpulan, TRIWULAN, type NilaiBulan } from "../lib/penilaianKbm";
+import { muatPeriode, periodeBulan, periodeTriwulan, bacaKesimpulan, perbaruiIlmu, TRIWULAN, type NilaiBulan } from "../lib/penilaianKbm";
 
 const BULAN_12 = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 const OK = "#1D9E75";
@@ -262,6 +262,12 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periode?.kunci]);
 
+  /** Tim kurikulum menyimpan tanda per target: nilai ilmu bulan itu disusun ulang (tanpa membaca ulang Google Sheet). */
+  async function tandaBerubah(bulanIni: string) {
+    if (!data) return;
+    setData(await Promise.all(data.map((d) => (d.bulan === bulanIni ? perbaruiIlmu(d) : d))));
+  }
+
   async function unduh() {
     if (!data || !periode) return;
     setPdfBusy(true);
@@ -385,7 +391,7 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
               </svg>
               {pdfBusy ? "Menyiapkan PDF…" : "Download PDF"}
             </button>
-            <LaporanKbm key={periode.kunci} periode={periode} data={data} kesimpulan={kesimpulan} setKesimpulan={setKesimpulan} bisaUbah />
+            <LaporanKbm key={periode.kunci} periode={periode} data={data} kesimpulan={kesimpulan} setKesimpulan={setKesimpulan} bisaUbah onTandaBerubah={tandaBerubah} />
           </>
         )}
       </div>
