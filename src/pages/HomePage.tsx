@@ -160,7 +160,7 @@ function GuruHariIni() {
     let cancelled = false;
     readStatusGuru(uid, kelas)
       .then((r) => !cancelled && setS(r))
-      .catch(() => !cancelled && setS({ jurnal: null, absen: null, absenSantri: null, quran: null, rencana: null }));
+      .catch(() => !cancelled && setS({ jurnal: null, absen: null, absenSantri: null, quran: null, rencana: null, targetQuran: null }));
     return () => {
       cancelled = true;
     };
@@ -210,6 +210,18 @@ function GuruHariIni() {
       sub: s.quran ? "Pekan ini sudah ada isian" : "Pekan ini belum ada isian",
       to: "/capaian/quran",
       state: s.quran == null ? null : s.quran ? "selesai" : "belum",
+      icon: <BookIconOutline />,
+    },
+    {
+      key: "targetQuran",
+      label: "Target Al-Qur'an (RPB)",
+      sub: !s.targetQuran
+        ? ""
+        : s.targetQuran.terisi >= s.targetQuran.total
+          ? `Angka target ${s.targetQuran.bulan} sudah lengkap`
+          : `Angka target ${s.targetQuran.bulan}: ${s.targetQuran.terisi} dari ${s.targetQuran.total} santri`,
+      to: "/rpb",
+      state: !s.targetQuran ? null : s.targetQuran.terisi >= s.targetQuran.total ? "selesai" : s.targetQuran.terisi > 0 ? "sebagian" : "belum",
       icon: <BookIconOutline />,
     },
     // RPB & Refleksi bulanan: hanya muncul tanggal 1-5 (s.rencana null di tanggal lain)

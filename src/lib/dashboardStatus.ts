@@ -2,7 +2,7 @@ import { supabase } from "./supabaseClient";
 import { ymd, readJurnalRange, isEntryFilled } from "./jurnal";
 import { readAbsenRange, isAbsenFilled, isAbsenLengkap } from "./absen";
 import { capaianRoster, capaianQuranFileId, pekanUntukSlot, slotUntukTanggal, slotsDiPekan, RPB_FILES, REFLEKSI_FILES } from "../data";
-import { readRpbTab, type RpbTabData } from "./rpbSheet";
+import { readRpbTab, susunRencanaQuran, angkaTargetQuran, type RpbTabData } from "./rpbSheet";
 import { readReflectionTab, type ReflectionData } from "./refleksiSheet";
 import { readCapaianQuran } from "./capaianQuranSheet";
 import { readAbsenSantriDay } from "./absenSantri";
@@ -72,6 +72,9 @@ export type StatusGuruHariIni = {
   /** RPB bulan berjalan & Refleksi BULAN LALU -- hanya dibaca tanggal 1-5 (selain itu null). Bagian yang file bulannya
    *  tidak ada bernilai null (tidak dihitung). */
   rencana: { rpb: boolean | null; ref: boolean | null; bulanRpb: string; bulanRef: string } | null;
+  /** Angka target ziyadah/talaqqi per santri di RPB bulan berjalan (bagian D): berapa santri yang sudah ada angkanya.
+   *  null kalau file RPB bulan ini tidak ada / gagal dibaca / kelas tanpa santri. Tampil sepanjang bulan. */
+  targetQuran: { terisi: number; total: number; bulan: string } | null;
 };
 
 /** Terisi apa nggak (sama dengan aturan di halaman Rencana & Refleksi; "☐" = kotak bawaan template, bukan isian guru). */
@@ -101,7 +104,7 @@ export async function readStatusGuru(userId: string, kelas: string): Promise<Sta
     readAbsenRange(today, today, { userId }),
     readAbsenSantriDay(kelas, today),
     fileId ? dariCache(`quran:${fileId}:${bulanNama}`, () => readCapaianQuran(fileId, bulanNama)) : Promise.resolve(null),
-    perluRencana && rpbFile ? dariCache(`rpb:${rpbFile.id}:${kelas}`, () => readRpbTab(rpbFile.id, kelas)) : Promise.resolve(null),
+    rpbFile ? dariCache(`rpb:${rpbFile.id}:${kelas}`, () => readRpbTab(rpbFile.id, kelas)) : Promise.resolve(null),
     perluRencana && refFile ? dariCache(`ref:${refFile.id}:${kelas}`, () => readReflectionTab(refFile.id, kelas)) : Promise.resolve(null),
   ]);
   return {
@@ -119,6 +122,13 @@ export async function readStatusGuru(userId: string, kelas: string): Promise<Sta
     rencana:
       perluRencana && rp.status === "fulfilled" && rf.status === "fulfilled"
         ? { rpb: rpbFile ? rpbTerisi(rp.value) : null, ref: refFile ? refleksiTerisi(rf.value) : null, bulanRpb: bulanNama, bulanRef: bulanLalu }
+        : null,
+    targetQuran:
+      rp.status === "fulfilled" && rp.value
+        ? (() => {
+            const baris = susunRencanaQuran(capaianRoster(kelas), rp.value.quran ?? []);
+            return baris.length ? { terisi: baris.filter((q) => angkaTargetQuran(q.target) != null).length, total: baris.length, bulan: bulanNama } : null;
+          })()
         : null,
   };
 }
