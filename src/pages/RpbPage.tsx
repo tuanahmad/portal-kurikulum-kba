@@ -621,14 +621,14 @@ function RefleksiRekap({ data, namaGuru }: { data: ReflectionData; namaGuru?: st
 
 function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-1 p-1 rounded-xl" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="grid grid-cols-2 gap-1 p-1.5 rounded-full" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
       {(["rpb", "refleksi"] as Mode[]).map((m) => {
         const active = m === mode;
         return (
           <button
             key={m}
             onClick={() => onChange(m)}
-            className="py-2 rounded-lg text-sm font-semibold transition-colors"
+            className="py-2.5 rounded-full text-sm font-semibold transition-colors"
             style={{ background: active ? C.green : "transparent", color: active ? "#FFF" : C.muted }}
           >
             {m === "rpb" ? "RPB" : "Refleksi"}
