@@ -10,7 +10,7 @@ const GURU_NAV: NavItem[] = [
   { to: "/instrumen", label: "Instrumen", icon: BookIcon },
   { to: "/rpb", label: "Rencana", icon: DocIcon },
   { to: "/home", label: "Home", icon: HomeIcon },
-  { to: "/capaian", label: "Capaian", icon: GridIcon },
+  { to: "/capaian", label: "Capaian", icon: CapaianIcon },
   { to: "/jurnal", label: "Jurnal", icon: NotebookIcon },
 ];
 
@@ -29,7 +29,7 @@ const MANAGEMENT_NAV_FULL: NavItem[] = [
   { to: "/home", label: "Home", icon: HomeIcon },
   { to: "/instrumen", label: "Instrumen Ilmu", icon: BookIcon },
   { to: "/rpb", label: "Rencana & Refleksi", icon: DocIcon },
-  { to: "/capaian", label: "Capaian Santri", icon: GridIcon },
+  { to: "/capaian", label: "Capaian Santri", icon: CapaianIcon },
   { to: "/absen", label: "Absen Guru", icon: CalendarCheckIcon },
   { to: "/jurnal", label: "Daily Jurnal", icon: NotebookIcon },
   { to: "/olahraga", label: "Rekap Olahraga", icon: WhistleIcon },
@@ -102,6 +102,18 @@ export function GridIcon({ active }: { active?: boolean }) {
       <rect x="13.5" y="3.5" width="7" height="7" rx="1.3" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} />
       <rect x="3.5" y="13.5" width="7" height="7" rx="1.3" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} />
       <rect x="13.5" y="13.5" width="7" height="7" rx="1.3" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} />
+    </svg>
+  );
+}
+
+/** Capaian santri: garis perkembangan yang naik. */
+export function CapaianIcon({ active }: { active?: boolean }) {
+  const w = active ? 2.1 : 1.7;
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M3.5 17.5l5.5-5.5 4 4 7.5-7.5" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 8.5h5.5V14" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3.5 20.5h17" stroke="currentColor" strokeWidth={w} strokeLinecap="round" opacity={0.45} />
     </svg>
   );
 }
