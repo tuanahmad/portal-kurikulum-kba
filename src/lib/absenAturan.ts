@@ -10,18 +10,17 @@ export const PULANG_SIANG = menit(15, 30);
 /** Pulang: merah kalau lebih awal dari (jam ideal - toleransi). Pulang lebih lambat gak masalah. */
 export const TOLERANSI_PULANG = 30;
 
-/** Toleransi datang (menit) menurut tanggal: sampai 14 Oktober 2026 (September dan 2 pekan awal
- *  Oktober) 10 menit; mulai 15 Oktober 2026 (2 pekan pertengahan & akhir Oktober dan seterusnya) 5 menit.
- *  Tanggal di luar yang disebut kebijakan (sebelum September, setelah Oktober) ikut aturan terdekat:
- *  sebelum 15 Okt = 10 menit, mulai 15 Okt = 5 menit. Ubah di sini kalau kebijakan berubah. */
-export const TOLERANSI_DATANG_BERUBAH_MULAI = "2026-10-15";
+/** Toleransi datang (menit) menurut tanggal: sampai 31 Oktober 2026 (September dan seluruh Oktober) 10 menit;
+ *  mulai 1 November 2026 dan seterusnya 5 menit (keputusan koordinator kurikulum 2026-11-02; sebelumnya 5 menit
+ *  sudah berlaku sejak 15 Oktober). Tanggal sebelum September ikut aturan 10 menit. Ubah di sini kalau kebijakan berubah. */
+export const TOLERANSI_DATANG_BERUBAH_MULAI = "2026-11-01";
 export const TOLERANSI_DATANG_AWAL = 10;
 export const TOLERANSI_DATANG_SESUDAH = 5;
 export function toleransiDatang(tanggalYmd: string): number {
   return tanggalYmd < TOLERANSI_DATANG_BERUBAH_MULAI ? TOLERANSI_DATANG_AWAL : TOLERANSI_DATANG_SESUDAH;
 }
 /** Kalimat penjelas aturan datang -- dipakai di legenda tabel/PDF. */
-export const LEGENDA_DATANG = "datang terlambat (pagi lewat 06.30, siang lewat 14.00, ditambah toleransi 10 menit sampai 14 Oktober dan 5 menit mulai 15 Oktober)";
+export const LEGENDA_DATANG = "datang terlambat (pagi lewat 06.30, siang lewat 14.00, ditambah toleransi 10 menit sampai 31 Oktober dan 5 menit mulai 1 November)";
 
 /** Jam pulang pagi ideal: Kuttab Awwal 1A & 1B 10.30; semua kelas lain (KA 2, KA 3, Qonuni) 11.00
  *  (dikonfirmasi koordinator kurikulum). */
