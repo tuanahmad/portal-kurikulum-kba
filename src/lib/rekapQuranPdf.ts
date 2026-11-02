@@ -1,5 +1,6 @@
 import { studentIndexFor, type CapaianQuranData } from "./capaianQuranSheet";
 import { kunciSurat, bagianPunyaSurat } from "./suratQuran";
+import { angkaPenuhQuran } from "./angkaQuran";
 
 // PDF rekap Capaian Al-Qur'an SATU kelas untuk SATU bulan (A4 portrait) -- dibuat DI BROWSER (jsPDF) dan langsung diunduh
 // oleh management. Isi: tiap bagian (Talaqqi/Ziyadah/Murojaah/Wirid/...) -> tiap santri: total baris (atau putaran) dan
@@ -23,11 +24,7 @@ function bersih(s: unknown): string {
     .trim();
 }
 
-const angka = (v: string): number | null => {
-  const t = v.trim().replace(",", ".");
-  if (t === "" || !/^\d+(\.\d+)?$/.test(t)) return null;
-  return parseFloat(t);
-};
+const angka = (v: string): number | null => angkaPenuhQuran(v);
 const rapi = (n: number) => String(Math.round(n * 10) / 10).replace(".", ",");
 
 export type RekapBaris = { nama: string; total: number; terisi: number; rincian: string };

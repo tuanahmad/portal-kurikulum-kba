@@ -6,6 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { readCapaianQuran, studentIndexFor, type CapaianQuranData } from "../lib/capaianQuranSheet";
 import { PageLoadingSkeleton } from "../components/Skeleton";
 import { MonthGrid } from "../components/MonthGrid";
+import { angkaAwalQuran } from "../lib/angkaQuran";
 
 const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 
@@ -49,8 +50,7 @@ function fmt(v: number): string {
 
 /** "0,5" -> 0.5 ; "-" / "" / non-angka -> 0 */
 function parseNum(s: string): number {
-  const v = parseFloat(String(s ?? "").replace(",", ".").trim());
-  return Number.isFinite(v) ? v : 0;
+  return angkaAwalQuran(s) ?? 0;
 }
 
 /** True kalau isinya BUKAN angka (mis. "PT", "PT28", "TS") — kode yang sebagian guru tulis buat

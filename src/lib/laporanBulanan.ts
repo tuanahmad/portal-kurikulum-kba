@@ -1,5 +1,6 @@
 import { KELAS_LIST, RPB_FILES, REFLEKSI_FILES, capaianRoster, capaianQuranFileId, capaianIlmuFileId, olahragaRoster, kalenderBulan } from "../data";
 import { supabase } from "./supabaseClient";
+import { angkaAwalQuran } from "./angkaQuran";
 import { ymd, readAbsenRangeAll, isSesiFilled, type SesiEntry } from "./absen";
 import { buildRekapBulanan, type Guru, type GuruRow } from "./absenBulanan";
 import { readCapaianQuran, studentIndexFor } from "./capaianQuranSheet";
@@ -135,8 +136,8 @@ function ringkasQuran(raw: Awaited<ReturnType<typeof readCapaianQuran>>, kelas: 
         if (/^pt\b/i.test(t) || /^pt\./i.test(t)) pt++;
         else if (/^ts\b/i.test(t) || /^ts\./i.test(t)) ts++;
         else {
-          const n = parseFloat(t.replace(",", "."));
-          if (!Number.isNaN(n)) total += n;
+          const n = angkaAwalQuran(t);
+          if (n != null) total += n;
         }
       }
       const nilai = Array.from({ length: sec.slotCount }, (_, j) => (vals[j] ?? "").trim());
@@ -217,7 +218,7 @@ export async function muatLaporan(bulan: string, onProgress?: (p: Progress) => v
 
   const [sheetRes, profilesRes, absenGuruRows, jurnalRes, absenSantriRes, tasmiRows, olahragaRes] = await Promise.all([
     pool(sheetJobs, 6, tick),
-    supa(() => supabase.from("profiles").select("kelas, full_name").eq("role", "guru")),
+    supa(() => supabase.from("profiles").select("kelas, full_name, nama_lengkap").eq("role", "guru")),
     supa(() => readAbsenRangeAll(from, to)),
     supa(() =>
       supabase.from("jurnal_harian").select("kelas, tanggal, kondisi_guru, kondisi_santri, kabar_kendala").gte("tanggal", from).lte("tanggal", to)
@@ -241,9 +242,9 @@ export async function muatLaporan(bulan: string, onProgress?: (p: Progress) => v
     const i = KELAS_LIST.findIndex((x) => x.name === k);
     return i === -1 ? 999 : i;
   };
-  const guruList: Guru[] = ((profilesRes.data ?? []) as { kelas: string | null; full_name: string | null }[])
+  const guruList: Guru[] = ((profilesRes.data ?? []) as { kelas: string | null; full_name: string | null; nama_lengkap: string | null }[])
     .filter((r) => r.kelas)
-    .map((r) => ({ kelas: r.kelas as string, nama: r.full_name || (r.kelas as string) }))
+    .map((r) => ({ kelas: r.kelas as string, nama: r.nama_lengkap || r.full_name || (r.kelas as string) }))
     .sort((a, b) => order(a.kelas) - order(b.kelas));
   const guruNama = new Map(guruList.map((g) => [g.kelas, g.nama]));
 

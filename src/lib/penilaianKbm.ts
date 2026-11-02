@@ -2,6 +2,7 @@ import { capaianRoster, jenjangOf, kalenderBulan, isMonthOpen, pekanGridCount, s
 import { muatLaporan, refleksiTerisi, quranTerisi, type Laporan, type KelasLaporan, type QuranSection, type Progress } from "./laporanBulanan";
 import { daftarTargetIlmu, bacaTandaTargetBulan, kunciTarget, type TandaTersimpan } from "./targetIlmu";
 import { angkaTargetQuran } from "./rpbSheet";
+import { angkaAwalQuran, angkaPenuhQuran } from "./angkaQuran";
 import { supabase } from "./supabaseClient";
 import { ramahkanGalat } from "./jaringan";
 
@@ -57,15 +58,9 @@ export type NilaiBulan = {
 /* ───────── util ───────── */
 
 const normNama = (s: string) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-const angka = (v: string): number | null => {
-  const t = (v ?? "").trim().replace(",", ".");
-  return /^\d+(\.\d+)?$/.test(t) ? parseFloat(t) : null;
-};
+const angka = (v: string): number | null => angkaPenuhQuran(v);
 /** Angka di awal isian ("2", "1,5", "3 putaran") -> angkanya; null kalau tidak diawali angka. */
-const angkaAwal = (v: string): number | null => {
-  const m = (v ?? "").trim().replace(",", ".").match(/^\d+(\.\d+)?/);
-  return m ? parseFloat(m[0]) : null;
-};
+const angkaAwal = (v: string): number | null => angkaAwalQuran(v);
 export const fmt = (n: number) => String(Math.round(n * 10) / 10).replace(".", ",");
 
 /** Kelompok bidang untuk tabel "target belum tercapai per bidang" (nama bidang di RPB ditulis guru dengan bebas). */
