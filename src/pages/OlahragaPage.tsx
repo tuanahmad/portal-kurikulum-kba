@@ -1,4 +1,3 @@
-import { lembut } from "../lib/warna";
 import { toast } from "../components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
@@ -14,7 +13,6 @@ import { RuleCard } from "../components/RuleCard";
 import { MonthGrid } from "../components/MonthGrid";
 import { PickerCard } from "../components/PickerCard";
 import { AccentCard, BackButton } from "../components/PortalComponents";
-import { WhistleIcon } from "../components/navIcons";
 import {
   STATUS_LABEL,
   mondayOf,
@@ -1547,30 +1545,17 @@ function ReadOnlyAbsenOlahragaDay({ date, entries }: { date: Date; entries: Abse
 
 /* ═══════════════════════ shared bits ═══════════════════════ */
 
+/** Judul halaman guru olahraga: rata tengah seperti Daily Jurnal. */
 function HeaderCard({ title, name, sub }: { title: string; name: string; sub: string }) {
   return (
-    <div
-      className="relative rounded-2xl p-4 sm:p-5 overflow-hidden"
-      style={{ background: lembut(`linear-gradient(135deg, ${C.greenDeep} 0%, ${C.green} 100%)`), boxShadow: "0 4px 14px rgba(28,74,51,0.16), inset 0 0 0 1px rgba(255,255,255,0.28)" }}
-    >
-      <span
-        className="absolute -right-6 -top-6 w-28 h-28 rounded-full"
-        style={{ background: "rgba(255,255,255,0.08)" }}
-        aria-hidden="true"
-      />
-      <div className="relative flex items-center gap-3">
-        <span
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "rgba(255,255,255,0.16)", color: "#FFF" }}
-        >
-          <WhistleIcon />
-        </span>
-        <div className="min-w-0">
-          <div className="text-base font-semibold text-white truncate" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>{title}</div>
-          <div className="text-xs mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.8)" }}>{name} · {sub}</div>
-        </div>
-      </div>
-    </div>
+    <header className="text-center">
+      <h1 className="text-xl sm:text-2xl font-semibold" style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>
+        {title}
+      </h1>
+      <p className="text-sm mt-1" style={{ color: C.muted }}>
+        {name} · {sub}
+      </p>
+    </header>
   );
 }
 

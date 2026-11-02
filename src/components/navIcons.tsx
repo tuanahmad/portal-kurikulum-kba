@@ -18,7 +18,7 @@ const OLAHRAGA_NAV: NavItem[] = [
   { to: "/instrumen", label: "Panduan", icon: BookIcon },
   { to: "/olahraga/rencana", label: "Rencana", icon: DocIcon },
   { to: "/home", label: "Home", icon: HomeIcon },
-  { to: "/olahraga/evaluasi", label: "Evaluasi", icon: GridIcon },
+  { to: "/olahraga/evaluasi", label: "Evaluasi", icon: EvaluasiIcon },
   { to: "/jurnal", label: "Jurnal", icon: NotebookIcon },
 ];
 
@@ -114,6 +114,19 @@ export function CapaianIcon({ active }: { active?: boolean }) {
       <path d="M3.5 17.5l5.5-5.5 4 4 7.5-7.5" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />
       <path d="M15 8.5h5.5V14" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />
       <path d="M3.5 20.5h17" stroke="currentColor" strokeWidth={w} strokeLinecap="round" opacity={0.45} />
+    </svg>
+  );
+}
+
+/** Evaluasi olahraga: papan klip berisi daftar centang. */
+export function EvaluasiIcon({ active }: { active?: boolean }) {
+  const w = active ? 2.1 : 1.7;
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="5" y="4.5" width="14" height="16.5" rx="2" stroke="currentColor" strokeWidth={w} />
+      <path d="M9 4.5V3.5h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1Z" stroke="currentColor" strokeWidth={w} strokeLinejoin="round" />
+      <path d="M8.5 11l1.3 1.3 2.2-2.3M8.5 16l1.3 1.3 2.2-2.3" stroke="currentColor" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 11h2M14 16h2" stroke="currentColor" strokeWidth={w} strokeLinecap="round" />
     </svg>
   );
 }
