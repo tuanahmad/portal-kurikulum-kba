@@ -240,8 +240,25 @@ function grafikKelas(kl: KelasLaporan, bulan: string, labelZ: string): GrafikKel
 
 /* ───────── pemuat ───────── */
 
+/** Hasil baca Google Sheet per bulan disimpan sementara di memori (bulan lama 15 menit, bulan berjalan 3 menit), supaya
+ *  membuka ulang laporan / pindah ke triwulan tidak membaca puluhan sheet lagi. Tanda & surat tetap dibaca segar. */
+const simpananLaporan = new Map<string, { waktu: number; lap: Laporan }>();
+export const kosongkanSimpananLaporan = () => simpananLaporan.clear();
+
+async function laporanDenganSimpanan(bulan: string, onProgress?: (p: Progress) => void): Promise<Laporan> {
+  const ada = simpananLaporan.get(bulan);
+  const umur = bulanBerjalan(bulan) ? 3 * 60 * 1000 : 15 * 60 * 1000;
+  if (ada && Date.now() - ada.waktu < umur) {
+    onProgress?.({ selesai: 1, total: 1 });
+    return ada.lap;
+  }
+  const lap = await muatLaporan(bulan, onProgress);
+  simpananLaporan.set(bulan, { waktu: Date.now(), lap });
+  return lap;
+}
+
 export async function muatNilaiBulan(bulan: string, onProgress?: (p: Progress) => void): Promise<NilaiBulan> {
-  const [lap, tanda, surat] = await Promise.all([muatLaporan(bulan, onProgress), bacaTandaTargetBulan(bulan), bacaSuratSemua(bulan)]);
+  const [lap, tanda, surat] = await Promise.all([laporanDenganSimpanan(bulan, onProgress), bacaTandaTargetBulan(bulan), bacaSuratSemua(bulan)]);
   return rakit(bulan, lap, tanda, surat);
 }
 

@@ -6,7 +6,7 @@ import { C, isMonthOpen } from "../data";
 import { BackButton } from "../components/PortalComponents";
 import { MonthGrid } from "../components/MonthGrid";
 import { LaporanKbm } from "../components/LaporanKbm";
-import { muatPeriode, periodeBulan, periodeTriwulan, bacaKesimpulan, perbaruiIlmu, TRIWULAN, type NilaiBulan } from "../lib/penilaianKbm";
+import { kosongkanSimpananLaporan, muatPeriode, periodeBulan, periodeTriwulan, bacaKesimpulan, perbaruiIlmu, TRIWULAN, type NilaiBulan } from "../lib/penilaianKbm";
 
 const BULAN_12 = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 const OK = "#1D9E75";
@@ -241,6 +241,7 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
   const [prog, setProg] = useState<{ selesai: number; total: number; bulan: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [muatKe, setMuatKe] = useState(0);
 
   useEffect(() => {
     if (!periode || !periode.bulan.length) return;
@@ -260,7 +261,7 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
       batal = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periode?.kunci]);
+  }, [periode?.kunci, muatKe]);
 
   /** Tim kurikulum menyimpan tanda per target: nilai ilmu bulan itu disusun ulang (tanpa membaca ulang Google Sheet). */
   async function tandaBerubah(bulanIni: string) {
@@ -390,6 +391,16 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
                 <path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {pdfBusy ? "Menyiapkan PDF…" : "Download PDF"}
+            </button>
+            <button
+              onClick={() => {
+                kosongkanSimpananLaporan();
+                setMuatKe((n) => n + 1);
+              }}
+              className="mt-2 w-full py-2 rounded-xl text-xs font-semibold"
+              style={{ background: "transparent", color: C.green, border: `1px solid ${C.line}` }}
+            >
+              Muat ulang data dari sheet
             </button>
             <LaporanKbm key={periode.kunci} periode={periode} data={data} kesimpulan={kesimpulan} setKesimpulan={setKesimpulan} bisaUbah onTandaBerubah={tandaBerubah} />
           </>
