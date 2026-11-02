@@ -12,3 +12,5 @@ export const W = {
 };
 /** Penilaian telat datang / pulang awal guru ditampilkan. */
 export const JAM_AKTIF = true;
+/** Olahraga hanya ada di pusat. */
+export const OLAHRAGA_AKTIF = true;

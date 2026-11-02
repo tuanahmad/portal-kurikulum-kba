@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { C } from "../data";
-import { W, JAM_AKTIF } from "../lib/warnaLaporan";
+import { W, JAM_AKTIF, OLAHRAGA_AKTIF } from "../lib/warnaLaporan";
 import { toast } from "./Toast";
 import { TargetIlmuCard } from "./TargetIlmuCard";
 import { refleksiTerisi } from "../lib/laporanBulanan";
@@ -248,7 +248,7 @@ function LampiranBulan({ d, romawi, onTandaBerubah }: { d: NilaiBulan; romawi: s
           d.lap.kelas.filter((k) => refleksiTerisi(k.refleksi)).map((k) => <RefleksiRingkas key={k.kelas} kelas={k.kelas} guru={k.guru} r={k.refleksi!} />)
         )}
       </Akordeon>
-      <Akordeon judul={`${romawi}.E Data Pendukung`} sub="Kelengkapan, kehadiran guru, tasmi', olahraga">
+      <Akordeon judul={`${romawi}.E Data Pendukung`} sub={`Kelengkapan, kehadiran guru, tasmi'${OLAHRAGA_AKTIF ? ", olahraga" : ""}`}>
         <DataPendukung d={d} />
       </Akordeon>
     </div>
@@ -358,15 +358,19 @@ function DataPendukung({ d }: { d: NilaiBulan }) {
           />
         </>
       )}
-      <SubJudul>Olahraga</SubJudul>
-      <Tabel
-        kepala={["Bagian", "Isi"]}
-        baris={[
-          ...lap.olahraga.evaluasi.map((e) => [`Evaluasi ${e.tingkat}`, { teks: `${e.terisi}/${e.total} santri`, p: persen(e.terisi, e.total) }]),
-          ...lap.olahraga.rencana.map((r) => [`Rencana ${KELOMPOK_LABEL[r.kelompok]} ${r.tingkat}`, r.entry ? "Terisi" : "Belum"]),
-          ...lap.olahraga.absen.map((a) => [`Kehadiran guru ${KELOMPOK_LABEL[a.kelompok]}`, `hadir ${a.hadir}, izin ${a.izin}, sakit ${a.sakit}, cuti ${a.cuti}`]),
-        ]}
-      />
+      {OLAHRAGA_AKTIF && (
+        <>
+          <SubJudul>Olahraga</SubJudul>
+          <Tabel
+            kepala={["Bagian", "Isi"]}
+            baris={[
+              ...lap.olahraga.evaluasi.map((e) => [`Evaluasi ${e.tingkat}`, { teks: `${e.terisi}/${e.total} santri`, p: persen(e.terisi, e.total) }]),
+              ...lap.olahraga.rencana.map((r) => [`Rencana ${KELOMPOK_LABEL[r.kelompok]} ${r.tingkat}`, r.entry ? "Terisi" : "Belum"]),
+              ...lap.olahraga.absen.map((a) => [`Kehadiran guru ${KELOMPOK_LABEL[a.kelompok]}`, `hadir ${a.hadir}, izin ${a.izin}, sakit ${a.sakit}, cuti ${a.cuti}`]),
+            ]}
+          />
+        </>
+      )}
     </>
   );
 }

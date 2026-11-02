@@ -1,5 +1,5 @@
 import { C } from "../data";
-import { W, JAM_AKTIF } from "./warnaLaporan";
+import { W, JAM_AKTIF, OLAHRAGA_AKTIF } from "./warnaLaporan";
 import { refleksiTerisi } from "./laporanBulanan";
 import { KELOMPOK_LABEL } from "./olahraga";
 import { ATURAN } from "../components/LaporanKbm";
@@ -392,7 +392,7 @@ export async function unduhPdfLaporanKbm(periode: Periode, data: NilaiBulan[], k
     ]), { lebar: { 0: 58 } });
     const tasmi = d.lap.kelas.flatMap((k) => k.tasmi.map((t) => [t.tanggal, k.kelas, t.nama_santri, t.juz || "-", String(t.jumlah_kesalahan)]));
     if (tasmi.length) tabel("Tasmi' bulan ini", ["Tanggal", "Kelas", "Santri", "Juz", "Salah"], tasmi);
-    tabel("Olahraga", ["Bagian", "Isi"], [
+    if (OLAHRAGA_AKTIF) tabel("Olahraga", ["Bagian", "Isi"], [
       ...d.lap.olahraga.evaluasi.map((e) => [`Evaluasi ${e.tingkat}`, { teks: `${e.terisi}/${e.total} santri`, p: persen(e.terisi, e.total) }] as Sel[]),
       ...d.lap.olahraga.rencana.map((r) => [`Rencana ${KELOMPOK_LABEL[r.kelompok]} ${r.tingkat}`, r.entry ? "Terisi" : "Belum"]),
       ...d.lap.olahraga.absen.map((a) => [`Kehadiran guru ${KELOMPOK_LABEL[a.kelompok]}`, `hadir ${a.hadir}, izin ${a.izin}, sakit ${a.sakit}, cuti ${a.cuti}`]),
