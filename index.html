@@ -22,19 +22,16 @@
         background: #FBFAF7;
         transition: opacity 0.35s ease;
       }
+      /* Ukuran & tampilan disamakan dengan layar logo bawaan Android (ikon aplikasi di tengah, tanpa bayangan),
+         supaya perpindahan dari layar Android ke animasi ini tidak terasa -- logonya langsung "berdetak". */
       #app-splash-card {
-        width: 168px;
-        height: 168px;
-        border-radius: 38px;
-        overflow: hidden;
-        box-shadow: 0 8px 28px rgba(28, 74, 51, 0.16);
+        width: min(228px, 58vw);
+        height: min(228px, 58vw);
         animation: app-splash-breathe 1.6s ease-in-out infinite;
       }
       #app-splash-card img {
         width: 100%;
         height: 100%;
-        mix-blend-mode: multiply;
-        filter: brightness(1.04);
       }
       #app-splash.app-splash-hide {
         opacity: 0;

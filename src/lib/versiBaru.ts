@@ -46,6 +46,16 @@ export function pasangPenjagaVersi() {
     muatUlangSekali();
   });
 
+  // Service worker menyimpan kerangka aplikasi di HP (lihat public/sw.js) supaya aplikasi langsung terbuka.
+  // Dipasang untuk semua pengguna (dulu hanya yang menyalakan notifikasi). Kalau ia menemukan versi baru di
+  // server, ia mengirim "versi-baru" -> muat ulang sekali ke versi terbaru.
+  if ("serviceWorker" in navigator && import.meta.env.PROD) {
+    navigator.serviceWorker.addEventListener("message", (e) => {
+      if (e.data?.type === "versi-baru") muatUlangSekali();
+    });
+    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  }
+
   const berkasSaatIni = berkasUtama(
     Array.from(document.scripts)
       .map((s) => s.src)
