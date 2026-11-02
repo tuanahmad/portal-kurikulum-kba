@@ -44,7 +44,7 @@ export function AbsenBulananTable() {
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("kelas, full_name")
+      .select("kelas, full_name, nama_lengkap")
       .eq("role", "guru")
       .then(({ data, error }) => {
         if (error) return setError(error.message);
@@ -55,7 +55,7 @@ export function AbsenBulananTable() {
         setGuru(
           (data ?? [])
             .filter((r) => r.kelas)
-            .map((r) => ({ kelas: r.kelas as string, nama: (r.full_name as string) || (r.kelas as string) }))
+            .map((r) => ({ kelas: r.kelas as string, nama: (r.nama_lengkap as string) || (r.full_name as string) || (r.kelas as string) }))
             .sort((a, b) => order(a.kelas) - order(b.kelas))
         );
       });

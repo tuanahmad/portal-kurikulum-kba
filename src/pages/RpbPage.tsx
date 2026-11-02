@@ -1,5 +1,6 @@
 import { lembut } from "../lib/warna";
 import { useEffect, useState } from "react";
+import { bacaNamaGuruKelas } from "../lib/namaGuru";
 import { Link } from "react-router-dom";
 import {
   C,
@@ -203,6 +204,12 @@ function ManagementView() {
   const kelas = kelasI != null ? KELAS_LIST[kelasI].name : null;
   const monthOpen = isMonthOpen(bulan);
 
+  // Management melihat nama lengkap guru (bukan nama yang diketik di sheet / nama panggilan akun).
+  const [namaGuruKelas, setNamaGuruKelas] = useState<Record<string, string>>({});
+  useEffect(() => {
+    bacaNamaGuruKelas().then(setNamaGuruKelas).catch(() => undefined);
+  }, []);
+
   const rpbFile = RPB_FILES.find((f) => f.name === bulan);
   const refFile = REFLEKSI_FILES.find((f) => f.name === bulan);
   const sheetHref = mode === "rpb" ? rpbFile && fileUrl(rpbFile.id) : refFile && fileUrl(refFile.id);
@@ -267,8 +274,8 @@ function ManagementView() {
           <div className="mt-5"><PageLoadingSkeleton /></div>
         ) : (
           <div className="mt-5">
-            {mode === "rpb" && rpb && <RpbRekap data={rpb} kelas={kelas!} />}
-            {mode === "refleksi" && refleksi && <RefleksiRekap data={refleksi} />}
+            {mode === "rpb" && rpb && <RpbRekap data={rpb} kelas={kelas!} namaGuru={namaGuruKelas[kelas!]} />}
+            {mode === "refleksi" && refleksi && <RefleksiRekap data={refleksi} namaGuru={namaGuruKelas[kelas!]} />}
             {sheetHref && (
               <a
                 href={sheetHref}
@@ -324,7 +331,7 @@ function PekanGrid({ pekan }: { pekan: PekanEntry[] }) {
 /** Diexport biar bisa dipakai ulang di RpbFormPage.tsx (tampilan read-only buat guru sendiri,
  *  bukan cuma management, buat bulan Qonuni yang belum bisa diisi dari app — lihat catatan
  *  qonuniWriteBlocked di RpbFormPage.tsx). */
-export function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
+export function RpbRekap({ data, kelas, namaGuru }: { data: RpbTabData; kelas: string; namaGuru?: string }) {
   // Tabel C di sheet asli disusun per-pekan, bukan per-bidang — cocokin ulang per baris
   // berdasarkan NAMA bidang ilmu (bukan posisi) biar isi tiap pekan gak ketuker sama bidang
   // ilmu lain. Berlaku buat semua jenjang sekarang (Qonuni juga cocok by NAMA bidang top-level,
@@ -356,7 +363,7 @@ export function RpbRekap({ data, kelas }: { data: RpbTabData; kelas: string }) {
         title="Informasi RPB"
         gradient={`linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`}
         icon={<BookIcon />}
-        primary={{ label: "Nama Guru", value: data.namaGuru }}
+        primary={{ label: "Nama Guru", value: namaGuru || data.namaGuru }}
         rows={[
           [
             { label: "Kelas", value: data.kelas },
@@ -479,7 +486,7 @@ function statusOf(row: string[]): { text: string; color: string; bg: string } {
   return { text: "—", color: C.muted, bg: C.leaf };
 }
 
-function RefleksiRekap({ data }: { data: ReflectionData }) {
+function RefleksiRekap({ data, namaGuru }: { data: ReflectionData; namaGuru?: string }) {
   const kendala = (data.kendala ?? []).filter((r) => r.some((c) => (c ?? "").trim()));
   const perbaikan = (data.rencanaPerbaikan ?? []).filter((r) => r.some((c) => (c ?? "").trim()));
   const murid = (data.perkembanganMurid ?? []).filter((r) => (r[0] ?? "").trim() || r.slice(1).some((c) => (c ?? "").trim()));
@@ -490,7 +497,7 @@ function RefleksiRekap({ data }: { data: ReflectionData }) {
         title="Informasi Refleksi"
         gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
         icon={<ReflectIcon />}
-        primary={{ label: "Nama Guru", value: data.namaGuru }}
+        primary={{ label: "Nama Guru", value: namaGuru || data.namaGuru }}
         rows={[
           [
             { label: "Kelas", value: data.kelas },

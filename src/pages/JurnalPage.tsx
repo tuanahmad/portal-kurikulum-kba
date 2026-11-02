@@ -355,13 +355,13 @@ function ManagementJurnal() {
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("kelas, full_name")
+      .select("kelas, full_name, nama_lengkap")
       .eq("role", "guru")
       .then(({ data, error }) => {
         if (error) return setError(error.message);
         setKelasList((data ?? []).map((r) => r.kelas as string).filter(Boolean).sort());
         const m: Record<string, string> = {};
-        for (const r of data ?? []) if (r.kelas && !m[r.kelas as string]) m[r.kelas as string] = (r.full_name as string) || (r.kelas as string);
+        for (const r of data ?? []) if (r.kelas && !m[r.kelas as string]) m[r.kelas as string] = (r.nama_lengkap as string) || (r.full_name as string) || (r.kelas as string);
         setNamaGuru(m);
       });
     // diminta ulang begitu sesi login siap (kalau diminta sebelum sesi siap, hasilnya kosong karena aturan akses)

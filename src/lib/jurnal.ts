@@ -100,7 +100,7 @@ export type JurnalHariItem = { userId: string; nama: string; kelas: string; entr
 /** Jurnal semua guru pada satu tanggal (management). Urut menurut `urutKelas`; kelas yang tidak ada di daftar menyusul menurut abjad. */
 export async function readJurnalHari(tanggal: Date, urutKelas: string[]): Promise<JurnalHariItem[]> {
   const [g, r] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, kelas").eq("role", "guru"),
+    supabase.from("profiles").select("id, full_name, nama_lengkap, kelas").eq("role", "guru"),
     supabase
       .from("jurnal_harian")
       .select("user_id, tanggal, kondisi_guru, kondisi_santri, kabar_kendala, updated_at")
@@ -116,7 +116,7 @@ export async function readJurnalHari(tanggal: Date, urutKelas: string[]): Promis
   };
   return (g.data ?? [])
     .filter((p) => !!p.kelas)
-    .map((p) => ({ userId: p.id as string, nama: ((p.full_name as string) || (p.kelas as string)) ?? "", kelas: p.kelas as string, entry: byUser[p.id as string] }))
+    .map((p) => ({ userId: p.id as string, nama: ((p.nama_lengkap as string) || (p.full_name as string) || (p.kelas as string)) ?? "", kelas: p.kelas as string, entry: byUser[p.id as string] }))
     .sort((a, b) => idx(a.kelas) - idx(b.kelas) || a.kelas.localeCompare(b.kelas) || a.nama.localeCompare(b.nama));
 }
 
