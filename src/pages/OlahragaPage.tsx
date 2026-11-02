@@ -29,6 +29,7 @@ import {
   emptyOlahraga,
   isRencanaFilled,
   adaTargetPekan,
+  adaAlatPekan,
   kelasJurnalOlahraga,
   readEvaluasiAnak,
   saveEvaluasiAnakBatch,
@@ -51,7 +52,21 @@ import {
   type OlahragaKelompok,
   type EvalAnakEntry,
   type AbsenOlahragaEntry,
+  namaAspek,
+  nilaiSama,
+  type NilaiOlahraga,
 } from "../lib/olahraga";
+import {
+  NILAI_OLAHRAGA,
+  aspekDariRencana,
+  bacaRubrik,
+  simpanRubrik,
+  kunciAspek,
+  deskripsiNilai,
+  rubrikKosong,
+  rubrikLengkap,
+  type Rubrik,
+} from "../lib/olahragaNilai";
 
 type Mode = "rencana" | "evaluasi" | "absen" | "jurnal";
 type GuruMode = Exclude<Mode, "jurnal">;
@@ -241,6 +256,9 @@ function EvaluasiTingkatCard({
   const [err, setErr] = useState<string | null>(null);
   const [gagalMuat, setGagalMuat] = useState<string | null>(null);
   const [muatUlang, setMuatUlang] = useState(0);
+  // Aspek yang dinilai A–D = target di Rencana bulan ini (tingkat & kelompok yang sama).
+  const [aspek, setAspek] = useState<string[]>([]);
+  const [rubrik, setRubrik] = useState<Record<string, Rubrik>>({});
 
   useEffect(() => {
     if (!open) return;
@@ -249,11 +267,13 @@ function EvaluasiTingkatCard({
     setErr(null);
     setGagalMuat(null);
     setMsg(null);
-    readEvaluasiAnak(tingkat, bulan, {})
-      .then((d) => {
+    Promise.all([readEvaluasiAnak(tingkat, bulan, {}), readOlahragaBulan(bulan, { kelompok }), bacaRubrik()])
+      .then(([d, ren, rb]) => {
         if (cancelled) return;
         setData(d);
         setForm(d);
+        setAspek(aspekDariRencana(ren[tingkat]));
+        setRubrik(rb);
       })
       .catch((e) => !cancelled && setGagalMuat(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancelled && setLoading(false));
@@ -274,8 +294,18 @@ function EvaluasiTingkatCard({
     ready: open && !loading,
   });
 
-  const setAnak = (nama: string, k: keyof EvalAnakEntry, v: string) =>
+  const setAnak = (nama: string, k: (typeof EVAL_FIELDS)[number]["key"], v: string) =>
     setForm((p) => ({ ...p, [nama]: { ...(p[nama] ?? emptyEvalAnak()), [k]: v } }));
+
+  // Ketuk huruf untuk memilih; ketuk huruf yang sama lagi untuk menghapus.
+  const setNilai = (nama: string, a: string, n: NilaiOlahraga) =>
+    setForm((p) => {
+      const e = p[nama] ?? emptyEvalAnak();
+      const nilai = { ...(e.nilai ?? {}) };
+      if (nilai[a] === n) delete nilai[a];
+      else nilai[a] = n;
+      return { ...p, [nama]: { ...e, nilai } };
+    });
 
   async function handleSave() {
     setSaving(true);
@@ -295,7 +325,8 @@ function EvaluasiTingkatCard({
           t(f.eval_partisipasi) !== t(e.eval_partisipasi) ||
           t(f.eval_kendala) !== t(e.eval_kendala) ||
           t(f.eval_perkembangan) !== t(e.eval_perkembangan) ||
-          t(f.eval_tindak_lanjut) !== t(e.eval_tindak_lanjut)
+          t(f.eval_tindak_lanjut) !== t(e.eval_tindak_lanjut) ||
+          !nilaiSama(f.nilai, e.nilai)
         );
       });
       if (mismatch) {
@@ -358,6 +389,13 @@ function EvaluasiTingkatCard({
             <GagalMuat pesan={gagalMuat} onUlang={() => setMuatUlang((n) => n + 1)} />
           ) : (
             <>
+              {aspek.length > 0 ? (
+                <RubrikDaftar aspek={aspek} rubrik={rubrik} />
+              ) : (
+                <p className="rounded-xl px-3 py-2.5 text-xs leading-relaxed" style={{ background: C.mist, border: `1px solid ${C.line}`, color: C.muted }}>
+                  Belum ada target di Rencana {bulan} untuk tingkat ini. Isi target di Rencana supaya aspek yang dinilai A–D muncul di sini.
+                </p>
+              )}
               <div className="space-y-2 mt-3">
                 {roster.map((nama) => {
                   const entry = form[nama] ?? emptyEvalAnak();
@@ -378,6 +416,16 @@ function EvaluasiTingkatCard({
                       </button>
                       {anakOpen && (
                         <div className="px-3 pb-3 space-y-2.5" style={{ borderTop: `1px solid ${C.line}` }}>
+                          {aspek.length > 0 && (
+                            <div className="pt-3">
+                              <span className="block text-xs font-semibold" style={{ color: C.green }}>Nilai kemampuan</span>
+                              <div className="mt-2 space-y-2.5">
+                                {aspek.map((a) => (
+                                  <NilaiAspek key={a} aspek={a} nilai={entry.nilai?.[a]} rubrik={rubrik[kunciAspek(a)]} onPilih={(n) => setNilai(nama, a, n)} />
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           {EVAL_FIELDS.map((f) => (
                             <Field key={f.key} label={f.label}>
                               <textarea
@@ -435,6 +483,15 @@ function TingkatCard({
 }) {
   const [form, setForm] = useState<OlahragaEntry>(entry);
   const [saving, setSaving] = useState(false);
+  // Deskripsi A–D target tambahan (buatan guru): yang tersimpan & yang sedang diketik.
+  const [rubrik, setRubrik] = useState<Record<string, Rubrik>>({});
+  const [rubrikForm, setRubrikForm] = useState<Record<string, Rubrik>>({});
+  useEffect(() => {
+    if (!open) return;
+    bacaRubrik()
+      .then(setRubrik)
+      .catch(() => undefined);
+  }, [open]);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -450,6 +507,10 @@ function TingkatCard({
     target_pekan2: [...entry.target_pekan2],
     target_pekan3: [...entry.target_pekan3],
     target_pekan4: [...entry.target_pekan4],
+    alat_pekan1: entry.alat_pekan1,
+    alat_pekan2: entry.alat_pekan2,
+    alat_pekan3: entry.alat_pekan3,
+    alat_pekan4: entry.alat_pekan4,
     target: [...entry.target],
     alat: entry.alat,
   });
@@ -461,6 +522,7 @@ function TingkatCard({
   }, [
     entry.tingkat, entry.bulan, targetKey, entry.alat,
     entry.pekan1, entry.pekan2, entry.pekan3, entry.pekan4,
+    entry.alat_pekan1, entry.alat_pekan2, entry.alat_pekan3, entry.alat_pekan4,
   ]);
 
   const draft = useDraft({
@@ -472,11 +534,26 @@ function TingkatCard({
 
   const rencanaOk = isRencanaFilled(entry);
 
+  const tambahan = aspekDariRencana(form).filter((a) => !TARGET_PRESET.includes(a));
+  const rubrikTambahan = (a: string) => rubrikForm[kunciAspek(a)] ?? rubrik[kunciAspek(a)] ?? rubrikKosong(a);
+  const rubrikBerubah = tambahan.filter((a) => {
+    const f = rubrikForm[kunciAspek(a)];
+    const r = rubrik[kunciAspek(a)] ?? rubrikKosong(a);
+    return !!f && (f.a !== r.a || f.b !== r.b || f.c !== r.c || f.d !== r.d);
+  });
+
   const dirty =
-    form.alat !== entry.alat ||
+    rubrikBerubah.length > 0 ||
     PEKAN_FIELDS.some(
-      (f) => form[f.key] !== entry[f.key] || form[f.targetKey].join("|") !== entry[f.targetKey].join("|")
+      (f) =>
+        form[f.key] !== entry[f.key] ||
+        form[f.alatKey] !== entry[f.alatKey] ||
+        form[f.targetKey].join("|") !== entry[f.targetKey].join("|")
     );
+
+  // Data lama: dulu alat diisi satu untuk sebulan. Selama belum ada alat per pekan, tampilkan sebagai catatan
+  // dan beri jalan pintas menyalinnya ke tiap pekan.
+  const alatLama = entry.alat.trim() && !adaAlatPekan(form) ? entry.alat.trim() : null;
 
   // Data lama: dulu target diisi satu untuk sebulan. Selama belum ada target per pekan, tampilkan sebagai catatan
   // dan beri jalan pintas menyalinnya ke tiap pekan (bisa diubah per pekan setelahnya).
@@ -502,8 +579,16 @@ function TingkatCard({
         target_pekan2: form.target_pekan2,
         target_pekan3: form.target_pekan3,
         target_pekan4: form.target_pekan4,
-        alat: form.alat,
+        alat_pekan1: form.alat_pekan1,
+        alat_pekan2: form.alat_pekan2,
+        alat_pekan3: form.alat_pekan3,
+        alat_pekan4: form.alat_pekan4,
       });
+      if (rubrikBerubah.length) {
+        await simpanRubrik(rubrikBerubah.map(rubrikTambahan));
+        setRubrik(await bacaRubrik());
+        setRubrikForm({});
+      }
       const saved: OlahragaEntry = { ...form, tingkat, bulan };
       onSaved(saved);
       setForm(saved);
@@ -605,20 +690,76 @@ function TingkatCard({
                   <Field label="Target olahraga pekan ini">
                     <TargetPicker value={form[f.targetKey]} onChange={(v) => set(f.targetKey, v)} />
                   </Field>
+                  <Field label="Alat yang digunakan">
+                    <textarea
+                      value={form[f.alatKey]}
+                      onChange={(e) => set(f.alatKey, e.target.value)}
+                      rows={1}
+                      placeholder="Bola, cone, tali, matras…"
+                      className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
+                      style={{ border: `1px solid ${C.line}`, background: "#FFF" }}
+                    />
+                  </Field>
                 </div>
               </div>
             ))}
 
-            <Field label="Alat yang digunakan">
-              <textarea
-                value={form.alat}
-                onChange={(e) => set("alat", e.target.value)}
-                rows={2}
-                placeholder="Bola, cone, tali, matras…"
-                className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
-                style={{ border: `1px solid ${C.line}` }}
-              />
-            </Field>
+            {alatLama && (
+              <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: "#FFF8E6", border: "1px solid #EBD9A5", color: "#6B5314" }}>
+                <div className="font-semibold">Alat bulan ini masih satu untuk sebulan:</div>
+                <p className="mt-1 whitespace-pre-wrap">{alatLama}</p>
+                <p className="mt-1.5 leading-relaxed">Sekarang alat diisi per pekan, sesuai kegiatan tiap pekan.</p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((p) => ({ ...p, alat_pekan1: alatLama, alat_pekan2: alatLama, alat_pekan3: alatLama, alat_pekan4: alatLama }))
+                  }
+                  className="mt-2 px-3 py-1.5 rounded-lg text-xs font-bold"
+                  style={{ background: "#FFF", color: C.green, border: `1px solid ${C.green}` }}
+                >
+                  Salin ke semua pekan
+                </button>
+              </div>
+            )}
+
+            {tambahan.length > 0 && (
+              <div className="rounded-xl p-3" style={{ background: C.mist, border: `1px solid ${C.line}` }}>
+                <div className="text-xs font-bold uppercase tracking-wider" style={{ color: C.green }}>Arti nilai target tambahan</div>
+                <p className="mt-1 text-[11px] leading-relaxed" style={{ color: C.muted }}>
+                  Target ini nanti dinilai A–D di Evaluasi. Tulis arti tiap nilai supaya penilaiannya punya ukuran yang sama.
+                </p>
+                <div className="mt-2.5 space-y-3">
+                  {tambahan.map((a) => {
+                    const r = rubrikTambahan(a);
+                    return (
+                      <div key={a}>
+                        <div className="text-sm font-semibold" style={{ color: C.ink }}>
+                          {a}
+                          {!rubrikLengkap(r) && <span className="ml-1.5 text-[11px] font-medium" style={{ color: "#9F5A0B" }}>belum lengkap</span>}
+                        </div>
+                        {NILAI_OLAHRAGA.map((n) => {
+                          const k = n.toLowerCase() as "a" | "b" | "c" | "d";
+                          return (
+                            <label key={n} className="flex items-center gap-2 mt-1.5">
+                              <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0" style={{ background: C.leaf, color: C.green }}>
+                                {n}
+                              </span>
+                              <input
+                                value={r[k]}
+                                onChange={(e) => setRubrikForm((p) => ({ ...p, [kunciAspek(a)]: { ...r, [k]: e.target.value } }))}
+                                placeholder={CONTOH_RUBRIK[n]}
+                                className="flex-1 min-w-0 text-sm outline-none px-3 py-1.5 rounded-lg"
+                                style={{ border: `1px solid ${C.line}`, background: "#FFF" }}
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
@@ -643,7 +784,7 @@ function TargetPicker({ value, onChange }: { value: string[]; onChange: (v: stri
   const toggle = (t: string) =>
     onChange(value.includes(t) ? value.filter((x) => x !== t) : [...value, t]);
   const addCustom = () => {
-    const t = custom.trim();
+    const t = namaAspek(custom);
     if (t && !value.some((x) => x.toLowerCase() === t.toLowerCase())) onChange([...value, t]);
     setCustom("");
   };
@@ -1184,6 +1325,8 @@ function ManagementEvaluasi() {
   const [tingkatI, setTingkatI] = useState<number | null>(null);
   const [anakI, setAnakI] = useState<number | null>(null);
   const [data, setData] = useState<Record<string, EvalAnakEntry>>({});
+  const [aspek, setAspek] = useState<string[]>([]);
+  const [rubrik, setRubrik] = useState<Record<string, Rubrik>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1199,8 +1342,13 @@ function ManagementEvaluasi() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    readEvaluasiAnak(tingkat, bulan, { kelompok })
-      .then((d) => !cancelled && setData(d))
+    Promise.all([readEvaluasiAnak(tingkat, bulan, { kelompok }), readOlahragaBulan(bulan, { kelompok }), bacaRubrik()])
+      .then(([d, ren, rb]) => {
+        if (cancelled) return;
+        setData(d);
+        setAspek(aspekDariRencana(ren[tingkat]));
+        setRubrik(rb);
+      })
       .catch((e) => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -1246,7 +1394,9 @@ function ManagementEvaluasi() {
           ) : roster.length === 0 ? (
             <p className="mt-5 text-sm text-center" style={{ color: C.muted }}>Belum ada santri {KELOMPOK_LABEL[kelompok].toLowerCase()} di kelas ini.</p>
           ) : (
-            <div className="mt-6">
+            <div className="mt-6 space-y-3">
+              <SebaranNilai aspek={aspek} data={data} roster={roster} />
+              <RubrikDaftar aspek={aspek} rubrik={rubrik} />
               <PickerCard
                 items={roster.map((nama) => ({
                   label: nama,
@@ -1268,6 +1418,16 @@ function ManagementEvaluasi() {
               <p className="text-sm" style={{ color: C.muted }}>Belum diisi.</p>
             ) : (
               <div className="space-y-3">
+                {aspek.length > 0 && (
+                  <div>
+                    <div className="text-[11px] font-semibold" style={{ color: C.green }}>Nilai kemampuan</div>
+                    <div className="mt-2 space-y-2.5">
+                      {aspek.map((a) => (
+                        <NilaiAspek key={a} aspek={a} nilai={entry!.nilai?.[a]} rubrik={rubrik[kunciAspek(a)]} />
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {EVAL_FIELDS.map((f) => (
                   <ReadRow key={f.key} label={f.label} value={entry![f.key]} />
                 ))}
@@ -1411,15 +1571,129 @@ function ReadOnlyTingkat({
               <div className="space-y-2.5">
                 <ReadRow label="Kegiatan" value={entry![f.key]} />
                 <TargetChips label="Target olahraga" value={entry![f.targetKey]} />
+                {(adaAlatPekan(entry) || !entry!.alat.trim()) && <ReadRow label="Alat yang digunakan" value={entry![f.alatKey]} />}
               </div>
             </div>
           ))}
           {!adaTargetPekan(entry) && entry!.target.length > 0 && (
             <TargetChips label="Target (gabungan sebulan, format lama)" value={entry!.target} />
           )}
-          <ReadRow label="Alat yang digunakan" value={entry!.alat} />
+          {!adaAlatPekan(entry) && entry!.alat.trim() && <ReadRow label="Alat (sebulan, format lama)" value={entry!.alat} />}
         </div>
       )}
+    </div>
+  );
+}
+
+const CONTOH_RUBRIK: Record<NilaiOlahraga, string> = {
+  A: "Contoh: sudah mampu dengan benar dan mandiri",
+  B: "Contoh: mampu, sesekali perlu dibantu",
+  C: "Contoh: baru sebagian, sering perlu dibantu",
+  D: "Contoh: belum mampu",
+};
+
+/** Satu aspek: tombol A–D (tanpa onPilih = hanya tampil) + arti nilai yang dipilih. */
+function NilaiAspek({ aspek, nilai, rubrik, onPilih }: { aspek: string; nilai?: NilaiOlahraga; rubrik?: Rubrik; onPilih?: (n: NilaiOlahraga) => void }) {
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <span className="flex-1 min-w-0 text-sm" style={{ color: C.ink }}>{aspek}</span>
+        <div className="flex gap-1 shrink-0">
+          {NILAI_OLAHRAGA.map((n) => {
+            const on = nilai === n;
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={onPilih ? () => onPilih(n) : undefined}
+                disabled={!onPilih}
+                aria-pressed={on}
+                className="w-8 h-8 rounded-lg text-sm font-bold transition-colors"
+                style={{ background: on ? C.green : "#FFF", color: on ? "#FFF" : onPilih ? C.ink : C.muted, border: `1px solid ${on ? C.green : C.line}` }}
+              >
+                {n}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {nilai ? (
+        <p className="mt-1 text-[11px] leading-relaxed" style={{ color: C.muted }}>
+          {deskripsiNilai(rubrik, nilai) || "Arti nilai ini belum ditulis di Rencana."}
+        </p>
+      ) : !onPilih ? (
+        <p className="mt-1 text-[11px]" style={{ color: C.muted }}>Belum dinilai.</p>
+      ) : null}
+    </div>
+  );
+}
+
+/** Daftar aspek yang dinilai bulan ini + arti nilai A–D tiap aspek (bisa dibuka-tutup). */
+function RubrikDaftar({ aspek, rubrik }: { aspek: string[]; rubrik: Record<string, Rubrik> }) {
+  const [buka, setBuka] = useState(false);
+  if (!aspek.length) return null;
+  return (
+    <div className="rounded-xl" style={{ background: C.mist, border: `1px solid ${C.line}` }}>
+      <button type="button" onClick={() => setBuka((b) => !b)} className="w-full flex items-start justify-between gap-2 px-3 py-2.5 text-left">
+        <span className="text-xs leading-relaxed" style={{ color: C.ink }}>
+          <span className="font-semibold" style={{ color: C.green }}>Aspek dinilai:</span> {aspek.join(", ")}
+        </span>
+        <span className="text-[11px] font-bold shrink-0" style={{ color: C.green }}>{buka ? "Tutup" : "Arti A–D"}</span>
+      </button>
+      {buka && (
+        <div className="px-3 pb-3 space-y-3">
+          {aspek.map((a) => {
+            const r = rubrik[kunciAspek(a)];
+            return (
+              <div key={a}>
+                <div className="text-xs font-bold" style={{ color: C.ink }}>{a}</div>
+                {NILAI_OLAHRAGA.map((n) => (
+                  <div key={n} className="flex gap-2 mt-1 text-[11px] leading-relaxed" style={{ color: C.ink }}>
+                    <span className="font-bold w-3 shrink-0" style={{ color: C.green }}>{n}</span>
+                    <span>{deskripsiNilai(r, n) || "—"}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Management: berapa santri dapat A/B/C/D per aspek. */
+function SebaranNilai({ aspek, data, roster }: { aspek: string[]; data: Record<string, EvalAnakEntry>; roster: string[] }) {
+  if (!aspek.length) return null;
+  return (
+    <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Sebaran nilai</div>
+      <table className="w-full text-xs">
+        <thead>
+          <tr style={{ color: C.muted }}>
+            <th className="text-left font-semibold py-1">Aspek</th>
+            {NILAI_OLAHRAGA.map((n) => (
+              <th key={n} className="w-8 font-semibold">{n}</th>
+            ))}
+            <th className="w-12 font-semibold">Belum</th>
+          </tr>
+        </thead>
+        <tbody>
+          {aspek.map((a) => {
+            const hit = (n: NilaiOlahraga) => roster.filter((s) => data[s]?.nilai?.[a] === n).length;
+            const sudah = NILAI_OLAHRAGA.reduce((x, n) => x + hit(n), 0);
+            return (
+              <tr key={a} style={{ borderTop: `1px solid ${C.line}` }}>
+                <td className="py-1.5 pr-2" style={{ color: C.ink }}>{a}</td>
+                {NILAI_OLAHRAGA.map((n) => (
+                  <td key={n} className="text-center font-semibold" style={{ color: hit(n) ? C.green : C.muted }}>{hit(n) || "–"}</td>
+                ))}
+                <td className="text-center" style={{ color: C.muted }}>{roster.length - sudah}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

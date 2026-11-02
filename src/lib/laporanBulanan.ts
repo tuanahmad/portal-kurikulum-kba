@@ -230,7 +230,7 @@ export async function muatLaporan(bulan: string, onProgress?: (p: Progress) => v
     supa(async () => {
       const [rencana, evaluasi, absen] = await Promise.all([
         supabase.from("olahraga_bulanan").select("*").eq("bulan", bulan),
-        supabase.from("olahraga_evaluasi_anak").select("kelompok, tingkat, nama_santri, eval_ketercapaian, eval_partisipasi, eval_kendala, eval_perkembangan, eval_tindak_lanjut").eq("bulan", bulan),
+        supabase.from("olahraga_evaluasi_anak").select("kelompok, tingkat, nama_santri, eval_ketercapaian, eval_partisipasi, eval_kendala, eval_perkembangan, eval_tindak_lanjut, nilai").eq("bulan", bulan),
         supabase.from("absen_olahraga").select("kelompok, tanggal, status").gte("tanggal", from).lte("tanggal", to),
       ]);
       return { rencana, evaluasi, absen };
