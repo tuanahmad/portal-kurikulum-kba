@@ -120,7 +120,12 @@ export function parseTableCByBidang(tableC: string[][]): Map<string, Map<number,
       // pertama yang ketemu di string-nya, di mana pun posisinya, biar kedua bentuk kebaca.
       const m = pekanCell.match(/\d+/);
       const n = m ? parseInt(m[0], 10) : NaN;
-      if (Number.isFinite(n) && n >= 1) curPekan = n;
+      if (Number.isFinite(n) && n >= 1) {
+        // Pekan baru = daftar bidang mulai lagi dari atas: nama bidang pekan sebelumnya tidak boleh "nyambung" ke baris
+        // pertama pekan ini (dulu rencana Al-Qur'an yang namanya kosong ikut tercatat sebagai Keakhwatan).
+        if (n !== curPekan) curBidang = "";
+        curPekan = n;
+      }
     }
     if (bidangCell) curBidang = bidangCell;
     if (!curPekan || !curBidang || (!subIlmu && !metode)) continue;
@@ -192,13 +197,19 @@ export function findOrphanBidangC(tableC: string[][], knownBidangNames: string[]
     if (pekanCell) {
       const m = pekanCell.match(/\d+/);
       const n = m ? parseInt(m[0], 10) : NaN;
-      if (Number.isFinite(n) && n >= 1) curPekan = n;
+      if (Number.isFinite(n) && n >= 1) {
+        if (n !== curPekan) curBidang = "";
+        curPekan = n;
+      }
     }
     if (bidangCell) curBidang = bidangCell;
-    if (!curPekan || !curBidang || (!subIlmu && !metode)) continue;
-    const key = normBidangName(curBidang);
+    if (!curPekan || (!subIlmu && !metode)) continue;
+    // Baris tanpa nama bidang: kalau isinya tentang Al-Qur'an jadi bagian "Al-Qur'an" sendiri (bukan nempel ke bidang
+    // lain); selain itu "Tanpa nama bidang". Datanya tetap kelihatan.
+    const bidangBaris = curBidang || (/ziyadah|muroja|talaqqi|wirid|tilawah|qur/i.test(subIlmu + " " + metode) ? "Al-Qur'an" : "Tanpa nama bidang");
+    const key = normBidangName(bidangBaris);
     if (isKnown(key)) continue;
-    if (!labels.has(key)) labels.set(key, curBidang);
+    if (!labels.has(key)) labels.set(key, bidangBaris);
     if (!byKeyPekan.has(key)) byKeyPekan.set(key, new Map());
     const byPekan = byKeyPekan.get(key)!;
     if (!byPekan.has(curPekan)) byPekan.set(curPekan, []);
