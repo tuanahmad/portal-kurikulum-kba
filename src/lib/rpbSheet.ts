@@ -97,6 +97,28 @@ export async function writeRpbTab(fileId: string, sheetName: string, payload: Rp
 // sheet-rpb), jadi belum aman dicocokin dengan cara yang sama di sini.
 export type PekanEntry = { subIlmu: string; metode: string };
 
+/** Sebagian guru Qonuni menulis SATU isian gabungan ("Calis" / "Berhitung") di sel yang digabung untuk baris Membaca,
+ *  Menulis, dan Berhitung. Isinya tetap tampil di ketiganya (sesuai sheet), tapi diberi keterangan "isian bersama" supaya
+ *  tidak terbaca seolah salah bidang. */
+const KATA_GABUNGAN = new Set(["calis", "calistung", "berhitung", "membaca", "menulis"]);
+const adaDiCalistung = (key: string) => /hitung|calis|membaca|menulis/.test(key);
+
+function tandaiIsianBersama(
+  parsed: Map<string, Map<number, PekanEntry[]>>,
+  bidangKey: string,
+  own: Map<number, PekanEntry[]>,
+  pekan: number,
+  e: PekanEntry
+): PekanEntry {
+  if (!adaDiCalistung(bidangKey) || !KATA_GABUNGAN.has(normBidangName(e.subIlmu)) || !e.metode.trim()) return e;
+  let bersama = 0;
+  for (const [k, byPekan] of parsed) {
+    if (byPekan === own || !adaDiCalistung(k)) continue;
+    if ((byPekan.get(pekan) ?? []).some((x) => x.metode.trim() === e.metode.trim())) bersama++;
+  }
+  return bersama > 0 ? { subIlmu: e.subIlmu + " (isian bersama Membaca, Menulis & Berhitung)", metode: e.metode } : e;
+}
+
 function normBidangName(s: string): string {
   return (s || "").trim().toLowerCase();
 }
@@ -161,7 +183,7 @@ export function lookupPekanEntry(
   }
   const entries = byPekan?.get(pekan) ?? [];
   if (entries.length === 0) return { subIlmu: "", metode: "" };
-  if (entries.length === 1) return entries[0];
+  if (entries.length === 1) return tandaiIsianBersama(parsed, normBidangName(bidangName), byPekan!, pekan, entries[0]);
   return {
     subIlmu: entries.map((e) => e.subIlmu).filter(Boolean).join(" · "),
     metode: entries.map((e) => e.metode).filter(Boolean).join("\n\n"),
