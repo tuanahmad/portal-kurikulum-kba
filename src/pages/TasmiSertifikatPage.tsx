@@ -4,6 +4,10 @@ import { C } from "../data";
 import { readTasmiById, type TasmiRecord } from "../lib/tasmi";
 import { FullPageSkeleton } from "../components/Skeleton";
 import { kelompokSantri } from "../lib/roster";
+import { SyahadahBingkai } from "../components/SyahadahBingkai";
+
+/** Nama mudir (kepala) kuttab, tercetak otomatis di kolom tanda tangan sertifikat. Kosong = ditulis tangan. */
+const NAMA_MUDIR = "Anindra Muhammad Azmi";
 
 /** Laki-laki/perempuan: utamakan penanda kelompok santri di roster database (santri_roster.kelompok) -- penting untuk
  *  kelas Kuttab Awwal yang campur. Kalau penandanya belum ada, baru tebak dari nama kelas (kelas "... Ikhwan"). */
@@ -31,6 +35,39 @@ export default function TasmiSertifikatPage() {
   const [record, setRecord] = useState<TasmiRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Sertifikat selalu dirender 297mm penuh (ukuran A4); di layar sempit (HP) cuma DITAMPILKAN diperkecil agar muat selebar
+  // layar. Ukuran huruf memakai satuan cqw (mengikuti lebar sertifikat sendiri), jadi isinya ikut mengecil dengan rapi.
+  const LEBAR_SERTIFIKAT_PX = 1122.52;
+  const [skala, setSkala] = useState(1);
+  useEffect(() => {
+    const hitung = () => setSkala(Math.min(1, (window.innerWidth - 32) / LEBAR_SERTIFIKAT_PX));
+    hitung();
+    window.addEventListener("resize", hitung);
+    return () => window.removeEventListener("resize", hitung);
+  }, []);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfGalat, setPdfGalat] = useState<string | null>(null);
+
+  /** Simpan sertifikat sebagai PDF berisi GAMBAR (satu halaman A4 lanskap): hasilnya persis seperti di layar, tanpa dialog cetak. */
+  async function simpanPdf() {
+    const node = document.querySelector<HTMLElement>(".cert-page");
+    if (!node || !record) return;
+    setPdfBusy(true);
+    setPdfGalat(null);
+    try {
+      await document.fonts.ready;
+      const [{ toPng }, { jsPDF }] = await Promise.all([import("html-to-image"), import("jspdf")]);
+      const gambar = await toPng(node, { pixelRatio: 2, cacheBust: true, backgroundColor: "#FFFFFF", style: { boxShadow: "none", margin: "0" } });
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+      pdf.addImage(gambar, "PNG", 0, 0, 297, 210, undefined, "FAST");
+      const nama = record.nama_santri.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
+      pdf.save(`Syahadah-${nama || "santri"}.pdf`);
+    } catch (e) {
+      setPdfGalat("Gagal membuat PDF: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setPdfBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -86,24 +123,48 @@ export default function TasmiSertifikatPage() {
     <div className="min-h-dvh" style={{ background: "#EFEAD9" }}>
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@500;700;800&family=Quicksand:wght@500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Aref+Ruqaa:wght@400;700&family=Playfair+Display:wght@600;700&display=swap"
       />
       <style>{`
-        /* Cetak / Simpan PDF: tepat SATU halaman A4 tegak, hanya sertifikatnya. Elemen lain (menu bawah, tombol profil,
+        /* Cetak / Simpan PDF: tepat SATU halaman A4 lanskap, hanya sertifikatnya. Elemen lain (menu bawah, tombol profil,
            latar pola, jarak halaman) disembunyikan dan tidak memakan tempat, jadi tidak ada halaman kosong kedua. */
         @media print {
-          @page { size: A4 portrait; margin: 0; }
-          html, body { width: 210mm !important; height: 297mm !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #fff !important; }
+          @page { size: A4 landscape; margin: 0; }
+          html, body { width: 297mm !important; height: 210mm !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #fff !important; }
           body * { visibility: hidden !important; }
           .min-h-dvh::before { display: none !important; }
           .cert-page, .cert-page * { visibility: visible !important; }
           .cert-page {
             position: fixed !important; left: 0 !important; top: 0 !important;
-            width: 210mm !important; height: 297mm !important; aspect-ratio: auto !important;
+            width: 297mm !important; height: 210mm !important; aspect-ratio: auto !important;
             margin: 0 !important; box-shadow: none !important;
             -webkit-print-color-adjust: exact; print-color-adjust: exact;
           }
         }
+
+        .syh { position: relative; width: 297mm; aspect-ratio: 297 / 210; background: linear-gradient(180deg, #FFFFFF 0%, #FBFAF6 100%); box-shadow: 0 12px 40px rgba(31,45,77,.2); overflow: hidden; font-family: 'Amiri', serif; color: #262A33; container-type: inline-size; flex-shrink: 0; }
+        .syh-isi { position: absolute; inset: 8% 10% 13% 10%; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .syh-basmalah { font-family: 'Aref Ruqaa', serif; font-size: 2.1cqw; margin-top: 1.2%; color: #1F2D4D; }
+        .syh-judul { font-family: 'Aref Ruqaa', serif; font-weight: 700; font-size: 5.2cqw; line-height: 1.15; color: #1F2D4D; margin-top: 3.9%; }
+        .syh-garis { display: flex; align-items: center; gap: 1.2%; width: 15%; margin: .4% 0 0; color: #B4553A; }
+        .syh-garis i { flex: 1; height: 1px; background: currentColor; }
+        .syh-garis b { width: .9cqw; height: .9cqw; transform: rotate(45deg); background: currentColor; }
+        .syh-menyaksikan { font-size: 2.15cqw; margin-top: 7%; }
+        .syh-nama { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 3.1cqw; color: #1F2D4D; margin-top: .8%; direction: ltr; padding: 0 3% .5%; border-bottom: 2px solid #7F8AA3; }
+        .syh-kelas { font-size: 1.75cqw; margin-top: 1%; color: #59607A; }
+        .syh-kelas span { direction: ltr; unicode-bidi: isolate; display: inline-block; font-family: 'Playfair Display', serif; color: #1F2D4D; font-weight: 600; }
+        .syh-uraian { font-size: 2.1cqw; line-height: 1.85; margin-top: 1.2%; max-width: 94%; }
+        .syh-uraian strong { color: #1F2D4D; }
+        .syh-uraian .ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; font-family: 'Playfair Display', serif; color: #7F8AA3; font-weight: 700; }
+        .syh-rinci { font-size: 1.5cqw; color: #59607A; margin-top: .6%; }
+        .syh-rinci .ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; font-family: 'Playfair Display', serif; font-weight: 600; color: #1F2D4D; }
+        .syh-doa { font-size: 1.6cqw; font-style: italic; color: #6B7288; margin-top: .8%; max-width: 86%; line-height: 1.8; }
+        .syh-ttd { margin-top: auto; width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: end; }
+        .syh-blok { display: flex; flex-direction: column; align-items: center; }
+        .syh-peran { font-size: 1.55cqw; color: #6B7288; }
+        .syh-garisttd { width: 70%; border-bottom: 1px solid #8A91A5; height: 4.6cqw; }
+        .syh-nama-ttd { font-family: 'Playfair Display', serif; font-size: 1.45cqw; font-weight: 600; margin-top: .5%; direction: ltr; min-height: 1.8cqw; }
+        .syh-cap { width: 7.2cqw; height: 7.2cqw; border: 1.5px dashed rgba(127,138,163,.8); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: rgba(127,138,163,.8); font-size: 1.3cqw; }
       `}</style>
 
       {/* Toolbar — hilang pas print */}
@@ -118,11 +179,12 @@ export default function TasmiSertifikatPage() {
           </svg>
         </button>
         <button
-          onClick={() => window.print()}
+          onClick={simpanPdf}
+          disabled={pdfBusy}
           className="text-sm font-semibold px-4 py-2.5 rounded-xl"
-          style={{ background: C.green, color: "#FFF" }}
+          style={{ background: C.green, color: "#FFF", opacity: pdfBusy ? 0.6 : 1 }}
         >
-          Cetak / Simpan PDF
+          {pdfBusy ? "Menyiapkan PDF…" : "Simpan PDF"}
         </button>
       </div>
 
@@ -131,11 +193,17 @@ export default function TasmiSertifikatPage() {
           viewport HP, bukan lebar kotak sertifikat) jadi kegedean dibanding kotaknya sendiri, jadi
           overflow dan kepotong overflow:hidden. Solusinya: biarin penuh, scroll aja kayak liat PDF
           di HP (horizontal manual, vertical ngikut scroll halaman). */}
-      <p className="no-print text-center text-xs sm:hidden mb-2" style={{ color: C.muted }}>
-        Geser ke samping &amp; scroll ke bawah buat lihat semua ↔
-      </p>
-      <div className="flex justify-center px-4 pb-10 overflow-x-auto">
-        <Certificate record={record} namaLengkap={namaLengkap} male={male} kelas={kelas} />
+      {pdfGalat && (
+        <p className="no-print text-center text-xs mb-2" style={{ color: "#8A2A20" }}>
+          {pdfGalat}
+        </p>
+      )}
+      <div className="flex justify-center px-4 pb-10">
+        <div style={{ width: LEBAR_SERTIFIKAT_PX * skala, height: (LEBAR_SERTIFIKAT_PX * 210 / 297) * skala }}>
+          <div style={{ transform: `scale(${skala})`, transformOrigin: "top left", width: "297mm" }}>
+            <Certificate record={record} namaLengkap={namaLengkap} male={male} kelas={kelas} />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -152,344 +220,70 @@ function Certificate({
   male: boolean;
   kelas: string | null;
 }) {
-  const talib = male ? "الطالب" : "الطالبة";
-  const ustadz = male ? "الأستاذ" : "الأستاذة";
-  const atamma = male ? "أتمّ" : "أتمّت";
-  const lahu = male ? "له" : "لها";
-  const yarzuqahu = male ? "يرزقه" : "يرزقها";
-  const yajaalahu = male ? "يجعله" : "يجعلها";
+  // Gelar pembimbing mengikuti GURU-nya (dari nama: "Ustadzah ..." / "Ustadz ..."), bukan santrinya -- kelas campur
+  // bisa diajar guru berbeda jenis kelamin. Kalau nama tidak menyebut gelar, ikut jenis kelamin santri.
+  const guruPerempuan = /^\s*(ustadzah|ustazah|ustadzat|ummi|bu)\b/i.test(record.nama_guru ?? "");
+  const guruLaki = /^\s*(ustadz|ustaz|abi|pak)\b/i.test(record.nama_guru ?? "");
+  const guruPutra = guruPerempuan ? false : guruLaki ? true : male;
+  const ustadz = guruPutra ? "الْأُسْتَاذِ" : "الْأُسْتَاذَةِ";
+  const talib = male ? "الطَّالِبَ" : "الطَّالِبَةَ";
+  const atamma = male ? "أَتَمَّ" : "أَتَمَّتْ";
+  const lahu = male ? "لَهُ" : "لَهَا";
+  const yarzuqahu = male ? "يَرْزُقَهُ" : "يَرْزُقَهَا";
+  const yajaalahu = male ? "يَجْعَلَهُ" : "يَجْعَلَهَا";
+  const juz = (record.juz || "").match(/\d+/)?.[0];
+  const guru = record.nama_guru || "";
 
   return (
-    <div
-      className="cert-page relative overflow-hidden shrink-0"
-      style={{
-        width: "210mm",
-        aspectRatio: "210 / 297",
-        background: "linear-gradient(180deg, #FFFDF7 0%, #FFF8EA 100%)",
-        boxShadow: "0 12px 40px rgba(28,74,51,0.18)",
-        fontFamily: "'Tajawal', 'Quicksand', sans-serif",
-      }}
-      dir="rtl"
-    >
-      <Decorations />
+    <div className="cert-page syh" dir="rtl">
+      <SyahadahBingkai />
 
-      {/* Bingkai dalam */}
-      <div
-        className="absolute rounded-2xl"
-        style={{ inset: "3.5%", border: "2px solid #D9B968", borderRadius: 24 }}
-      />
-      <div
-        className="absolute rounded-2xl"
-        style={{ inset: "4.3%", border: "1px solid #E7CE96", borderRadius: 18 }}
-      />
+      <div className="syh-isi">
+        <div className="syh-basmalah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+        <div className="syh-judul">الشَّهَادَة</div>
 
-      {/* Konten -- vertikal (portrait): lambang di atas, logo+nama di bawahnya, baru judul dst.
-          turun ke bawah, beda dari versi landscape yang logo & lambang sejajar 2 kolom. */}
-      <div className="absolute inset-0 flex flex-col items-center text-center px-[9%]" style={{ paddingTop: "10%", paddingBottom: "11%" }}>
-        {/* Lambang bulat Al-Qur'an */}
-        <div
-          className="rounded-full flex items-center justify-center shrink-0"
-          style={{ width: "17%", aspectRatio: "1/1", border: "2px solid #E7CE96", background: "rgba(217,185,104,0.12)" }}
-        >
-          <QuranIcon />
-        </div>
-
-        {/* Nama muassasah (tulisan saja) */}
-        <div
-          style={{ marginTop: "3%", fontWeight: 700, fontSize: "clamp(14px, 2.6vw, 18px)", color: C.green, letterSpacing: "0.02em" }}
-          dir="ltr"
-        >
-          Kuttab Budi Ashari
-        </div>
-
-        {/* Judul kaligrafi */}
-        <div
-          style={{
-            fontFamily: "'Lalezar', cursive",
-            fontWeight: 400,
-            fontSize: "clamp(40px, 9vw, 64px)",
-            color: "#B3801E",
-            marginTop: "3%",
-            textShadow: "0 3px 0 #FFF2CE",
-            lineHeight: 1,
-          }}
-        >
-          شهادة تسميع
-        </div>
-
-        {/* Pita keterangan */}
-        <div
-          className="rounded-full"
-          style={{
-            background: "#EDF3EE",
-            padding: "1.3% 5%",
-            marginTop: "4%",
-            fontSize: "clamp(13px, 2.6vw, 17px)",
-            fontWeight: 700,
-            color: C.green,
-          }}
-        >
-          تشهد كُتّاب بودي أزهري بأنّ {talib}
-        </div>
-
-        {/* Nama santri */}
-        <div
-          style={{
-            fontSize: "clamp(20px, 4.4vw, 30px)",
-            color: C.green,
-            fontWeight: 700,
-            marginTop: "3.5%",
-            borderBottom: `2px solid #D9B968`,
-            paddingBottom: "1.2%",
-          }}
-          dir="ltr"
-        >
-          {namaLengkap}
-        </div>
-
-        {/* Badge kelas */}
+        <div className="syh-menyaksikan">يَشْهَدُ كُتَّابُ بُودِي أَزْهَرِي بِأَنَّ {talib}</div>
+        <div className="syh-nama">{namaLengkap}</div>
         {kelas && (
-          <div className="flex items-center" style={{ gap: "2%", marginTop: "3%" }}>
-            <span style={{ fontSize: "clamp(12px, 2.2vw, 15px)", color: C.muted, fontWeight: 600 }}>من فصل:</span>
-            <span
-              className="rounded-full"
-              style={{
-                background: "#E6F1FB",
-                border: "1px solid #B9D6F2",
-                color: "#1F5E93",
-                fontWeight: 700,
-                fontSize: "clamp(12px, 2.2vw, 15px)",
-                padding: "0.6% 3.5%",
-              }}
-              dir="ltr"
-            >
-              {kelas}
-            </span>
+          <div className="syh-kelas">
+            مِنْ فَصْلِ: <span>{kelas}</span>
           </div>
         )}
 
-        {/* Intro singkat -- maxWidth sengaja dikecilin (bukan cuma "batas biar gak lebar-lebar
-            amat") biar teksnya KEPAKSA wrap 2 baris. Kalau dibiarin muat 1 baris penuh, lebar
-            barisnya (~396px) dikit lebih lebar dari layar HP (375px) walau di dalam kotaknya
-            sendiri gak overflow -- baru kepotong pas discroll gak pas ke tengah persis. Wrap 2
-            baris lebih aman di semua ukuran layar drpd ngandelin scroll presisi. */}
-        <p
-          style={{
-            fontSize: "clamp(13px, 2.6vw, 17px)",
-            color: "#3A3226",
-            marginTop: "4%",
-            maxWidth: "48%",
-            minWidth: 0,
-            fontWeight: 600,
-            lineHeight: 1.6,
-          }}
-        >
-          قد {atamma} تسميع القرآن الكريم بإشراف {ustadz} بتاريخ {labelTanggalArab(record.tanggal)}
-        </p>
-
-        {/* Juz / Ustadz / Waktu / Kesalahan -- baris sendiri-sendiri */}
-        <div className="grid grid-cols-2" style={{ gap: "2.5% 8%", marginTop: "4%", width: "88%" }}>
-          <StatRow label="الجزء" value={record.juz || "—"} />
-          <StatRow label="الأستاذ" value={record.nama_guru || "—"} ltr />
-          <StatRow label="المدة" value={record.durasi || "—"} ltr />
-          <StatRow label="عدد الأخطاء" value={String(record.jumlah_kesalahan)} />
+        <div className="syh-uraian">
+          قَدْ {atamma} تَسْمِيعَ {juz ? (<><strong>الْجُزْءِ</strong> <span className="ltr">{juz}</span> مِنَ </>) : null}الْقُرْآنِ الْكَرِيمِ بِإِشْرَافِ <strong>{ustadz}</strong>
+          {guru && <> <span className="ltr">{guru}</span></>}
+          <br />
+          بِتَارِيخِ <strong>{labelTanggalArab(record.tanggal)}</strong>
+        </div>
+        {(record.durasi || record.jumlah_kesalahan != null) && (
+          <div className="syh-rinci">
+            {record.durasi ? <>الْمُدَّةُ: <span className="ltr">{record.durasi}</span></> : null}
+            {record.durasi && record.jumlah_kesalahan != null ? "  ·  " : null}
+            {record.jumlah_kesalahan != null ? <>عَدَدُ الْأَخْطَاءِ: <span className="ltr">{record.jumlah_kesalahan}</span></> : null}
+          </div>
+        )}
+        <div className="syh-doa">
+          بَارَكَ اللَّهُ {lahu}، وَنَسْأَلُ اللَّهَ أَنْ {yarzuqahu} حُبَّ الْقُرْآنِ دَائِمًا، وَ{yajaalahu} مِنْ أَهْلِ الْقُرْآنِ وَخَاصَّتِهِ.
         </div>
 
-        {/* Doa -- maxWidth dikecilin juga, alasan sama kayak intro di atas (paksa wrap). */}
-        <p
-          style={{
-            fontSize: "clamp(13px, 2.6vw, 17px)",
-            color: C.muted,
-            marginTop: "4%",
-            maxWidth: "50%",
-            minWidth: 0,
-            lineHeight: 1.8,
-            fontStyle: "italic",
-          }}
-        >
-          بارك الله {lahu}، ونسأل الله أن {yarzuqahu} حبّ القرآن دائمًا، و{yajaalahu} من أهل القرآن وخاصته.
-        </p>
-
-        {/* dorong footer ke bawah biar nempel dasar kartu, sisa ruang portrait dipakai di sini */}
-        <div className="flex-1" />
-
-        {/* Footer */}
-        <div className="w-full flex items-end justify-between" style={{ maxWidth: "94%" }}>
-          <FooterBlock label="التاريخ">
-            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(14px, 2.6vw, 18px)", color: C.ink }}>
-              {labelTanggalArab(record.tanggal)}
-            </div>
-          </FooterBlock>
-          <FooterBlock label={ustadz}>
-            <div dir="ltr" style={{ fontWeight: 700, fontSize: "clamp(14px, 2.6vw, 18px)", color: C.ink }}>
-              {record.nama_guru || "—"}
-            </div>
-          </FooterBlock>
-          <FooterBlock label="ختم المؤسسة">
-            <div
-              className="rounded-2xl flex items-center justify-center mx-auto"
-              style={{ padding: "4% 7%", border: `2px dashed #B3801E` }}
-            >
-              <div style={{ fontWeight: 700, fontSize: "clamp(11px, 2vw, 14px)", color: "#B3801E" }}>
-                كُتّاب بودي أزهري
-              </div>
-            </div>
-          </FooterBlock>
+        <div className="syh-ttd">
+          <div className="syh-blok">
+            <div className="syh-peran">مُرَبِّي الْحِفْظِ</div>
+            <div className="syh-garisttd" />
+            <div className="syh-nama-ttd">{guru}</div>
+          </div>
+          <div className="syh-blok">
+            <div className="syh-cap">ختم</div>
+            <div className="syh-peran" style={{ marginTop: ".6cqw" }}>خَتْمُ الْمُؤَسَّسَةِ</div>
+          </div>
+          <div className="syh-blok">
+            <div className="syh-peran">مُدِيرُ الْكُتَّابِ</div>
+            <div className="syh-garisttd" />
+            <div className="syh-nama-ttd">{NAMA_MUDIR}</div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-function StatRow({ label, value, ltr }: { label: string; value: string; ltr?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between" style={{ borderBottom: `1px dashed ${C.line}`, paddingBottom: "2%" }}>
-      <span style={{ fontSize: "clamp(11px, 1.3vw, 14px)", color: C.muted, fontWeight: 700 }}>{label}</span>
-      <span
-        dir={ltr ? "ltr" : undefined}
-        style={{ fontSize: "clamp(13px, 1.6vw, 17px)", color: "#B3801E", fontWeight: 700 }}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function FooterBlock({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center" style={{ width: "30%" }}>
-      {children}
-      <div
-        style={{
-          fontSize: "clamp(11px, 1.3vw, 14px)",
-          color: C.muted,
-          fontWeight: 700,
-          marginTop: "4%",
-          borderTop: `1px solid ${C.line}`,
-          paddingTop: "3%",
-          width: "85%",
-        }}
-      >
-        {label}
-      </div>
-    </div>
-  );
-}
-
-/** Mushaf (Al-Qur'an tertutup) bernuansa Timur Tengah -- sampul ijo tua + list emas, rosette
- *  geometris 8 sudut di tengah (motif khas ornamen Islami) ketimbang buku generik biasa. */
-function QuranIcon() {
-  return (
-    <svg width="60%" height="60%" viewBox="0 0 24 24" fill="none">
-      <rect x="4" y="3.5" width="16" height="17" rx="1.4" fill="#1C4A33" stroke="#B3801E" strokeWidth="1.3" />
-      <rect x="5.3" y="4.8" width="13.4" height="14.4" rx="0.8" stroke="#F0C670" strokeWidth="0.6" />
-      <g transform="translate(12,12)" stroke="#F0C670" strokeWidth="0.9" strokeLinejoin="round">
-        <path d="M0 -3.4L0.9 -0.9L3.4 0L0.9 0.9L0 3.4L-0.9 0.9L-3.4 0L-0.9 -0.9Z" fill="#F0C670" opacity="0.15" />
-        <path d="M0 -3.4L0.9 -0.9L3.4 0L0.9 0.9L0 3.4L-0.9 0.9L-3.4 0L-0.9 -0.9Z" />
-        <path d="M0 -2.4L0.65 -0.65L2.4 0L0.65 0.65L0 2.4L-0.65 0.65L-2.4 0L-0.65 -0.65Z" transform="rotate(22.5)" />
-      </g>
-      <path d="M8 7h1.6M8 17.2h1.6" stroke="#F0C670" strokeWidth="0.8" strokeLinecap="round" />
-      <path d="M14.4 7H16M14.4 17.2H16" stroke="#F0C670" strokeWidth="0.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-/* ═══════════════════════ Dekorasi — bulan, bintang, awan, bunga, rumput ═══════════════════════ */
-
-function Decorations() {
-  return (
-    <svg
-      className="absolute inset-0"
-      width="100%"
-      height="100%"
-      viewBox="0 0 700 990"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      {/* Awan pojok kiri-atas & kanan-atas */}
-      <Cloud x={55} y={45} scale={0.8} />
-      <Cloud x={615} y={55} scale={0.7} />
-
-      {/* Bulan sabit pojok kanan-atas */}
-      <g transform="translate(632,35) scale(0.8)">
-        <path
-          d="M20 0a20 20 0 1 0 0 40 16 16 0 1 1 0-40Z"
-          fill="#F5C46A"
-        />
-      </g>
-
-      {/* Bintang kecil tersebar (dikit aja) */}
-      <Star x={100} y={30} s={6} />
-      <Star x={160} y={75} s={5} />
-      <Star x={555} y={35} s={5} />
-      <Star x={45} y={130} s={5} />
-      <Star x={660} y={150} s={6} />
-      <Star x={350} y={25} s={5} />
-
-      {/* Rumput + bunga sepanjang bawah, jarang-jarang */}
-      <Grass x={0} />
-      <Grass x={65} />
-      <Grass x={630} />
-      <Grass x={695} />
-      <Flower x={30} y={945} scale={0.9} color="#E48FA0" />
-      <Flower x={670} y={940} scale={0.9} color="#8FB6E4" />
-      <Flower x={90} y={958} scale={0.6} color="#D9B968" />
-      <Flower x={610} y={958} scale={0.6} color="#B08FE4" />
-
-      {/* Bunga kecil di sudut bawah kiri/kanan atas juga, biar seimbang (dikit) */}
-      <Flower x={40} y={80} scale={0.5} color="#E48FA0" />
-      <Flower x={655} y={95} scale={0.5} color="#B08FE4" />
-    </svg>
-  );
-}
-
-function Cloud({ x, y, scale }: { x: number; y: number; scale: number }) {
-  return (
-    <g transform={`translate(${x},${y}) scale(${scale})`} opacity={0.9}>
-      <ellipse cx="0" cy="10" rx="26" ry="14" fill="#EAF1FB" />
-      <ellipse cx="22" cy="4" rx="20" ry="16" fill="#EAF1FB" />
-      <ellipse cx="-22" cy="6" rx="18" ry="13" fill="#EAF1FB" />
-    </g>
-  );
-}
-
-function Star({ x, y, s }: { x: number; y: number; s: number }) {
-  return (
-    <path
-      d={`M${x} ${y - s} L${x + s * 0.28} ${y - s * 0.28} L${x + s} ${y} L${x + s * 0.28} ${y + s * 0.28} L${x} ${y + s} L${x - s * 0.28} ${y + s * 0.28} L${x - s} ${y} L${x - s * 0.28} ${y - s * 0.28} Z`}
-      fill="#F0C670"
-    />
-  );
-}
-
-function Grass({ x }: { x: number }) {
-  return (
-    <g transform={`translate(${x},963)`} opacity={0.85}>
-      <path d="M0 27 Q6 5 12 27" stroke="#7FA872" strokeWidth="3" fill="none" strokeLinecap="round" />
-      <path d="M10 27 Q18 0 26 27" stroke="#6C9962" strokeWidth="3" fill="none" strokeLinecap="round" />
-      <path d="M20 27 Q28 8 36 27" stroke="#7FA872" strokeWidth="3" fill="none" strokeLinecap="round" />
-    </g>
-  );
-}
-
-function Flower({ x, y, scale, color }: { x: number; y: number; scale: number; color: string }) {
-  const petals = [0, 72, 144, 216, 288];
-  return (
-    <g transform={`translate(${x},${y}) scale(${scale})`}>
-      {petals.map((deg) => (
-        <ellipse
-          key={deg}
-          cx="0"
-          cy="-7"
-          rx="4.5"
-          ry="7"
-          fill={color}
-          opacity={0.85}
-          transform={`rotate(${deg})`}
-        />
-      ))}
-      <circle r="3.5" fill="#F5C46A" />
-    </g>
-  );
-}
-
