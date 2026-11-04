@@ -26,7 +26,14 @@ export type RpbQuranRow = {
   targetPekan?: string[];
   /** Rincian rencana per pekan (teks + target wirid) dari database aplikasi, mulai Desember -- bukan dari sheet. */
   rincian?: Record<string, { isi: string[]; target: string[] }>;
+  /** Fase santri bulan itu (alur tasmi'): ziyadah (default) | persiapan_tasmi | tasmi. Disimpan di database aplikasi. */
+  mode?: ModeQuran;
 };
+
+export type ModeQuran = "ziyadah" | "persiapan_tasmi" | "tasmi";
+export const LABEL_MODE: Record<ModeQuran, string> = { ziyadah: "Ziyadah", persiapan_tasmi: "Persiapan Tasmi'", tasmi: "Tasmi'" };
+/** Alur ziyadah / persiapan tasmi' / tasmi' berlaku untuk Qonuni dan Kuttab Awwal 3 Akhwat; Kuttab Awwal lain: Talaqqi + Baghdadiyah. */
+export const alurTasmi = (kelas: string | null | undefined) => !!kelas && (/^qonuni/i.test(kelas) || /^kuttab awwal 3 akhwat$/i.test(kelas.trim()));
 
 /** Target ziyadah/talaqqi per PEKAN (baris) diisi opsional mulai Desember; bulan sebelumnya hanya angka target per pertemuan. */
 export const BULAN_TARGET_PEKAN = ["Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];

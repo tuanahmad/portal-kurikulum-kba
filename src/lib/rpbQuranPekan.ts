@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { ramahkanGalat } from "./jaringan";
-import { PEKAN_TARGET_QURAN, type RpbQuranRow } from "./rpbSheet";
+import { PEKAN_TARGET_QURAN, type ModeQuran, type RpbQuranRow } from "./rpbSheet";
 
 // Rincian rencana Al-Qur'an PER PEKAN per santri (mulai Desember), disimpan di tabel `rpb_quran_pekan`:
 //   ziyadah (= Talaqqi di Kuttab Awwal) / murojaah / wirid (Qonuni) atau baghdadiyah (Kuttab Awwal)
@@ -10,7 +10,7 @@ import { PEKAN_TARGET_QURAN, type RpbQuranRow } from "./rpbSheet";
 
 export type KategoriPekan = "ziyadah" | "murojaah" | "wirid" | "baghdadiyah";
 export type RincianPekan = { isi: string[]; target: string[] };
-export type RincianSantri = Partial<Record<KategoriPekan, RincianPekan>>;
+export type RincianSantri = Partial<Record<KategoriPekan, RincianPekan>> & { mode?: ModeQuran };
 
 /** Kategori untuk tiga isian rencana per santri (urut sesuai label): Qonuni Ziyadah/Murojaah/Wirid, KA Talaqqi/Murojaah Jama'i/Baghdadiyah. */
 export const kategoriRencana = (qonuni: boolean): KategoriPekan[] => ["ziyadah", "murojaah", qonuni ? "wirid" : "baghdadiyah"];
@@ -20,13 +20,18 @@ export const rincianKosong = (kats: KategoriPekan[]): RincianSantri => Object.fr
 
 const normNama = (s: string) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-type Baris = { kelas: string; santri: string; kategori: KategoriPekan; pekan: number; isi: string; target: number | null };
+type Baris = { kelas: string; santri: string; kategori: KategoriPekan | "mode"; pekan: number; isi: string; target: number | null };
 
 function susun(rows: Baris[]): Map<string, RincianSantri> {
   const out = new Map<string, RincianSantri>();
   for (const r of rows) {
     const k = normNama(r.santri);
     const s = out.get(k) ?? {};
+    if (r.kategori === "mode") {
+      if (r.isi === "persiapan_tasmi" || r.isi === "tasmi" || r.isi === "ziyadah") s.mode = r.isi;
+      out.set(k, s);
+      continue;
+    }
     const rp = s[r.kategori] ?? kosongPekan();
     rp.isi[r.pekan - 1] = r.isi ?? "";
     rp.target[r.pekan - 1] = r.target != null ? String(r.target).replace(".", ",") : "";
@@ -54,7 +59,10 @@ export async function bacaRincianBulan(bulan: string): Promise<Map<string, Map<s
 
 /** Gabungkan rincian dari database ke baris santri hasil baca sheet. */
 export function gabungRincian(quran: RpbQuranRow[], peta: Map<string, RincianSantri>): RpbQuranRow[] {
-  return quran.map((q) => ({ ...q, rincian: peta.get(normNama(q.nama)) ?? q.rincian }));
+  return quran.map((q) => {
+    const { mode, ...rin } = peta.get(normNama(q.nama)) ?? {};
+    return { ...q, rincian: Object.keys(rin).length ? (rin as RpbQuranRow["rincian"]) : q.rincian, mode: mode ?? q.mode };
+  });
 }
 
 const angka = (v: string): number | null => {
@@ -71,6 +79,7 @@ export async function simpanRincianKelas(kelas: string, bulan: string, quran: Rp
 
   const baru: (Baris & { bulan: string; user_id: string })[] = [];
   for (const q of quran) {
+    if (q.mode && q.mode !== "ziyadah") baru.push({ kelas, bulan, santri: q.nama, kategori: "mode", pekan: 1, isi: q.mode, target: null, user_id: user.id });
     for (const [kat, rp] of Object.entries(q.rincian ?? {}) as [KategoriPekan, RincianPekan][]) {
       for (let p = 0; p < PEKAN_TARGET_QURAN; p++) {
         const isi = (rp.isi[p] ?? "").trim();

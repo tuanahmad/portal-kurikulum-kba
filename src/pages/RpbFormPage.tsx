@@ -1,4 +1,5 @@
 import { AutoTextarea } from "../components/AutoTextarea";
+import { RencanaQuranSantri } from "../components/RencanaQuranSantri";
 import { bacaRincianKelas, simpanRincianKelas, gabungRincian, kategoriRencana } from "../lib/rpbQuranPekan";
 import { lembut } from "../lib/warna";
 import { hapusCacheStatus } from "../lib/dashboardStatus";
@@ -18,6 +19,8 @@ import {
   susunRencanaQuran,
   targetPekanAktif,
   PEKAN_TARGET_QURAN,
+  alurTasmi,
+  type ModeQuran,
   LABEL_RENCANA_QURAN,
   type RpbTabData,
   type RpbQuranRow,
@@ -247,6 +250,10 @@ export default function RpbFormPage() {
 
   function setQuranTarget(i: number, val: string) {
     setQuran((prev) => prev.map((q, qi) => (qi === i ? { ...q, target: val } : q)));
+  }
+
+  function setQuranMode(i: number, m: ModeQuran) {
+    setQuran((prev) => prev.map((q, qi) => (qi === i ? { ...q, mode: m } : q)));
   }
 
   function setQuranRincian(i: number, kat: string, bagian: "isi" | "target", p: number, val: string) {
@@ -501,7 +508,7 @@ export default function RpbFormPage() {
                   subtitle={`Al-Qur'an + ${bidangCount} bidang ilmu lain yang ditargetkan bulan ini`}
                 />
                 <div className="space-y-3">
-                  <RencanaQuranCard label={labelQuran} labelTarget={isQonuni ? "Ziyadah" : "Talaqqi"} quran={quran} onChange={setQuranIsi} onTarget={setQuranTarget} onPekan={targetPekanAktif(bulan) ? setQuranPekan : undefined} onRincian={targetPekanAktif(bulan) ? setQuranRincian : undefined} qonuni={isQonuni} />
+                  <RencanaQuranCard label={labelQuran} labelTarget={isQonuni ? "Ziyadah" : "Talaqqi"} quran={quran} onChange={setQuranIsi} onTarget={setQuranTarget} onPekan={targetPekanAktif(bulan) ? setQuranPekan : undefined} onRincian={targetPekanAktif(bulan) ? setQuranRincian : undefined} qonuni={isQonuni} alur={alurTasmi(kelas)} onMode={setQuranMode} />
                   {tableB.slice(0, bidangCount).map((row, i) => (
                     <EntryCard
                       key={i}
@@ -595,7 +602,11 @@ function RencanaQuranCard({
   onPekan,
   onRincian,
   qonuni,
+  alur,
+  onMode,
 }: {
+  alur?: boolean;
+  onMode?: (i: number, m: ModeQuran) => void;
   onRincian?: (i: number, kat: string, bagian: "isi" | "target", p: number, val: string) => void;
   qonuni?: boolean;
   label: string[];
@@ -620,6 +631,14 @@ function RencanaQuranCard({
       ) : (
         <div className="space-y-2">
           {quran.map((q, i) => (
+            onRincian && onPekan && onMode ? (
+              <div key={q.nama + i} className="rounded-xl p-2.5" style={{ background: C.leaf, border: `1px solid ${C.line}` }}>
+                <div className="text-xs font-semibold mb-2" style={{ color: C.green }}>
+                  {i + 1}. {q.nama}
+                </div>
+                <RencanaQuranSantri q={q} i={i} label={label} alurTasmi={!!alur} onIsi={onChange} onTarget={onTarget} onPekan={onPekan} onRincian={onRincian} onMode={onMode} />
+              </div>
+            ) : (
             <div key={q.nama + i} className="rounded-xl p-2.5" style={{ background: C.leaf, border: `1px solid ${C.line}` }}>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <div className="text-xs font-semibold" style={{ color: C.green }}>
@@ -721,6 +740,7 @@ function RencanaQuranCard({
                 ))}
               </div>
             </div>
+            )
           ))}
         </div>
       )}

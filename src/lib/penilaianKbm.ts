@@ -180,13 +180,18 @@ function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, surat: M
   for (const nama of capaianRoster(kl.kelas)) {
     const cari = (sec: QuranSection | null) => sec?.santri.find((s) => normNama(s.nama) === normNama(nama)) ?? null;
     const z = cariSec(q, /ziyadah|talaqqi/i) ? cari(secZ) : null;
+    // Fase santri bulan ini (alur tasmi', mulai Desember): persiapan tasmi' / tasmi' -> ziyadah tidak dinilai.
+    const modeS = rincian?.get(normNama(nama))?.mode;
+    const fase = modeS === "tasmi" ? "Tasmi'" : modeS === "persiapan_tasmi" ? "Persiapan tasmi'" : null;
     if (secZ) {
       const tPekan = targetPekan.get(normNama(nama)) ?? [];
       const adaPekan = tPekan.some((x) => x != null);
       const tgt = target.get(normNama(nama)) ?? null;
       const sur = daftarSurat(secZ, nama);
       const capaian = !z || z.terisi === 0 ? "Tidak tercatat" : `${fmt(z.total)} baris${sur.length ? ` · ${sur.join(", ")}` : ""}${kode(z.pt, z.ts) ? ` · ${kode(z.pt, z.ts)}` : ""}`;
-      if (tgt == null && !adaPekan) {
+      if (fase) {
+        items.push({ nama, kategori: "ziyadah", label: labelZ, target: "—", capaian, simbol: "tanpa", ket: `${fase} bulan ini: ziyadah tidak dinilai.` });
+      } else if (tgt == null && !adaPekan) {
         items.push({ nama, kategori: "ziyadah", label: labelZ, target: "—", capaian, simbol: "tanpa", ket: "Target angka belum diisi di RPB; capaian hanya dicatat." });
       } else {
         const butuh = adaPekan ? Math.round(tPekan.reduce<number>((a, x) => a + (x ?? 0), 0) * 10) / 10 : Math.round((tgt as number) * pertemuan * 10) / 10;
@@ -226,7 +231,8 @@ function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, surat: M
       const kosongP = vals.map((v, j) => (v || j >= wiridDipakai ? 0 : j + 1)).filter(Boolean);
       const catatanKosong = kosongP.length ? ` Pekan ${kosongP.join(", ")} tidak tercatat.` : "";
       const tTeks = adaTargetW ? `≥ target putaran tiap pekan (${tW.map((x, j) => (angkaTargetQuran(x) != null ? `P${j + 1}: ${angkaTargetQuran(x)}` : "")).filter(Boolean).join(", ")}; lainnya ≥ 1)` : "≥ 1 putaran tiap pekan";
-      if (n === 0) items.push({ nama, kategori: "wirid", label: "Wirid", target: tTeks, capaian: "-", simbol: "kosong", ket: "Belum ada pekan yang selesai bulan ini." });
+      if (fase) items.push({ nama, kategori: "wirid", label: "Wirid", target: "target satu bulan", capaian, simbol: "tanpa", ket: `${fase}: target wirid satu bulan (mengulang seluruh hafalan), tidak dinilai per pekan.` });
+      else if (n === 0) items.push({ nama, kategori: "wirid", label: "Wirid", target: tTeks, capaian: "-", simbol: "kosong", ket: "Belum ada pekan yang selesai bulan ini." });
       else if (!vals.some(Boolean)) items.push({ nama, kategori: "wirid", label: "Wirid", target: tTeks, capaian, simbol: "kosong", ket: "Belum ada catatan bulan ini." });
       else if (!dinilai.length) items.push({ nama, kategori: "wirid", label: "Wirid", target: tTeks, capaian, simbol: "tanpa", ket: `Pekan yang tercatat berisi PT/TS (tasmi'), tidak dinilai.${catatanKosong}` });
       else if (kurang.length) items.push({ nama, kategori: "wirid", label: "Wirid", target: tTeks, capaian, simbol: "belum", ket: `Pekan ${kurang.join(", ")} kurang dari 1 putaran.${catatanKosong}`, pekanKosong: kosongP.length });

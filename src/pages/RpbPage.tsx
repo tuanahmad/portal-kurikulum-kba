@@ -2,7 +2,7 @@ import { lembut } from "../lib/warna";
 import { useEffect, useState } from "react";
 import { bacaNamaGuruKelas } from "../lib/namaGuru";
 import { bacaRincianKelas, gabungRincian } from "../lib/rpbQuranPekan";
-import { targetPekanAktif } from "../lib/rpbSheet";
+import { targetPekanAktif, LABEL_MODE } from "../lib/rpbSheet";
 import { Link } from "react-router-dom";
 import {
   C,
@@ -460,6 +460,7 @@ export function RpbRekap({ data, kelas, namaGuru }: { data: RpbTabData; kelas: s
                   <ReadField key={j} label={l} value={q.rencana[j] ?? ""} />
                 ))}
                 {(q.target ?? "").trim() && <ReadField label={`Target ${isQonuni ? "ziyadah" : "talaqqi"} (baris/pertemuan)`} value={q.target ?? ""} />}
+                {q.mode && q.mode !== "ziyadah" && <ReadField label="Fase bulan ini" value={LABEL_MODE[q.mode]} />}
                 {Object.entries(q.rincian ?? {}).map(([kat, rp], j) => {
                   const ada = rp.isi.some((x) => x.trim()) || rp.target.some((x) => x.trim());
                   if (!ada) return null;
