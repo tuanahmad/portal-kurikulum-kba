@@ -1,4 +1,5 @@
 import { AutoTextarea } from "../components/AutoTextarea";
+import { bacaRincianKelas, simpanRincianKelas, gabungRincian, kategoriRencana } from "../lib/rpbQuranPekan";
 import { lembut } from "../lib/warna";
 import { hapusCacheStatus } from "../lib/dashboardStatus";
 import { hitungTeksHilang } from "../lib/jaringan";
@@ -104,7 +105,14 @@ export default function RpbFormPage() {
       .then((data) => {
         if (cancelled) return;
         setRawData(data);
-        setQuran(susunRencanaQuran(capaianRoster(kelas), data.quran ?? []));
+        const dasarQuran = susunRencanaQuran(capaianRoster(kelas), data.quran ?? []);
+        setQuran(dasarQuran);
+        if (targetPekanAktif(bulan)) {
+          // Rincian per pekan (database) digabung ke baris santri; gagal baca tidak menghalangi form.
+          bacaRincianKelas(kelas, bulan!)
+            .then((peta) => !cancelled && setQuran((prev) => gabungRincian(prev, peta)))
+            .catch(() => undefined);
+        }
         setNamaGuru(data.namaGuru || fullName || "");
         setKelasField(data.kelas || kelas || "");
         setLevelField(data.level || jenjangOf(kelas) || "");
@@ -214,6 +222,7 @@ export default function RpbFormPage() {
     };
     try {
       await writeRpbTab(file.id, kelas, payload);
+      if (targetPekanAktif(bulan)) await simpanRincianKelas(kelas, bulan!, quran);
       // Cek ulang: semua teks yang ditulis harus terbaca balik dari file.
       const fresh = await readRpbTab(file.id, kelas);
       // Angka target (pendek, mis. "2") tidak tertangkap pengecek teks di bawah -> dicek terpisah per santri.
@@ -238,6 +247,18 @@ export default function RpbFormPage() {
 
   function setQuranTarget(i: number, val: string) {
     setQuran((prev) => prev.map((q, qi) => (qi === i ? { ...q, target: val } : q)));
+  }
+
+  function setQuranRincian(i: number, kat: string, bagian: "isi" | "target", p: number, val: string) {
+    setQuran((prev) =>
+      prev.map((q, qi) => {
+        if (qi !== i) return q;
+        const rin = { ...(q.rincian ?? {}) };
+        const rp = rin[kat] ?? { isi: Array(PEKAN_TARGET_QURAN).fill(""), target: Array(PEKAN_TARGET_QURAN).fill("") };
+        rin[kat] = { ...rp, [bagian]: rp[bagian].map((x, xi) => (xi === p ? val : x)) };
+        return { ...q, rincian: rin };
+      })
+    );
   }
 
   function setQuranPekan(i: number, p: number, val: string) {
@@ -480,7 +501,7 @@ export default function RpbFormPage() {
                   subtitle={`Al-Qur'an + ${bidangCount} bidang ilmu lain yang ditargetkan bulan ini`}
                 />
                 <div className="space-y-3">
-                  <RencanaQuranCard label={labelQuran} labelTarget={isQonuni ? "Ziyadah" : "Talaqqi"} quran={quran} onChange={setQuranIsi} onTarget={setQuranTarget} onPekan={targetPekanAktif(bulan) ? setQuranPekan : undefined} />
+                  <RencanaQuranCard label={labelQuran} labelTarget={isQonuni ? "Ziyadah" : "Talaqqi"} quran={quran} onChange={setQuranIsi} onTarget={setQuranTarget} onPekan={targetPekanAktif(bulan) ? setQuranPekan : undefined} onRincian={targetPekanAktif(bulan) ? setQuranRincian : undefined} qonuni={isQonuni} />
                   {tableB.slice(0, bidangCount).map((row, i) => (
                     <EntryCard
                       key={i}
@@ -572,7 +593,11 @@ function RencanaQuranCard({
   onChange,
   onTarget,
   onPekan,
+  onRincian,
+  qonuni,
 }: {
+  onRincian?: (i: number, kat: string, bagian: "isi" | "target", p: number, val: string) => void;
+  qonuni?: boolean;
   label: string[];
   labelTarget: string;
   quran: RpbQuranRow[];
@@ -636,6 +661,47 @@ function RencanaQuranCard({
                     ))}
                   </div>
                 </div>
+              )}
+              {onRincian && (
+                <details className="mb-2 rounded-lg" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                  <summary className="cursor-pointer text-[11px] font-semibold px-2.5 py-1.5" style={{ color: C.green }}>
+                    Rincian per pekan (boleh dikosongkan)
+                  </summary>
+                  <div className="px-2.5 pb-2.5 space-y-2.5">
+                    {kategoriRencana(!!qonuni).map((kat, j) => (
+                      <div key={kat}>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: C.muted }}>
+                          {label[j]}
+                          {kat === "wirid" ? " · isi target putaran per pekan (angka) di kotak kecil" : ""}
+                        </div>
+                        {Array.from({ length: PEKAN_TARGET_QURAN }, (_, p) => (
+                          <div key={p} className="flex items-center gap-1.5 mb-1">
+                            <span className="w-6 text-[11px] shrink-0" style={{ color: C.muted }}>P{p + 1}</span>
+                            <input
+                              value={q.rincian?.[kat]?.isi?.[p] ?? ""}
+                              onChange={(e) => onRincian(i, kat, "isi", p, e.target.value)}
+                              placeholder={`${label[j]} pekan ${p + 1}`}
+                              aria-label={`${label[j]} pekan ${p + 1} ${q.nama}`}
+                              className="flex-1 min-w-0 text-xs outline-none px-2 py-1 rounded-md"
+                              style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                            />
+                            {kat === "wirid" && (
+                              <input
+                                value={q.rincian?.[kat]?.target?.[p] ?? ""}
+                                onChange={(e) => onRincian(i, kat, "target", p, e.target.value.replace(/[^0-9.,]/g, ""))}
+                                inputMode="decimal"
+                                placeholder="putaran"
+                                aria-label={`Target putaran wirid pekan ${p + 1} ${q.nama}`}
+                                className="w-16 text-xs text-center outline-none px-1.5 py-1 rounded-md"
+                                style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </details>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {label.map((l, j) => (

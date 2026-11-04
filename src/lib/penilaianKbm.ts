@@ -3,6 +3,7 @@ import { muatLaporan, refleksiTerisi, quranTerisi, type Laporan, type KelasLapor
 import { daftarTargetIlmu, bacaTandaTargetBulan, kunciTarget, type TandaTersimpan } from "./targetIlmu";
 import { angkaTargetQuran } from "./rpbSheet";
 import { angkaAwalQuran, angkaPenuhQuran } from "./angkaQuran";
+import { bacaRincianBulan, type RincianSantri } from "./rpbQuranPekan";
 import { supabase } from "./supabaseClient";
 import { ramahkanGalat } from "./jaringan";
 
@@ -156,7 +157,7 @@ function nilaiIlmu(kl: KelasLaporan, tanda: Map<string, TandaTersimpan> | undefi
 
 const cariSec = (q: QuranSection[] | null, re: RegExp) => q?.find((s) => re.test(s.name)) ?? null;
 
-function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, surat: Map<string, string[]> | undefined): KelasQuran {
+function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, surat: Map<string, string[]> | undefined, rincian?: Map<string, RincianSantri>): KelasQuran {
   const q = kl.quran;
   const secZ = cariSec(q, /ziyadah|talaqqi/i);
   const secM = cariSec(q, /muroja/i);
@@ -217,10 +218,14 @@ function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, surat: M
       // Dinilai dari pekan yang TERCATAT (sama dengan aturan laporan triwulan Juli-September); pekan kosong disebut di
       // keterangan dan masuk catatan kualitas data, tidak membuat gagal.
       const dinilai = vals.map((v, j) => ({ j, v })).filter((o) => o.v && !kodeTasmi(o.v));
-      const kurang = dinilai.filter((o) => (angkaAwal(o.v) ?? 0) < 1).map((o) => o.j + 1);
+      // Target putaran wirid per pekan (opsional, mulai Desember); kalau tidak diisi, minimal 1 putaran.
+      const tW = rincian?.get(normNama(nama))?.wirid?.target ?? [];
+      const targetWirid = (j: number) => angkaTargetQuran(tW[j]) ?? 1;
+      const adaTargetW = tW.some((x) => angkaTargetQuran(x) != null);
+      const kurang = dinilai.filter((o) => (angkaAwal(o.v) ?? 0) < targetWirid(o.j)).map((o) => o.j + 1);
       const kosongP = vals.map((v, j) => (v || j >= wiridDipakai ? 0 : j + 1)).filter(Boolean);
       const catatanKosong = kosongP.length ? ` Pekan ${kosongP.join(", ")} tidak tercatat.` : "";
-      const tTeks = "≥ 1 putaran tiap pekan";
+      const tTeks = adaTargetW ? `≥ target putaran tiap pekan (${tW.map((x, j) => (angkaTargetQuran(x) != null ? `P${j + 1}: ${angkaTargetQuran(x)}` : "")).filter(Boolean).join(", ")}; lainnya ≥ 1)` : "≥ 1 putaran tiap pekan";
       if (n === 0) items.push({ nama, kategori: "wirid", label: "Wirid", target: tTeks, capaian: "-", simbol: "kosong", ket: "Belum ada pekan yang selesai bulan ini." });
       else if (!vals.some(Boolean)) items.push({ nama, kategori: "wirid", label: "Wirid", target: tTeks, capaian, simbol: "kosong", ket: "Belum ada catatan bulan ini." });
       else if (!dinilai.length) items.push({ nama, kategori: "wirid", label: "Wirid", target: tTeks, capaian, simbol: "tanpa", ket: `Pekan yang tercatat berisi PT/TS (tasmi'), tidak dinilai.${catatanKosong}` });
@@ -266,19 +271,24 @@ async function laporanDenganSimpanan(bulan: string, onProgress?: (p: Progress) =
 }
 
 export async function muatNilaiBulan(bulan: string, onProgress?: (p: Progress) => void): Promise<NilaiBulan> {
-  const [lap, tanda, surat] = await Promise.all([laporanDenganSimpanan(bulan, onProgress), bacaTandaTargetBulan(bulan), bacaSuratSemua(bulan)]);
-  return rakit(bulan, lap, tanda, surat);
+  const [lap, tanda, surat, rincian] = await Promise.all([
+    laporanDenganSimpanan(bulan, onProgress),
+    bacaTandaTargetBulan(bulan),
+    bacaSuratSemua(bulan),
+    bacaRincianBulan(bulan).catch(() => new Map<string, Map<string, RincianSantri>>()),
+  ]);
+  return rakit(bulan, lap, tanda, surat, rincian);
 }
 
 /** Susun ulang nilai setelah tanda target berubah: hanya membaca tanda dari database, TIDAK membaca ulang Google Sheet. */
 export async function perbaruiIlmu(n: NilaiBulan): Promise<NilaiBulan> {
-  return rakit(n.bulan, n.lap, await bacaTandaTargetBulan(n.bulan), n.surat);
+  return rakit(n.bulan, n.lap, await bacaTandaTargetBulan(n.bulan), n.surat, await bacaRincianBulan(n.bulan).catch(() => new Map<string, Map<string, RincianSantri>>()));
 }
 
-function rakit(bulan: string, lap: Laporan, tanda: Map<string, Map<string, TandaTersimpan>>, surat: Map<string, Map<string, string[]>>): NilaiBulan {
+function rakit(bulan: string, lap: Laporan, tanda: Map<string, Map<string, TandaTersimpan>>, surat: Map<string, Map<string, string[]>>, rincian: Map<string, Map<string, RincianSantri>>): NilaiBulan {
   const berjalan = bulanBerjalan(bulan);
   const ilmu = lap.kelas.map((kl) => nilaiIlmu(kl, tanda.get(kl.kelas)));
-  const quran = lap.kelas.map((kl) => nilaiQuran(kl, bulan, berjalan, surat.get(kl.kelas)));
+  const quran = lap.kelas.map((kl) => nilaiQuran(kl, bulan, berjalan, surat.get(kl.kelas), rincian.get(kl.kelas)));
   const grafik = lap.kelas.map((kl, i) => grafikKelas(kl, bulan, quran[i].labelZ)).filter((g): g is GrafikKelas => !!g);
 
   const semuaIlmu = ilmu.flatMap((k) => k.items);

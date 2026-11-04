@@ -1,6 +1,8 @@
 import { lembut } from "../lib/warna";
 import { useEffect, useState } from "react";
 import { bacaNamaGuruKelas } from "../lib/namaGuru";
+import { bacaRincianKelas, gabungRincian } from "../lib/rpbQuranPekan";
+import { targetPekanAktif } from "../lib/rpbSheet";
 import { Link } from "react-router-dom";
 import {
   C,
@@ -355,7 +357,19 @@ export function RpbRekap({ data, kelas, namaGuru }: { data: RpbTabData; kelas: s
   const orphanBidang = isQonuni ? findOrphanBidangC(data.tableC, qonuniGroups.map((g) => g.bidang)) : [];
   // Bidang tetap Al-Qur'an: rencana per santri (bagian D sheet RPB).
   const labelQuran = [0, 1, 2].map((j) => data.quranLabel?.[j] || (isQonuni ? LABEL_RENCANA_QURAN.qonuni : LABEL_RENCANA_QURAN.ka)[j]);
-  const quranTerisi = (data.quran ?? []).filter((q) => q.rencana.some((x) => (x ?? "").trim()) || (q.target ?? "").trim());
+  // Rincian per pekan (database) digabung ke rencana per santri, hanya untuk bulan yang memakainya (Desember dst.).
+  const [peta, setPeta] = useState<Awaited<ReturnType<typeof bacaRincianKelas>> | null>(null);
+  useEffect(() => {
+    setPeta(null);
+    if (!targetPekanAktif(data.bulan) || !kelas) return;
+    let batal = false;
+    bacaRincianKelas(kelas, data.bulan).then((p) => !batal && setPeta(p)).catch(() => undefined);
+    return () => {
+      batal = true;
+    };
+  }, [kelas, data.bulan]);
+  const quranSemua = peta ? gabungRincian(data.quran ?? [], peta) : data.quran ?? [];
+  const quranTerisi = quranSemua.filter((q) => q.rencana.some((x) => (x ?? "").trim()) || (q.target ?? "").trim() || (q.targetPekan ?? []).some((x) => (x ?? "").trim()) || Object.values(q.rincian ?? {}).some((r) => r.isi.some((x) => x.trim()) || r.target.some((x) => x.trim())));
 
   return (
     <div className="space-y-6">
@@ -446,6 +460,18 @@ export function RpbRekap({ data, kelas, namaGuru }: { data: RpbTabData; kelas: s
                   <ReadField key={j} label={l} value={q.rencana[j] ?? ""} />
                 ))}
                 {(q.target ?? "").trim() && <ReadField label={`Target ${isQonuni ? "ziyadah" : "talaqqi"} (baris/pertemuan)`} value={q.target ?? ""} />}
+                {Object.entries(q.rincian ?? {}).map(([kat, rp], j) => {
+                  const ada = rp.isi.some((x) => x.trim()) || rp.target.some((x) => x.trim());
+                  if (!ada) return null;
+                  const nama = kat === "ziyadah" ? labelQuran[0] : kat === "murojaah" ? labelQuran[1] : labelQuran[2];
+                  return (
+                    <ReadField
+                      key={kat + j}
+                      label={`${nama} per pekan`}
+                      value={rp.isi.map((x, p) => (x.trim() || rp.target[p]?.trim() ? `P${p + 1}: ${x.trim() || "-"}${rp.target[p]?.trim() ? ` (${rp.target[p].trim()} putaran)` : ""}` : "")).filter(Boolean).join("\n")}
+                    />
+                  );
+                })}
                 {(q.targetPekan ?? []).some((x) => (x ?? "").trim()) && (
                   <ReadField label="Target per pekan (baris)" value={(q.targetPekan ?? []).map((x, p) => `P${p + 1}: ${(x ?? "").trim() || "-"}`).join("   ")} />
                 )}

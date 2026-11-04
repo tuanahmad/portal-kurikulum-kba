@@ -19,7 +19,14 @@ export type RpbTabData = {
 };
 
 /** target = angka target ziyadah/talaqqi per pertemuan (baris), teks apa adanya dari sheet. */
-export type RpbQuranRow = { nama: string; rencana: string[]; target?: string; targetPekan?: string[] };
+export type RpbQuranRow = {
+  nama: string;
+  rencana: string[];
+  target?: string;
+  targetPekan?: string[];
+  /** Rincian rencana per pekan (teks + target wirid) dari database aplikasi, mulai Desember -- bukan dari sheet. */
+  rincian?: Record<string, { isi: string[]; target: string[] }>;
+};
 
 /** Target ziyadah/talaqqi per PEKAN (baris) diisi opsional mulai Desember; bulan sebelumnya hanya angka target per pertemuan. */
 export const BULAN_TARGET_PEKAN = ["Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
