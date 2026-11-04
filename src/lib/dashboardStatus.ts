@@ -6,6 +6,8 @@ import { readRpbTab, susunRencanaQuran, angkaTargetQuran, type RpbTabData } from
 import { readReflectionTab, type ReflectionData } from "./refleksiSheet";
 import { readCapaianQuran } from "./capaianQuranSheet";
 import { readAbsenSantriDay } from "./absenSantri";
+import { readAbsenOlahragaRange, isAbsenOlahragaFilled, readOlahragaBulan, isRencanaFilled, readEvaluasiAnak, isEvalAnakFilled, TINGKAT_LIST, type OlahragaKelompok } from "./olahraga";
+import { olahragaRoster } from "../data";
 
 export type TodayStatus = {
   totalKelas: number;
@@ -129,6 +131,44 @@ export async function readStatusGuru(userId: string, kelas: string): Promise<Sta
             const baris = susunRencanaQuran(capaianRoster(kelas), rp.value.quran ?? []);
             return baris.length ? { terisi: baris.filter((q) => angkaTargetQuran(q.target) != null).length, total: baris.length, bulan: bulanNama } : null;
           })()
+        : null,
+  };
+}
+
+/** Status guru OLAHRAGA: jurnal & absen hari ini (Senin-Rabu), rencana & evaluasi bulan ini (per tingkat KA 1-3). null = gagal dibaca. */
+export type StatusOlahraga = {
+  jurnal: boolean | null;
+  absen: boolean | null;
+  rencana: { terisi: number; total: number } | null;
+  evaluasi: { terisi: number; total: number } | null;
+  bulan: string;
+};
+
+export async function readStatusOlahraga(userId: string, kelompok: OlahragaKelompok): Promise<StatusOlahraga> {
+  const now = new Date();
+  const today = ymd(now);
+  const bulan = MONTH_NAMES[now.getMonth()];
+  const [j, a, r, e] = await Promise.allSettled([
+    readJurnalRange(today, today, { userId }),
+    readAbsenOlahragaRange(today, today, { userId }),
+    readOlahragaBulan(bulan, { userId }),
+    Promise.all(TINGKAT_LIST.map((t) => readEvaluasiAnak(t, bulan, { userId }))),
+  ]);
+  return {
+    bulan,
+    jurnal: j.status === "fulfilled" ? isEntryFilled(j.value[today]) : null,
+    absen: a.status === "fulfilled" ? isAbsenOlahragaFilled(a.value[today]) : null,
+    rencana: r.status === "fulfilled" ? { terisi: TINGKAT_LIST.filter((t) => isRencanaFilled(r.value[t])).length, total: TINGKAT_LIST.length } : null,
+    evaluasi:
+      e.status === "fulfilled"
+        ? {
+            // tingkat dianggap terisi kalau SEMUA santri di rosternya sudah dievaluasi
+            terisi: TINGKAT_LIST.filter((t, i) => {
+              const roster = olahragaRoster(t, kelompok);
+              return roster.length > 0 && roster.every((n) => isEvalAnakFilled(e.value[i][n]));
+            }).length,
+            total: TINGKAT_LIST.length,
+          }
         : null,
   };
 }

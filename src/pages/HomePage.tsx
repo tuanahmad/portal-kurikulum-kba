@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { C, getGreeting, KELAS_LIST } from "../data";
 import { useAuth } from "../contexts/AuthContext";
-import { readTodayStatus, readStatusGuru, type TodayStatus, type StatusGuruHariIni } from "../lib/dashboardStatus";
+import { readTodayStatus, readStatusGuru, readStatusOlahraga, type TodayStatus, type StatusGuruHariIni, type StatusOlahraga } from "../lib/dashboardStatus";
 import { labelHari, labelTanggal } from "../lib/jurnal";
 import {
   NotebookIcon as NotebookIconOutline,
@@ -11,7 +11,7 @@ import {
   BookIcon as BookIconOutline,
   DocIcon as DocIconOutline,
 } from "../components/navIcons";
-import { KartuGeser, type SlideKartu } from "../components/KartuGeser";
+import { KartuGeser, type SlideKartu, type Nada } from "../components/KartuGeser";
 
 export default function HomePage() {
   const { role, kelas, fullName } = useAuth();
@@ -360,8 +360,6 @@ function abbrevKelas(name: string): string {
   return name.replace(/^Kuttab Awwal/, "KA").replace(/^Qonuni/, "KQ");
 }
 
-type StatusRowData = { key: string; label: string; sub: string; icon: React.ReactNode; iconBg: string; iconColor: string; filled: number; total: number; missing: string[] };
-
 /** Ringkasan "siapa yang belum isi" — Jurnal & Absen (hari ini) + Capaian Al-Qur'an (minggu ini)
  *  lintas 13 kelas, biar management gak perlu buka Rekap satu-satu cuma buat tau siapa yang bolong.
  *  Desain baris + progress bar (bukan 3 kotak kecil dijejer) — user bilang versi lama "kaku, kayak
@@ -369,7 +367,6 @@ type StatusRowData = { key: string; label: string; sub: string; icon: React.Reac
 function RingkasanHariIni() {
   const [status, setStatus] = useState<TodayStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -393,119 +390,35 @@ function RingkasanHariIni() {
   const quranKnown = ALL_KELAS_NAMES.filter((k) => !status.quranUnknown.includes(k));
   const quranMissing = quranKnown.filter((k) => !status.quranFilled.includes(k));
 
-  const rows: StatusRowData[] = [
-    {
-      key: "jurnal",
-      label: "Jurnal",
-      sub: "hari ini",
-      icon: <NotebookIconOutline />,
-      iconBg: C.leaf,
-      iconColor: C.green,
-      filled: status.jurnalFilled.length,
-      total: status.totalKelas,
-      missing: jurnalMissing,
-    },
-    {
-      key: "absen",
-      label: "Absen",
-      sub: "hari ini",
-      icon: <CalendarCheckIconOutline />,
-      iconBg: C.leaf,
-      iconColor: C.green,
-      filled: status.absenFilled.length,
-      total: status.totalKelas,
-      missing: absenMissing,
-    },
-    {
-      key: "quran",
-      label: "Al-Qur'an",
-      sub: "minggu ini",
-      icon: <BookIconOutline />,
-      iconBg: "#FAEEDA",
-      iconColor: "#8A6A20",
-      filled: status.quranFilled.length,
-      total: quranKnown.length,
-      missing: quranMissing,
-    },
+  // Management: tiga kartu geser (Jurnal hari ini / Absen guru hari ini / Al-Qur'an pekan ini). Nama kelas yang belum
+  // mengisi dibuka lewat tombol "Lihat yang belum" (singkatan, tanpa kalimat panjang).
+  const buat = (key: string, judul: string, sub: string, filled: number, total: number, missing: string[], to: string): SlideKartu => {
+    const nada: Nada = total > 0 && filled >= total ? "selesai" : filled > 0 ? "sebagian" : "belum";
+    return {
+      key,
+      judul,
+      sub,
+      utama: nada === "selesai" ? "Semua kelas sudah mengisi" : nada === "sebagian" ? `${missing.length} kelas belum mengisi` : "Belum ada kelas yang mengisi",
+      angka: `${filled}/${total}`,
+      nada,
+      belum: missing.map(abbrevKelas),
+      to,
+    };
+  };
+  const slides: SlideKartu[] = [
+    buat("jurnal", "Jurnal", "Hari ini", status.jurnalFilled.length, status.totalKelas, jurnalMissing, "/jurnal"),
+    buat("absen", "Absen guru", "Hari ini", status.absenFilled.length, status.totalKelas, absenMissing, "/absen"),
+    buat("quran", "Al-Qur'an", "Pekan ini", quranKnown.length - quranMissing.length, quranKnown.length, quranMissing, "/capaian"),
   ];
-  const anyMissing = rows.some((r) => r.missing.length > 0);
-
-  return (
-    <div className="mb-5 rounded-2xl p-4 sm:p-5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-      <div className="text-xs font-bold uppercase tracking-wide mb-4" style={{ color: C.green }}>
-        Status Pengisian
-      </div>
-      <div className="space-y-4">
-        {rows.map((r) => (
-          <StatusRow key={r.key} row={r} />
-        ))}
-      </div>
-      {anyMissing && (
-        <button
-          type="button"
-          onClick={() => setDetailOpen((o) => !o)}
-          className="w-full mt-4 py-2.5 rounded-xl text-xs font-semibold transition-colors"
-          style={{ background: C.leaf, color: C.green }}
-        >
-          {detailOpen ? "Sembunyikan detail" : "Lihat detail yang belum isi"}
-        </button>
-      )}
-      {detailOpen && (
-        <div className="mt-3 space-y-3">
-          {rows.filter((r) => r.missing.length > 0).map((r) => (
-            <div key={r.key}>
-              <div className="text-[11px] font-semibold mb-1.5" style={{ color: C.ink }}>
-                {r.label} — {r.missing.length} belum isi
-              </div>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                {r.missing.map((k) => (
-                  <div key={k} className="text-[11px]" style={{ color: C.muted }}>
-                    {abbrevKelas(k)}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StatusRow({ row }: { row: StatusRowData }) {
-  const { label, sub, icon, iconBg, iconColor, filled, total, missing } = row;
-  const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
-  const complete = total > 0 && filled === total;
-  const barColor = complete ? C.green : missing.length > total / 2 ? "#BA7517" : C.green;
-
-  return (
-    <div>
-      <div className="flex items-center gap-2.5 mb-1.5">
-        <span
-          className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
-          style={{ background: iconBg, color: iconColor }}
-        >
-          {icon}
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-medium leading-tight" style={{ color: C.ink }}>{label}</div>
-          <div className="text-[11px]" style={{ color: C.muted }}>{sub}</div>
-        </div>
-        <div className="text-sm font-medium shrink-0" style={{ color: C.ink }}>
-          {filled}<span style={{ color: C.muted }}>/{total}</span>
-        </div>
-      </div>
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: C.leaf }}>
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: barColor }} />
-      </div>
-    </div>
-  );
+  return <KartuGeser slides={slides} />;
 }
 
 /** Menu guru olahraga — 3 kartu terpisah (rencana, evaluasi, absen). */
 function OlahragaMenu() {
   return (
-    <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+    <main>
+    <OlahragaHariIni />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
       <HomeCard
         to="/instrumen"
         title="Panduan Olahraga"
@@ -541,8 +454,80 @@ function OlahragaMenu() {
         gradient="linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)"
         icon={<NotebookIcon />}
       />
+    </div>
     </main>
   );
+}
+
+/** Kartu geser guru OLAHRAGA: Hari ini (jurnal & absen, Senin-Rabu) + Bulan ini (rencana & evaluasi per tingkat). */
+function OlahragaHariIni() {
+  const { session, kelompok } = useAuth();
+  const uid = session?.user?.id;
+  const [s, setS] = useState<StatusOlahraga | null>(null);
+  const kel = kelompok === "ikhwan" || kelompok === "akhwat" ? kelompok : null;
+
+  useEffect(() => {
+    if (!uid || !kel) return;
+    let batal = false;
+    readStatusOlahraga(uid, kel)
+      .then((r) => !batal && setS(r))
+      .catch(() => !batal && setS({ jurnal: null, absen: null, rencana: null, evaluasi: null, bulan: "" }));
+    return () => {
+      batal = true;
+    };
+  }, [uid, kel]);
+
+  if (!s) return <div className="mb-5 rounded-2xl animate-pulse" style={{ background: "#FFF", border: `1px solid ${C.line}`, height: 176 }} />;
+
+  const now = new Date();
+  const hariAktif = [1, 2, 3].includes(now.getDay()); // Senin-Rabu
+  const nadaDari = (v: number, t: number): "selesai" | "sebagian" | "belum" => (v >= t ? "selesai" : v > 0 ? "sebagian" : "belum");
+  const slides: SlideKartu[] = [];
+
+  const sub = `${labelHari(now)}, ${labelTanggal(now)}`;
+  if (!hariAktif) {
+    slides.push({ key: "hari", judul: "Hari ini", sub, utama: "Tidak ada jadwal. Jurnal dan absen olahraga Senin–Rabu.", nada: "libur" });
+  } else {
+    const it = [
+      s.jurnal == null ? null : { label: "Jurnal", state: (s.jurnal ? "selesai" : "belum") as Nada, to: "/jurnal" },
+      s.absen == null ? null : { label: "Absen", state: (s.absen ? "selesai" : "belum") as Nada, to: "/olahraga/absen" },
+    ].filter((x): x is { label: string; state: Nada; to: string } => !!x);
+    if (it.length) {
+      const sudah = it.filter((x) => x.state === "selesai").length;
+      const nada = nadaDari(sudah, it.length);
+      slides.push({
+        key: "hari",
+        judul: "Hari ini",
+        sub,
+        utama: nada === "selesai" ? "Semua sudah terisi" : nada === "sebagian" ? "Masih ada yang belum diisi" : "Belum ada yang diisi",
+        angka: `${sudah}/${it.length}`,
+        nada,
+        items: it,
+        to: it.find((x) => x.state !== "selesai")?.to ?? it[0].to,
+      });
+    }
+  }
+
+  const bulanIt = [
+    s.rencana ? { label: `Rencana ${s.rencana.terisi}/${s.rencana.total}`, v: s.rencana.terisi, t: s.rencana.total, to: "/olahraga/rencana" } : null,
+    s.evaluasi ? { label: `Evaluasi ${s.evaluasi.terisi}/${s.evaluasi.total}`, v: s.evaluasi.terisi, t: s.evaluasi.total, to: "/olahraga/evaluasi" } : null,
+  ].filter((x): x is { label: string; v: number; t: number; to: string } => !!x);
+  if (bulanIt.length) {
+    const total = bulanIt.reduce((a, x) => a + x.t, 0);
+    const sudah = bulanIt.reduce((a, x) => a + x.v, 0);
+    const nada = nadaDari(sudah, total);
+    slides.push({
+      key: "bulan",
+      judul: "Bulan ini",
+      sub: `${s.bulan} · per tingkat KA 1–3`,
+      utama: nada === "selesai" ? "Rencana dan evaluasi lengkap" : nada === "sebagian" ? "Sebagian tingkat belum diisi" : "Belum diisi",
+      angka: `${sudah}/${total}`,
+      nada,
+      items: bulanIt.map((x) => ({ label: x.label, state: nadaDari(x.v, x.t), to: x.to })),
+      to: bulanIt.find((x) => x.v < x.t)?.to ?? bulanIt[0].to,
+    });
+  }
+  return <KartuGeser slides={slides} />;
 }
 
 function HomeCard({
