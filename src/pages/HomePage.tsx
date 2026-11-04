@@ -11,6 +11,7 @@ import {
   BookIcon as BookIconOutline,
   DocIcon as DocIconOutline,
 } from "../components/navIcons";
+import { KartuGeser, type SlideKartu } from "../components/KartuGeser";
 
 export default function HomePage() {
   const { role, kelas, fullName } = useAuth();
@@ -246,72 +247,56 @@ function GuruHariIni() {
       icon: <DocIconOutline />,
     },
   ];
-  const tampil = rows.filter((r) => r.state !== null);
-  const dihitung = tampil.filter((r) => r.state !== "libur");
-  const selesai = dihitung.filter((r) => r.state === "selesai").length;
-  const semua = dihitung.length > 0 && selesai === dihitung.length;
-  const pct = dihitung.length ? Math.round((selesai / dihitung.length) * 100) : 100;
+  // Satu kartu per kelompok: Hari ini / Al-Qur'an (pekan ini) / Bulan ini (RPB & Refleksi, hanya tanggal 1-5).
+  const kelompok = (keys: string[]) => rows.filter((r) => keys.includes(r.key) && r.state !== null);
+  const nadaDari = (it: { state: HariIniState | null }[]): "selesai" | "sebagian" | "belum" => {
+    const dihitung = it.filter((x) => x.state && x.state !== "libur");
+    const selesai = dihitung.filter((x) => x.state === "selesai").length;
+    return selesai === dihitung.length ? "selesai" : selesai > 0 || dihitung.some((x) => x.state === "sebagian") ? "sebagian" : "belum";
+  };
+  const buatSlide = (key: string, judul: string, sub: string | undefined, keys: string[], teks: { selesai: string; sebagian: string; belum: string }): SlideKartu | null => {
+    const it = kelompok(keys);
+    if (it.length === 0) return null;
+    const dihitung = it.filter((x) => x.state !== "libur");
+    const selesai = dihitung.filter((x) => x.state === "selesai").length;
+    const nada = nadaDari(it);
+    const belumPertama = it.find((x) => x.state !== "selesai" && x.state !== "libur");
+    return {
+      key,
+      judul,
+      sub,
+      utama: teks[nada],
+      angka: `${selesai}/${dihitung.length}`,
+      nada,
+      items: it.map((x) => ({ label: x.label, state: x.state as HariIniState, to: x.to })),
+      to: belumPertama?.to ?? it[0].to,
+    };
+  };
+  const slides: SlideKartu[] = [];
+  if (libur) {
+    slides.push({ key: "hari", judul: "Hari ini", sub: `${labelHari(now)}, ${labelTanggal(now)}`, utama: "Libur. Jurnal dan absen tidak perlu diisi.", nada: "libur" });
+  } else {
+    const h = buatSlide("hari", "Hari ini", `${labelHari(now)}, ${labelTanggal(now)}`, ["jurnal", "absen", "absenSantri"], {
+      selesai: "Semua sudah terisi",
+      sebagian: "Masih ada yang belum diisi",
+      belum: "Belum ada yang diisi",
+    });
+    if (h) slides.push(h);
+  }
+  const q = buatSlide("quran", "Al-Qur'an", "Pekan ini", ["quran", "targetQuran"], {
+    selesai: "Capaian dan target sudah lengkap",
+    sebagian: "Sebagian belum lengkap",
+    belum: "Belum diisi",
+  });
+  if (q) slides.push(q);
+  const b2 = buatSlide("bulan", "Bulan ini", "Rencana & Refleksi", ["rencana"], {
+    selesai: "RPB dan Refleksi sudah diisi",
+    sebagian: "Salah satunya belum diisi",
+    belum: "RPB dan Refleksi belum diisi",
+  });
+  if (b2) slides.push(b2);
 
-  return (
-    <section className="kartu-muncul mb-5 rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-      <div className="px-4 sm:px-5 pt-4 pb-3 flex items-end justify-between gap-3">
-        <div>
-          <div className="text-xs font-bold uppercase tracking-[0.16em]" style={{ color: C.green }}>Hari ini</div>
-          <div className="text-sm mt-1" style={{ color: C.muted }}>
-            {labelHari(now)}, {labelTanggal(now)}
-          </div>
-        </div>
-        {dihitung.length > 0 && (
-          <div className="text-right shrink-0">
-            <span className="text-2xl font-semibold" style={{ color: semua ? C.green : C.ink, fontFamily: "Georgia, 'Times New Roman', serif", fontVariantNumeric: "lining-nums" }}>{selesai}</span>
-            <span className="text-sm" style={{ color: C.muted }}> dari {dihitung.length} selesai</span>
-          </div>
-        )}
-      </div>
-      <div className="h-1" style={{ background: C.leaf }}>
-        <div className="h-full transition-all duration-500" style={{ width: `${pct}%`, background: semua ? C.green : C.gold }} />
-      </div>
-      <div>
-        {tampil.map((r, i) => {
-          const chip = CHIP[r.state as HariIniState];
-          return (
-            <Link
-              key={r.key}
-              to={r.to}
-              className="flex items-center gap-3 px-4 sm:px-5 py-3 transition-colors hover:bg-black/[0.02]"
-              style={{ borderTop: i === 0 ? "none" : `1px solid ${C.line}` }}
-            >
-              <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: C.leaf, color: C.green }}>
-                {r.icon}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium leading-tight" style={{ color: C.ink }}>{r.label}</span>
-                <span className="block text-xs mt-0.5" style={{ color: C.muted }}>{r.sub}</span>
-              </span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0" style={{ background: chip.bg, color: chip.fg }}>
-                {r.state === "selesai" && (
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-                {chip.teks}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-      {semua && !libur && (
-        <div className="px-4 sm:px-5 py-3 text-xs text-center" style={{ background: C.leaf, color: C.green }}>
-          Alhamdulillah, semuanya sudah terisi hari ini.
-        </div>
-      )}
-      {libur && (
-        <div className="px-4 sm:px-5 py-3 text-xs text-center" style={{ background: C.leaf, color: C.green }}>
-          Hari ini libur. Jurnal, absen guru, dan absen santri tidak perlu diisi.
-        </div>
-      )}
-    </section>
-  );
+  return <KartuGeser slides={slides} />;
 }
 
 /** Menu management — gambaran umum, belum spesifik ke satu kelas. */
