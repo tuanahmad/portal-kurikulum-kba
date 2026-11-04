@@ -164,6 +164,10 @@ function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, surat: M
   const labelZ = secZ ? (/talaqqi/i.test(secZ.name) ? "Talaqqi" : "Ziyadah") : jenjangOf(kl.kelas) === "Qonuni" ? "Ziyadah" : "Talaqqi";
   const pertemuan = pertemuanBulan(bulan, kl.rpb?.jumlahPertemuan);
   const target = new Map((kl.rpb?.quran ?? []).map((r) => [normNama(r.nama), angkaTargetQuran(r.target)]));
+  // Target per pekan (opsional, mulai Desember): kalau diisi, total target ziyadah = jumlah target pekan yang terisi.
+  const targetPekan = new Map(
+    (kl.rpb?.quran ?? []).map((r) => [normNama(r.nama), (r.targetPekan ?? []).map((x) => angkaTargetQuran(x))] as const)
+  );
   const items: ItemQuran[] = [];
   const nPekan = pekanSelesai(bulan, berjalan);
   // Pekan terakhir yang dipakai kelas ini di tabel wirid: pekan sesudahnya yang kosong untuk SEMUA santri (mis. pekan ke-5
@@ -176,14 +180,18 @@ function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, surat: M
     const cari = (sec: QuranSection | null) => sec?.santri.find((s) => normNama(s.nama) === normNama(nama)) ?? null;
     const z = cariSec(q, /ziyadah|talaqqi/i) ? cari(secZ) : null;
     if (secZ) {
+      const tPekan = targetPekan.get(normNama(nama)) ?? [];
+      const adaPekan = tPekan.some((x) => x != null);
       const tgt = target.get(normNama(nama)) ?? null;
       const sur = daftarSurat(secZ, nama);
       const capaian = !z || z.terisi === 0 ? "Tidak tercatat" : `${fmt(z.total)} baris${sur.length ? ` · ${sur.join(", ")}` : ""}${kode(z.pt, z.ts) ? ` · ${kode(z.pt, z.ts)}` : ""}`;
-      if (tgt == null) {
+      if (tgt == null && !adaPekan) {
         items.push({ nama, kategori: "ziyadah", label: labelZ, target: "—", capaian, simbol: "tanpa", ket: "Target angka belum diisi di RPB; capaian hanya dicatat." });
       } else {
-        const butuh = Math.round(tgt * pertemuan * 10) / 10;
-        const tTeks = `${fmt(tgt)} baris × ${pertemuan} pertemuan = ${fmt(butuh)} baris`;
+        const butuh = adaPekan ? Math.round(tPekan.reduce<number>((a, x) => a + (x ?? 0), 0) * 10) / 10 : Math.round((tgt as number) * pertemuan * 10) / 10;
+        const tTeks = adaPekan
+          ? `${tPekan.map((x, p) => (x != null ? `P${p + 1}: ${fmt(x)}` : "")).filter(Boolean).join(" + ")} = ${fmt(butuh)} baris`
+          : `${fmt(tgt as number)} baris × ${pertemuan} pertemuan = ${fmt(butuh)} baris`;
         if (!z || z.terisi === 0) items.push({ nama, kategori: "ziyadah", label: labelZ, target: tTeks, capaian, simbol: "kosong", ket: "Belum ada catatan bulan ini." });
         else if (z.total >= butuh) items.push({ nama, kategori: "ziyadah", label: labelZ, target: tTeks, capaian, simbol: "ok", ket: z.total > butuh ? "Melewati target." : "Tercapai." });
         else items.push({ nama, kategori: "ziyadah", label: labelZ, target: tTeks, capaian, simbol: "belum", ket: `Kurang ${fmt(butuh - z.total)} baris dari target.` });

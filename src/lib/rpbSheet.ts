@@ -19,7 +19,12 @@ export type RpbTabData = {
 };
 
 /** target = angka target ziyadah/talaqqi per pertemuan (baris), teks apa adanya dari sheet. */
-export type RpbQuranRow = { nama: string; rencana: string[]; target?: string };
+export type RpbQuranRow = { nama: string; rencana: string[]; target?: string; targetPekan?: string[] };
+
+/** Target ziyadah/talaqqi per PEKAN (baris) diisi opsional mulai Desember; bulan sebelumnya hanya angka target per pertemuan. */
+export const BULAN_TARGET_PEKAN = ["Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
+export const PEKAN_TARGET_QURAN = 5;
+export const targetPekanAktif = (bulan: string | undefined) => !!bulan && BULAN_TARGET_PEKAN.includes(bulan);
 
 /** Angka target per pertemuan ("1,5" / "2 baris" -> 1.5 / 2); null kalau kosong / bukan angka. */
 export function angkaTargetQuran(t: string | undefined): number | null {
@@ -42,11 +47,11 @@ export function susunRencanaQuran(roster: string[], dariSheet: RpbQuranRow[]): R
   const peta = new Map(dariSheet.map((q) => [normNamaSantri(q.nama), q]));
   const out: RpbQuranRow[] = roster.map((nama) => {
     const q = peta.get(normNamaSantri(nama));
-    return { nama, rencana: [0, 1, 2].map((j) => q?.rencana?.[j] ?? ""), target: q?.target ?? "" };
+    return { nama, rencana: [0, 1, 2].map((j) => q?.rencana?.[j] ?? ""), target: q?.target ?? "", targetPekan: Array.from({ length: PEKAN_TARGET_QURAN }, (_, p) => q?.targetPekan?.[p] ?? "") };
   });
   const diRoster = new Set(roster.map(normNamaSantri));
   for (const q of dariSheet) {
-    if (!diRoster.has(normNamaSantri(q.nama))) out.push({ nama: q.nama, rencana: [0, 1, 2].map((j) => q.rencana?.[j] ?? ""), target: q.target ?? "" });
+    if (!diRoster.has(normNamaSantri(q.nama))) out.push({ nama: q.nama, rencana: [0, 1, 2].map((j) => q.rencana?.[j] ?? ""), target: q.target ?? "", targetPekan: Array.from({ length: PEKAN_TARGET_QURAN }, (_, p) => q.targetPekan?.[p] ?? "") });
   }
   return out;
 }

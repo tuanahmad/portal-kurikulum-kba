@@ -15,6 +15,8 @@ import {
   lookupPekanEntry,
   buildTableCPekanMajor,
   susunRencanaQuran,
+  targetPekanAktif,
+  PEKAN_TARGET_QURAN,
   LABEL_RENCANA_QURAN,
   type RpbTabData,
   type RpbQuranRow,
@@ -206,7 +208,8 @@ export default function RpbFormPage() {
       jumlahPertemuan,
       tableB,
       tableC: tableCForSave,
-      quran,
+      // Target per pekan hanya dikirim (dan ditulis ke sheet) mulai Desember; bulan lain kolom itu tidak disentuh.
+      quran: targetPekanAktif(bulan) ? quran : quran.map((q) => ({ ...q, targetPekan: undefined })),
       quranLabel: labelQuran,
     };
     try {
@@ -235,6 +238,14 @@ export default function RpbFormPage() {
 
   function setQuranTarget(i: number, val: string) {
     setQuran((prev) => prev.map((q, qi) => (qi === i ? { ...q, target: val } : q)));
+  }
+
+  function setQuranPekan(i: number, p: number, val: string) {
+    setQuran((prev) =>
+      prev.map((q, qi) =>
+        qi === i ? { ...q, targetPekan: Array.from({ length: PEKAN_TARGET_QURAN }, (_, x) => (x === p ? val : q.targetPekan?.[x] ?? "")) } : q
+      )
+    );
   }
 
   function setQuranIsi(i: number, j: number, val: string) {
@@ -469,7 +480,7 @@ export default function RpbFormPage() {
                   subtitle={`Al-Qur'an + ${bidangCount} bidang ilmu lain yang ditargetkan bulan ini`}
                 />
                 <div className="space-y-3">
-                  <RencanaQuranCard label={labelQuran} labelTarget={isQonuni ? "Ziyadah" : "Talaqqi"} quran={quran} onChange={setQuranIsi} onTarget={setQuranTarget} />
+                  <RencanaQuranCard label={labelQuran} labelTarget={isQonuni ? "Ziyadah" : "Talaqqi"} quran={quran} onChange={setQuranIsi} onTarget={setQuranTarget} onPekan={targetPekanAktif(bulan) ? setQuranPekan : undefined} />
                   {tableB.slice(0, bidangCount).map((row, i) => (
                     <EntryCard
                       key={i}
@@ -560,12 +571,14 @@ function RencanaQuranCard({
   quran,
   onChange,
   onTarget,
+  onPekan,
 }: {
   label: string[];
   labelTarget: string;
   quran: RpbQuranRow[];
   onChange: (i: number, j: number, val: string) => void;
   onTarget: (i: number, val: string) => void;
+  onPekan?: (i: number, p: number, val: string) => void;
 }) {
   const terisi = quran.filter((q) => q.rencana.some((x) => x.trim())).length;
   return (
@@ -601,6 +614,29 @@ function RencanaQuranCard({
                   baris/pertemuan
                 </label>
               </div>
+              {onPekan && (
+                <div className="mb-2">
+                  <span className="block text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: C.muted }}>
+                    Target {labelTarget.toLowerCase()} per pekan (baris) · boleh dikosongkan
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Array.from({ length: PEKAN_TARGET_QURAN }, (_, p) => (
+                      <label key={p} className="flex items-center gap-1 text-[11px]" style={{ color: C.muted }}>
+                        P{p + 1}
+                        <input
+                          value={q.targetPekan?.[p] ?? ""}
+                          onChange={(e) => onPekan(i, p, e.target.value.replace(/[^0-9.,]/g, ""))}
+                          inputMode="decimal"
+                          placeholder="0"
+                          aria-label={`Target pekan ${p + 1} ${q.nama} (baris)`}
+                          className="w-12 text-xs text-center outline-none px-1.5 py-1 rounded-md"
+                          style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {label.map((l, j) => (
                   <label key={l} className="block">

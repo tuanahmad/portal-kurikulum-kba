@@ -446,6 +446,9 @@ export function RpbRekap({ data, kelas, namaGuru }: { data: RpbTabData; kelas: s
                   <ReadField key={j} label={l} value={q.rencana[j] ?? ""} />
                 ))}
                 {(q.target ?? "").trim() && <ReadField label={`Target ${isQonuni ? "ziyadah" : "talaqqi"} (baris/pertemuan)`} value={q.target ?? ""} />}
+                {(q.targetPekan ?? []).some((x) => (x ?? "").trim()) && (
+                  <ReadField label="Target per pekan (baris)" value={(q.targetPekan ?? []).map((x, p) => `P${p + 1}: ${(x ?? "").trim() || "-"}`).join("   ")} />
+                )}
               </RekapAccordion>
             ))}
           </div>

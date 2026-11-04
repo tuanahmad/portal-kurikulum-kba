@@ -60,7 +60,7 @@ const HEADER_RANGE = "C3:C7"; // Nama Guru, Kelas, Level, Bulan, Jumlah Pertemua
 const TABLE_B_RANGE = "C11:E15"; // Bidang Ilmu 1-5 (buat TULIS — Kuttab Awwal aja)
 const TABLE_B_EXTRA_RANGE = "C60:E62"; // Bidang Ilmu 6-8 (buat TULIS — Kuttab Awwal aja)
 const TABLE_C_RANGE = "B19:E58"; // 8 Bidang Ilmu x 5 Pekan (buat TULIS — Kuttab Awwal aja)
-const FULL_SCAN_RANGE = "A1:J200"; // buat BACA — cukup lebar/panjang buat nangkep sheet manapun
+const FULL_SCAN_RANGE = "A1:L200"; // buat BACA — cukup lebar/panjang buat nangkep sheet manapun
 // Bagian D: bidang tetap Al-Qur'an, rencana PER SANTRI (3 isian: KA Talaqqi/Murojaah Jama'i/Baghdadiyah, Qonuni
 // Ziyadah/Murojaah/Wirid) + kolom G = angka target ziyadah/talaqqi (baris per pertemuan, dipakai Sajian Data untuk menilai
 // ketercapaian). Letaknya di bawah semua bagian lain (bawaan baris 65, kolom B=No, C=Nama, D..F=rencana, G=target),
@@ -69,7 +69,9 @@ const QURAN_MARKER = "D. Rencana Al-Qur'an per Santri";
 const QURAN_MARKER_CARI = "d. rencana al-qur";
 const QURAN_DEFAULT_ROW0 = 64; // 0-based = baris 65
 const QURAN_MAX_SANTRI = 40;
-type QuranRow = { nama: string; rencana: string[]; target?: string };
+// targetPekan = target ziyadah/talaqqi (baris) per pekan 1-5, kolom H..L (opsional, mulai Desember 2026).
+type QuranRow = { nama: string; rencana: string[]; target?: string; targetPekan?: string[] };
+const QURAN_PEKAN = 5;
 const QURAN_LABEL_TARGET = "Target baris/pertemuan";
 
 function json(body: unknown, status = 200) {
@@ -150,7 +152,14 @@ function bacaQuran(rows: string[][], dMarker: number): { label: string[]; santri
   const santri: QuranRow[] = [];
   for (let r = dMarker + 2; r < Math.min(rows.length, dMarker + 2 + QURAN_MAX_SANTRI); r++) {
     const nama = cellAt(rows, r, 2).trim();
-    if (nama) santri.push({ nama, rencana: [3, 4, 5].map((c) => cellAt(rows, r, c)), target: cellAt(rows, r, 6) });
+    if (nama) {
+      santri.push({
+        nama,
+        rencana: [3, 4, 5].map((c) => cellAt(rows, r, c)),
+        target: cellAt(rows, r, 6),
+        targetPekan: Array.from({ length: QURAN_PEKAN }, (_, p) => cellAt(rows, r, 7 + p)),
+      });
+    }
   }
   return { label, santri };
 }
@@ -307,19 +316,27 @@ async function dataRencanaQuran(fileId: string, sheetName: string, token: string
   const lama = diSheet.filter((s) => !kunci.has(normNama(s.nama)));
   // Aplikasi versi lama tidak mengirim target -> pakai angka target yang sudah ada di sheet (jangan terhapus).
   const targetLama = new Map(diSheet.map((s) => [normNama(s.nama), s.target ?? ""]));
+  const pekanLama = new Map(diSheet.map((s) => [normNama(s.nama), s.targetPekan ?? []]));
+  // Kolom target per pekan (H..L) hanya ditulis kalau form mengirimkannya (Desember dst.); bulan lain tidak disentuh.
+  const denganPekan = dikirim.some((q) => Array.isArray(q.targetPekan));
   const semua = [...dikirim, ...lama];
   if (semua.length > QURAN_MAX_SANTRI) throw new Error(`Rencana Al-Qur'an maksimal ${QURAN_MAX_SANTRI} santri.`);
   const isi = Array.from({ length: QURAN_MAX_SANTRI }, (_, i) => {
     const s = semua[i];
-    return s
+    const dasar = s
       ? [String(i + 1), s.nama.trim(), ...[0, 1, 2].map((j) => String(s.rencana?.[j] ?? "")), String(s.target ?? targetLama.get(normNama(s.nama)) ?? "")]
       : ["", "", "", "", "", ""];
+    if (!denganPekan) return dasar;
+    const pekan = s ? Array.from({ length: QURAN_PEKAN }, (_, p) => String((s.targetPekan ?? pekanLama.get(normNama(s.nama)) ?? [])[p] ?? "")) : Array(QURAN_PEKAN).fill("");
+    return [...dasar, ...pekan];
   });
   const lbl = [0, 1, 2].map((j) => (label[j] ?? "").trim() || cellAt(rows, d + 1, 3 + j).trim());
+  const kolomAkhir = denganPekan ? "L" : "G";
+  const kepalaPekan = denganPekan ? Array.from({ length: QURAN_PEKAN }, (_, p) => `Target Pekan ${p + 1}`) : [];
   return [
     { range: `${sheetName}!B${d + 1}`, values: [[QURAN_MARKER]] },
-    { range: `${sheetName}!B${d + 2}:G${d + 2}`, values: [["No", "Nama Santri", ...lbl, QURAN_LABEL_TARGET]] },
-    { range: `${sheetName}!B${d + 3}:G${d + 2 + QURAN_MAX_SANTRI}`, values: isi },
+    { range: `${sheetName}!B${d + 2}:${kolomAkhir}${d + 2}`, values: [["No", "Nama Santri", ...lbl, QURAN_LABEL_TARGET, ...kepalaPekan]] },
+    { range: `${sheetName}!B${d + 3}:${kolomAkhir}${d + 2 + QURAN_MAX_SANTRI}`, values: isi },
   ];
 }
 
