@@ -80,10 +80,14 @@ export function KartuGeser({ slides }: { slides: SlideKartu[] }) {
 
   useEffect(() => {
     if (!lingkar || jeda || terbuka) return;
-    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    // Pengaturan "kurangi animasi" (sering menyala di HP Android) tetap berganti otomatis, hanya tanpa efek meluncur.
+    const kurangiGerak = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const t = setInterval(() => {
       const el = gulir.current;
-      ke((el ? Math.round(el.scrollLeft / (el.clientWidth || 1)) : pos) + 1);
+      if (!el) return;
+      const p = Math.round(el.scrollLeft / (el.clientWidth || 1)) + 1;
+      if (kurangiGerak) el.scrollTo({ left: p * el.clientWidth, behavior: "instant" as ScrollBehavior });
+      else ke(p);
     }, JEDA_MS);
     return () => clearInterval(t);
   }, [lingkar, jeda, terbuka, pos, ke]);
@@ -100,12 +104,15 @@ export function KartuGeser({ slides }: { slides: SlideKartu[] }) {
     <section
       className="kartu-muncul mb-5 group relative"
       aria-roledescription="carousel"
-      onMouseEnter={() => setJeda(true)}
-      onMouseLeave={() => setJeda(false)}
-      onFocus={() => setJeda(true)}
+      // Jeda hanya untuk kursor mouse sungguhan dan fokus keyboard. Di layar sentuh, "hover" tertinggal setelah ketukan terakhir,
+      // jadi sentuhan hanya menjeda sebentar (6 detik setelah jari diangkat).
+      onPointerEnter={(e) => e.pointerType === "mouse" && setJeda(true)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && setJeda(false)}
+      onFocus={(e) => e.target.matches?.(":focus-visible") && setJeda(true)}
       onBlur={() => setJeda(false)}
       onTouchStart={() => setJeda(true)}
       onTouchEnd={() => setTimeout(() => setJeda(false), 6000)}
+      onTouchCancel={() => setTimeout(() => setJeda(false), 6000)}
     >
       <div ref={gulir} onScroll={saatGulir} className="flex overflow-x-auto snap-x snap-mandatory rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {daftar.map((s, idx) => {
