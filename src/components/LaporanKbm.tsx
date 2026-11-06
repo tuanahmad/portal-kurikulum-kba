@@ -28,8 +28,8 @@ const teksRasio = (r: Rasio | null | undefined, satuan = "") => (!r || r.p == nu
 const warnaSimbol: Record<Simbol, string> = { ok: W.ok, belum: W.bad, kosong: C.muted, tanpa: C.muted };
 
 export const ATURAN = [
-  ["Sumber data", "Target diambil dari RPB bulanan. Capaian ilmu dari Refleksi bulanan guru (bagian A, Capaian Target) dan tanda per target dari tim kurikulum; capaian Al-Qur'an dari Capaian Al-Qur'an (angka baris per pertemuan dan surat); refleksi dari Laporan Refleksi Bulanan Guru."],
-  ["Target ilmu", "Setiap target ilmu di RPB mendapat satu tanda. Bila tim kurikulum menandai per target: ✓ Sudah tercapai atau ✗ Belum tercapai (dengan keterangan). Bila tidak, nilai kelas dari Refleksi guru dipakai untuk semua target kelas itu: Ya = ✓, Sebagian atau Belum = ✗ (target kelas dianggap tercapai hanya bila seluruhnya tercapai). ○ bila Refleksi belum diisi dan belum ditandai. Target Al-Qur'an tidak dinilai di bagian ilmu; Baghdadiyah tetap dinilai di bagian ilmu."],
+  ["Sumber data", "Target diambil dari RPB bulanan. Ketercapaian target ilmu dari Capaian Ilmu bulanan (dan tanda per target dari tim kurikulum); Refleksi bulanan guru hanya untuk menilai kinerja guru, bukan ketercapaian; capaian Al-Qur'an dari Capaian Al-Qur'an (angka baris per pertemuan dan surat); refleksi dari Laporan Refleksi Bulanan Guru."],
+  ["Target ilmu", "Setiap target ilmu di RPB mendapat satu tanda. Bila tim kurikulum menandai per target: ✓ Sudah tercapai atau ✗ Belum tercapai (dengan keterangan). Bila tidak, dinilai dari Capaian Ilmu bidang itu: ✓ bila catatan sudah terisi untuk semua santri, ✗ bila baru terisi sebagian, ○ bila belum diisi dan belum ditandai. Target Al-Qur'an tidak dinilai di bagian ilmu; Baghdadiyah tetap dinilai di bagian ilmu."],
   ["Persentase ilmu", "Jumlah target ✓ dibagi seluruh target ilmu di RPB, termasuk yang bertanda ○."],
   ["Ziyadah dan talaqqi", "Target per santri = angka target baris per pertemuan di RPB × jumlah pertemuan bulan itu (dari isian Jumlah Pertemuan RPB, atau jumlah hari sekolah). ✓ bila total baris sebulan sama atau melewati target. Santri tanpa angka target diberi – (capaian hanya dicatat)."],
   ["Muroja'ah", "✓ bila jumlah baris muroja'ah bulan itu lebih dari nol dan minimal sama dengan jumlah baris ziyadah bulan yang sama. ○ bila tidak ada catatan."],
@@ -213,7 +213,7 @@ function LampiranBulan({ d, romawi, onTandaBerubah }: { d: NilaiBulan; romawi: s
       </div>
       <Akordeon judul={`${romawi}.A Checklist RPB dan Capaian Ilmu`} sub={teksRasio(d.ringkas.ilmu, " target")}>
         <p className="text-[11px] mb-1" style={{ color: C.muted }}>
-          Nilai kelas dari Refleksi guru. Ketuk "Tandai per target" untuk memperinci per target (menimpa nilai Refleksi).
+          Nilai dari Capaian Ilmu tiap bidang. Ketuk "Tandai per target" untuk menilai per target (menimpa nilai otomatis).
         </p>
         {d.ilmu.map((k) => (
           <BlokIlmuKelas key={k.kelas} k={k} bulan={d.bulan} onTandaBerubah={onTandaBerubah} />

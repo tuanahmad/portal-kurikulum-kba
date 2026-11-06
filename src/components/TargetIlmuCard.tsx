@@ -7,7 +7,7 @@ import { toast } from "./Toast";
 import { GagalMuat } from "./GagalMuat";
 
 /** Kartu "Target RPB bulan ini": tiap target ilmu dari RPB ditandai Sudah / Belum (+ keterangan). Dipakai tim kurikulum
- *  di Sajian Data untuk memperinci penilaian per target (menimpa nilai kelas dari Refleksi guru). */
+ *  di Sajian Data untuk memperinci penilaian per target (menimpa nilai otomatis dari Capaian Ilmu). */
 export function TargetIlmuCard({ kelas, bulan, bisaUbah, onTersimpan }: { kelas: string; bulan: string; bisaUbah: boolean; onTersimpan?: () => void | Promise<void> }) {
   const [targets, setTargets] = useState<TargetIlmu[] | null>(null);
   const [tanda, setTanda] = useState<Record<number, TandaTarget | null>>({});
