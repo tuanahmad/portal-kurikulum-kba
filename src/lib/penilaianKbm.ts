@@ -366,7 +366,11 @@ function rakit(bulan: string, lap: Laporan, tanda: Map<string, Map<string, Tanda
     if (kl.rpb && ilmu[i].items.length === 0) kualitas.push({ kelas: kl.kelas, masalah: "RPB belum berisi target ilmu.", usulan: "Isi Target Pembelajaran di RPB." });
     const tanpaTanda = hit(ilmu[i].items, "kosong");
     if (tanpaTanda) kualitas.push({ kelas: kl.kelas, masalah: `${tanpaTanda} target ilmu belum dapat dinilai (Capaian Ilmu belum diisi / tidak cocok).`, usulan: "Isi Capaian Ilmu bidang itu, atau tandai per target di Sajian Data." });
-    const tanpaTarget = quran[i].items.filter((x) => x.kategori === "ziyadah" && x.simbol === "tanpa").length;
+    const lamaBulan = bulanQuranLama(bulan);
+    // Juli-Oktober: target Al-Qur'an dibaca dari RPB dan ditandai manual -> yang dihitung "belum ditandai", bukan "tanpa angka target".
+    const tanpaTarget = lamaBulan ? 0 : quran[i].items.filter((x) => x.kategori === "ziyadah" && x.simbol === "tanpa").length;
+    const belumDitandaiQ = lamaBulan ? quran[i].items.filter((x) => x.kategori === "ziyadah" && x.simbol === "kosong").length : 0;
+    if (belumDitandaiQ) kualitas.push({ kelas: kl.kelas, masalah: `Target Al-Qur'an ${bulan} belum ditandai tim kurikulum (${belumDitandaiQ} santri).`, usulan: "Tandai di Sajian Data: Tandai per target (target Al-Qur'an dibaca dari RPB)." });
     if (tanpaTarget) kualitas.push({ kelas: kl.kelas, masalah: `${tanpaTarget} santri belum punya angka target ${quran[i].labelZ.toLowerCase()}.`, usulan: "Isi target baris per pertemuan di RPB bagian Al-Qur'an." });
     const wiridBolong = quran[i].items.filter((x) => x.kategori === "wirid" && (x.pekanKosong ?? 0) > 0).length;
     if (wiridBolong) kualitas.push({ kelas: kl.kelas, masalah: `Catatan wirid ${wiridBolong} santri kosong di sebagian pekan.`, usulan: "Isi wirid tiap pekan (angka putaran)." });
@@ -391,7 +395,7 @@ function rakit(bulan: string, lap: Laporan, tanda: Map<string, Map<string, Tanda
       wirid: rq("wirid"),
       ziyadahPerKelas,
       santriBelumZ: quran.flatMap((k) => k.items.filter((x) => x.kategori === "ziyadah" && x.simbol === "belum").map((x) => ({ kelas: k.kelas, nama: x.nama }))),
-      tanpaTargetQuran: semuaQ.filter((x) => x.kategori === "ziyadah" && x.simbol === "tanpa").length,
+      tanpaTargetQuran: bulanQuranLama(bulan) ? 0 : semuaQ.filter((x) => x.kategori === "ziyadah" && x.simbol === "tanpa").length,
     },
     kualitas,
     surat,
