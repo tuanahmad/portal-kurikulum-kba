@@ -471,7 +471,7 @@ function OlahragaHariIni() {
     let batal = false;
     readStatusOlahraga(uid, kel)
       .then((r) => !batal && setS(r))
-      .catch(() => !batal && setS({ jurnal: null, absen: null, rencana: null, evaluasi: null, bulan: "" }));
+      .catch(() => !batal && setS({ jurnal: null, absen: null, absenSantri: null, rencana: null, evaluasi: null, bulan: "" }));
     return () => {
       batal = true;
     };
@@ -490,7 +490,8 @@ function OlahragaHariIni() {
   } else {
     const it = [
       s.jurnal == null ? null : { label: "Jurnal", state: (s.jurnal ? "selesai" : "belum") as Nada, to: "/jurnal" },
-      s.absen == null ? null : { label: "Absen", state: (s.absen ? "selesai" : "belum") as Nada, to: "/olahraga/absen" },
+      s.absen == null ? null : { label: "Absen guru", state: (s.absen ? "selesai" : "belum") as Nada, to: "/olahraga/absen" },
+      s.absenSantri == null ? null : { label: "Absen santri", state: (s.absenSantri ? "selesai" : "belum") as Nada, to: "/olahraga/absen" },
     ].filter((x): x is { label: string; state: Nada; to: string } => !!x);
     if (it.length) {
       const sudah = it.filter((x) => x.state === "selesai").length;

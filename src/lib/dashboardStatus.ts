@@ -8,6 +8,7 @@ import { readCapaianQuran } from "./capaianQuranSheet";
 import { readAbsenSantriDay } from "./absenSantri";
 import { readAbsenOlahragaRange, isAbsenOlahragaFilled, readOlahragaBulan, isRencanaFilled, readEvaluasiAnak, isEvalAnakFilled, TINGKAT_LIST, type OlahragaKelompok } from "./olahraga";
 import { olahragaRoster } from "../data";
+import { bacaAbsenSantriOlahraga, sudahDiabsen } from "./absenSantriOlahraga";
 
 export type TodayStatus = {
   totalKelas: number;
@@ -139,6 +140,7 @@ export async function readStatusGuru(userId: string, kelas: string): Promise<Sta
 export type StatusOlahraga = {
   jurnal: boolean | null;
   absen: boolean | null;
+  absenSantri: boolean | null;
   rencana: { terisi: number; total: number } | null;
   evaluasi: { terisi: number; total: number } | null;
   bulan: string;
@@ -148,16 +150,19 @@ export async function readStatusOlahraga(userId: string, kelompok: OlahragaKelom
   const now = new Date();
   const today = ymd(now);
   const bulan = MONTH_NAMES[now.getMonth()];
-  const [j, a, r, e] = await Promise.allSettled([
+  const [j, a, r, e, as] = await Promise.allSettled([
     readJurnalRange(today, today, { userId }),
     readAbsenOlahragaRange(today, today, { userId }),
     readOlahragaBulan(bulan, { userId }),
     Promise.all(TINGKAT_LIST.map((t) => readEvaluasiAnak(t, bulan, { userId }))),
+    bacaAbsenSantriOlahraga(today, { userId }),
   ]);
   return {
     bulan,
     jurnal: j.status === "fulfilled" ? isEntryFilled(j.value[today]) : null,
     absen: a.status === "fulfilled" ? isAbsenOlahragaFilled(a.value[today]) : null,
+    // absen santri dianggap lengkap kalau SEMUA tingkat yang punya santri sudah diabsen hari ini
+    absenSantri: as.status === "fulfilled" ? TINGKAT_LIST.filter((t) => olahragaRoster(t, kelompok).length > 0).every((t) => sudahDiabsen(as.value, t)) : null,
     rencana: r.status === "fulfilled" ? { terisi: TINGKAT_LIST.filter((t) => isRencanaFilled(r.value[t])).length, total: TINGKAT_LIST.length } : null,
     evaluasi:
       e.status === "fulfilled"
