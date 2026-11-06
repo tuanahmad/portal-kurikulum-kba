@@ -1,6 +1,6 @@
 import { capaianRoster, jenjangOf, kalenderBulan, isMonthOpen, pekanGridCount, slotsDiPekan, slotUntukTanggal, pekanUntukSlot, tanggalSlot } from "../data";
 import { muatLaporan, refleksiTerisi, quranTerisi, type Laporan, type KelasLaporan, type QuranSection, type Progress } from "./laporanBulanan";
-import { daftarTargetIlmu, bacaTandaTargetBulan, kunciTarget, type TandaTersimpan } from "./targetIlmu";
+import { daftarTargetIlmu, bacaTandaTargetBulan, kunciTarget, type TandaTersimpan, daftarTargetQuranLama, bulanQuranLama } from "./targetIlmu";
 import { angkaTargetQuran } from "./rpbSheet";
 import { angkaAwalQuran, angkaPenuhQuran } from "./angkaQuran";
 import { bacaRincianBulan, type RincianSantri } from "./rpbQuranPekan";
@@ -191,7 +191,7 @@ function nilaiIlmu(kl: KelasLaporan, tanda: Map<string, TandaTersimpan> | undefi
 
 const cariSec = (q: QuranSection[] | null, re: RegExp) => q?.find((s) => re.test(s.name)) ?? null;
 
-function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, surat: Map<string, string[]> | undefined, rincian?: Map<string, RincianSantri>): KelasQuran {
+function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, tandaKelas: Map<string, TandaTersimpan> | undefined, surat: Map<string, string[]> | undefined, rincian?: Map<string, RincianSantri>): KelasQuran {
   const q = kl.quran;
   const secZ = cariSec(q, /ziyadah|talaqqi/i);
   const secM = cariSec(q, /muroja/i);
@@ -205,6 +205,10 @@ function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, surat: M
   );
   const items: ItemQuran[] = [];
   const nPekan = pekanSelesai(bulan, berjalan);
+  // Juli-Oktober: target ziyadah/talaqqi dibaca dari teks RPB (Tabel B, baris Al-Qur'an) dan ditandai manual per kelas.
+  const lama = bulanQuranLama(bulan);
+  const tq = lama ? daftarTargetQuranLama(kl.rpb) : [];
+  const tandaQ = tq.map((t) => tandaKelas?.get(kunciTarget(t.bidang, t.target)));
   // Pekan terakhir yang dipakai kelas ini di tabel wirid: pekan sesudahnya yang kosong untuk SEMUA santri (mis. pekan ke-5
   // September yang cuma 2 hari) tidak dianggap "tidak tercatat".
   const wiridDipakai = Math.max(0, ...(secW?.santri ?? []).map((s) => (s.nilai ?? []).reduce((a, v, j) => (v ? j + 1 : a), 0)));
@@ -225,6 +229,12 @@ function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, surat: M
       const capaian = !z || z.terisi === 0 ? "Tidak tercatat" : `${fmt(z.total)} baris${sur.length ? ` · ${sur.join(", ")}` : ""}${kode(z.pt, z.ts) ? ` · ${kode(z.pt, z.ts)}` : ""}`;
       if (fase) {
         items.push({ nama, kategori: "ziyadah", label: labelZ, target: "—", capaian, simbol: "tanpa", ket: `${fase} bulan ini: ziyadah tidak dinilai.` });
+      } else if (lama) {
+        const tTeks = tq.length ? tq.map((t) => t.target).join(" · ") : "—";
+        if (!tq.length) items.push({ nama, kategori: "ziyadah", label: labelZ, target: "—", capaian, simbol: "tanpa", ket: "Target Al-Qur'an tidak tertulis di RPB bulan ini; capaian hanya dicatat." });
+        else if (tandaQ.some((x) => !x)) items.push({ nama, kategori: "ziyadah", label: labelZ, target: tTeks, capaian, simbol: "kosong", ket: "Belum ditandai tim kurikulum (target Al-Qur'an dibaca dari RPB bulan ini)." });
+        else if (tandaQ.every((x) => x!.status === "sudah")) items.push({ nama, kategori: "ziyadah", label: labelZ, target: tTeks, capaian, simbol: "ok", ket: "Tercapai (ditandai tim kurikulum)." });
+        else items.push({ nama, kategori: "ziyadah", label: labelZ, target: tTeks, capaian, simbol: "belum", ket: "Belum tercapai (ditandai tim kurikulum)." });
       } else if (tgt == null && !adaPekan) {
         items.push({ nama, kategori: "ziyadah", label: labelZ, target: "—", capaian, simbol: "tanpa", ket: "Target angka belum diisi di RPB; capaian hanya dicatat." });
       } else {
@@ -328,7 +338,7 @@ export async function perbaruiIlmu(n: NilaiBulan): Promise<NilaiBulan> {
 function rakit(bulan: string, lap: Laporan, tanda: Map<string, Map<string, TandaTersimpan>>, surat: Map<string, Map<string, string[]>>, rincian: Map<string, Map<string, RincianSantri>>): NilaiBulan {
   const berjalan = bulanBerjalan(bulan);
   const ilmu = lap.kelas.map((kl) => nilaiIlmu(kl, tanda.get(kl.kelas)));
-  const quran = lap.kelas.map((kl) => nilaiQuran(kl, bulan, berjalan, surat.get(kl.kelas), rincian.get(kl.kelas)));
+  const quran = lap.kelas.map((kl) => nilaiQuran(kl, bulan, berjalan, tanda.get(kl.kelas), surat.get(kl.kelas), rincian.get(kl.kelas)));
   const grafik = lap.kelas.map((kl, i) => grafikKelas(kl, bulan, quran[i].labelZ)).filter((g): g is GrafikKelas => !!g);
 
   const semuaIlmu = ilmu.flatMap((k) => k.items);
@@ -482,7 +492,7 @@ export function susunNarasi(p: Periode, bulan: NilaiBulan[]): Narasi {
   const tanpaTarget = bulan.reduce((a, b) => a + b.ringkas.tanpaTargetQuran, 0);
   const zTeks =
     tZ.every((x) => x.r.p == null) && tanpaTarget > 0
-      ? "belum dapat dinilai karena angka target per santri (baris per pertemuan) belum diisi di RPB bagian Al-Qur'an"
+      ? "belum dapat dinilai karena target Al-Qur'an belum diisi di RPB (angka per santri) atau belum ditandai tim kurikulum"
       : kalimatTren(tZ, "santri");
   const terendah = [
     { nama: "bidang ilmu", p: tIlmu[tIlmu.length - 1]?.r.p },

@@ -39,6 +39,23 @@ export function daftarTargetIlmu(rpb: RpbTabData | null | undefined): TargetIlmu
   return out;
 }
 
+/** Bulan sebelum November: bagian Al-Qur'an per santri (bagian D) belum diisi, jadi target Al-Qur'an dibaca dari RPB bulan itu
+ *  (baris bidang Al-Qur'an di Tabel B, berupa teks) dan ditandai manual oleh tim kurikulum. */
+export const bulanQuranLama = (bulan: string) => ["Juli", "Agustus", "September", "Oktober"].includes(bulan);
+
+export function daftarTargetQuranLama(rpb: RpbTabData | null | undefined): TargetIlmu[] {
+  const out: TargetIlmu[] = [];
+  let bidang = "";
+  (rpb?.tableB ?? []).forEach((row, i) => {
+    const b = (row[0] ?? "").trim();
+    if (b) bidang = b;
+    const isi = row.slice(1).map((x) => (x ?? "").trim()).filter(Boolean);
+    if (!isi.length || !bidang || !bidangAlQuran(bidang)) return;
+    out.push({ urutan: i, bidang, target: isi.length >= 3 ? `${isi[0]}: ${isi[1]}` : isi[0] });
+  });
+  return out;
+}
+
 /** Tanda yang tersimpan untuk 1 kelas 1 bulan, dipetakan per kunciTarget. */
 export async function bacaTandaTarget(kelas: string, bulan: string): Promise<Map<string, TandaTersimpan>> {
   const { data, error } = await supabase

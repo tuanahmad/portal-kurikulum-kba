@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { C, RPB_FILES } from "../data";
 import { readRpbTab } from "../lib/rpbSheet";
-import { daftarTargetIlmu, bacaTandaTarget, simpanTandaTarget, kunciTarget, type TargetIlmu, type TandaTarget } from "../lib/targetIlmu";
+import { daftarTargetIlmu, daftarTargetQuranLama, bulanQuranLama, bacaTandaTarget, simpanTandaTarget, kunciTarget, type TargetIlmu, type TandaTarget } from "../lib/targetIlmu";
 import { useDraft } from "../lib/useDraft";
 import { toast } from "./Toast";
 import { GagalMuat } from "./GagalMuat";
@@ -32,7 +32,8 @@ export function TargetIlmuCard({ kelas, bulan, bisaUbah, onTersimpan }: { kelas:
     Promise.all([readRpbTab(file.id, kelas), bacaTandaTarget(kelas, bulan)])
       .then(([rpb, tersimpan]) => {
         if (batal) return;
-        const daftar = daftarTargetIlmu(rpb);
+        // Juli-Oktober: target Al-Qur'an (teks di RPB) ikut ditandai di sini, sebab bagian D baru diisi mulai November.
+        const daftar = [...daftarTargetIlmu(rpb), ...(bulanQuranLama(bulan) ? daftarTargetQuranLama(rpb) : [])];
         const awal: Record<number, TandaTarget | null> = {};
         for (const t of daftar) {
           const s = tersimpan.get(kunciTarget(t.bidang, t.target));
