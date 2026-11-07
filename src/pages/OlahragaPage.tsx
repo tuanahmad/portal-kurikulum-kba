@@ -12,7 +12,7 @@ import { useDraft } from "../lib/useDraft";
 import { RuleCard } from "../components/RuleCard";
 import { MonthGrid } from "../components/MonthGrid";
 import { PickerCard } from "../components/PickerCard";
-import { bacaAbsenSantriOlahraga, simpanAbsenSantriOlahraga, entriBaru, sudahDiabsen, type AbsenHariOlahraga, type EntriSantriOlahraga } from "../lib/absenSantriOlahraga";
+import { bacaAbsenSantriOlahragaRentang, type BarisAbsenSantriOlahraga, bacaAbsenSantriOlahraga, simpanAbsenSantriOlahraga, entriBaru, sudahDiabsen, type AbsenHariOlahraga, type EntriSantriOlahraga } from "../lib/absenSantriOlahraga";
 import { AccentCard, BackButton } from "../components/PortalComponents";
 import {
   STATUS_LABEL,
@@ -1533,7 +1533,7 @@ function ManagementJurnalOlahraga() {
 function ManagementAbsenWrapper() {
   return (
     <ManagementShell title="Absen Olahraga">
-      <ManagementAbsenOlahraga />
+      <ManagementAbsenTab />
     </ManagementShell>
   );
 }
@@ -1715,6 +1715,147 @@ function TargetChips({ label, value }: { label: string; value: string[] }) {
         <div className="text-sm" style={{ color: C.muted }}>—</div>
       )}
     </div>
+  );
+}
+
+function ManagementAbsenTab() {
+  const [tab, setTab] = useState<"santri" | "guru">("santri");
+  return (
+    <>
+      <div className="mt-4 grid grid-cols-2 gap-1 p-1.5 rounded-full" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        {(["santri", "guru"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setTab(m)}
+            className="py-2 rounded-full text-sm font-semibold transition-colors"
+            style={{ background: tab === m ? C.green : "transparent", color: tab === m ? "#FFF" : C.muted }}
+          >
+            {m === "santri" ? "Absen Santri" : "Absen Guru"}
+          </button>
+        ))}
+      </div>
+      {tab === "santri" ? <ManagementAbsenSantriOlahraga /> : <ManagementAbsenOlahraga />}
+    </>
+  );
+}
+
+/** Rekap absen SANTRI olahraga (management): per pekan, per hari, per kelompok dan tingkat -- hadir, tidak hadir + keterangan. */
+function ManagementAbsenSantriOlahraga() {
+  const thisMonday = useMemo(() => mondayOf(new Date()), []);
+  const [monday, setMonday] = useState(thisMonday);
+  const days = useMemo(() => weekdaysFrom(monday).slice(0, 3), [monday]);
+  const atThisWeek = ymd(monday) >= ymd(thisMonday);
+  const [baris, setBaris] = useState<BarisAbsenSantriOlahraga[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let batal = false;
+    setLoading(true);
+    setError(null);
+    bacaAbsenSantriOlahragaRentang(ymd(days[0]), ymd(days[2]))
+      .then((b) => !batal && setBaris(b))
+      .catch((e) => !batal && setError(e.message))
+      .finally(() => !batal && setLoading(false));
+    return () => {
+      batal = true;
+    };
+  }, [monday]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const kelompokList: OlahragaKelompok[] = ["ikhwan", "akhwat"];
+  // ringkasan pekan: per kelompok + tingkat -> hadir / total catatan
+  const ringkas = kelompokList.flatMap((k) =>
+    TINGKAT_LIST.map((t) => {
+      const b = baris.filter((x) => x.kelompok === k && x.tingkat === t);
+      return { k, t, hadir: b.filter((x) => x.status === "hadir").length, total: b.length };
+    })
+  ).filter((r) => r.total > 0);
+
+  return (
+    <>
+      <WeekNav
+        label={labelRentangPekan(days)}
+        sub={atThisWeek ? "Pekan ini" : undefined}
+        onPrev={() => setMonday(shiftWeek(monday, -1))}
+        onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
+      />
+      {error && (
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          {error}
+        </div>
+      )}
+      {loading ? (
+        <div className="mt-5">
+          <PageLoadingSkeleton />
+        </div>
+      ) : (
+        <div className="mt-5 space-y-3">
+          <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Kehadiran pekan ini</div>
+            {ringkas.length === 0 ? (
+              <p className="text-sm" style={{ color: C.muted }}>Belum ada absen santri pekan ini.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {ringkas.map((r) => {
+                  const pct = Math.round((r.hadir / r.total) * 100);
+                  return (
+                    <div key={r.k + r.t} className="flex items-center gap-2 text-sm">
+                      <span className="flex-1" style={{ color: C.ink }}>
+                        {KELOMPOK_LABEL[r.k]} · KA {r.t.replace("KA ", "")}
+                      </span>
+                      <span style={{ color: C.muted }}>{r.hadir}/{r.total}</span>
+                      <span className="w-12 text-right font-semibold" style={{ color: pct >= 90 ? C.green : pct >= 75 ? "#8A6A20" : "#9F240B" }}>{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {days.map((d) => {
+            const key = ymd(d);
+            const hari = baris.filter((x) => x.tanggal === key);
+            return (
+              <div key={key} className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                <div className="text-sm font-semibold mb-2" style={{ color: C.ink }}>{labelHari(d)} · {labelTanggal(d)}</div>
+                {hari.length === 0 ? (
+                  <p className="text-xs" style={{ color: C.muted }}>Belum diabsen.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {kelompokList.flatMap((k) =>
+                      TINGKAT_LIST.map((t) => {
+                        const b = hari.filter((x) => x.kelompok === k && x.tingkat === t);
+                        if (!b.length) return null;
+                        const tidak = b.filter((x) => x.status === "tidak_hadir");
+                        return (
+                          <div key={k + t} className="rounded-xl px-3 py-2" style={{ background: C.mist, border: `1px solid ${C.line}` }}>
+                            <div className="flex items-center justify-between text-xs font-semibold" style={{ color: C.green }}>
+                              <span>{KELOMPOK_LABEL[k]} · KA {t.replace("KA ", "")}</span>
+                              <span>{b.length - tidak.length} dari {b.length} hadir</span>
+                            </div>
+                            {tidak.length > 0 && (
+                              <ul className="mt-1.5 space-y-0.5">
+                                {tidak.map((x) => (
+                                  <li key={x.nama_santri} className="text-xs" style={{ color: C.ink }}>
+                                    {x.nama_santri}
+                                    <span style={{ color: C.muted }}>{x.keterangan ? ` — ${x.keterangan}` : " — tanpa keterangan"}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }
 

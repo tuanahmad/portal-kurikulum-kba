@@ -58,3 +58,16 @@ export async function simpanAbsenSantriOlahraga(kelompok: OlahragaKelompok, tang
 
 /** Sudah diabsen = ada baris untuk tingkat itu. */
 export const sudahDiabsen = (a: AbsenHariOlahraga | undefined, t: OlahragaTingkat) => !!a && Object.keys(a[t] ?? {}).length > 0;
+
+export type BarisAbsenSantriOlahraga = { kelompok: OlahragaKelompok; tingkat: OlahragaTingkat; tanggal: string; nama_santri: string; status: SantriStatus; keterangan: string };
+
+/** Absen semua kelompok dalam rentang tanggal (management, hanya baca). */
+export async function bacaAbsenSantriOlahragaRentang(dari: string, sampai: string): Promise<BarisAbsenSantriOlahraga[]> {
+  const { data, error } = await supabase
+    .from("absen_santri_olahraga")
+    .select("kelompok, tingkat, tanggal, nama_santri, status, keterangan")
+    .gte("tanggal", dari)
+    .lte("tanggal", sampai);
+  if (error) throw new Error(ramahkanGalat(error.message));
+  return (data ?? []) as BarisAbsenSantriOlahraga[];
+}
