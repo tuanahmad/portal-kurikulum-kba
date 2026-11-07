@@ -6,6 +6,23 @@
 // Al-Qur'an (KA: Talaqqi/Baghdadiyah, Qonuni: Ziyadah/Muroja'ah Ziyadah/Wirid) TIDAK lagi di Capaian Ilmu -- sudah lewat
 // Capaian Al-Qur'an. Kolom/barisnya dihapus dari sheet per 2026-10-28.
 
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+// ————— Pengaman: pemanggil harus login (token anon TIDAK cukup) —————
+// Baca (GET): semua pengguna yang punya profil. Tulis (POST): hanya guru atau management.
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+async function cekPemanggil(req: Request): Promise<{ role: string } | null> {
+  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!jwt) return null;
+  const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data, error } = await sb.auth.getUser(jwt);
+  if (error || !data?.user) return null;
+  const { data: prof } = await sb.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+  return prof?.role ? { role: prof.role as string } : null;
+}
+
 const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
 const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
 
@@ -220,6 +237,11 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (!GOOGLE_API_KEY) return json({ error: "GOOGLE_API_KEY belum di-set di Supabase secrets" }, 500);
   try {
+    const pemanggil = await cekPemanggil(req);
+    if (!pemanggil) return json({ error: "Harus login dulu. Muat ulang halaman lalu masuk lagi." }, 401);
+    if (req.method === "POST" && pemanggil.role !== "guru" && pemanggil.role !== "management") {
+      return json({ error: "Akun ini tidak berhak menyimpan." }, 403);
+    }
     if (req.method === "GET") {
       const url = new URL(req.url);
       const fileId = url.searchParams.get("fileId");

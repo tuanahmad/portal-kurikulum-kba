@@ -14,6 +14,25 @@
 //              Rencana Pendampingan). Nama Murid diisi otomatis dari roster (SANTRI_LIST di app),
 //              bukan diketik guru — lihat komentar di RefleksiFormPage.tsx.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+// ————— Pengaman: pemanggil harus login (token anon TIDAK cukup) —————
+// Baca (GET): semua pengguna yang punya profil. Tulis (POST): management, atau guru HANYA ke tab kelasnya sendiri.
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+/** Nama kelas/tab dibandingkan longgar: buang spasi + huruf kecil. */
+const normKelas = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, "").toLowerCase();
+
+async function cekPemanggil(req: Request): Promise<{ role: string; kelas: string | null } | null> {
+  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!jwt) return null;
+  const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data, error } = await sb.auth.getUser(jwt);
+  if (error || !data?.user) return null;
+  const { data: prof } = await sb.from("profiles").select("role, kelas").eq("id", data.user.id).maybeSingle();
+  return prof?.role ? { role: prof.role as string, kelas: (prof.kelas as string | null) ?? null } : null;
+}
 
 const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
 const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -194,6 +213,11 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const pemanggil = await cekPemanggil(req);
+    if (!pemanggil) return json({ error: "Harus login dulu. Muat ulang halaman lalu masuk lagi." }, 401);
+    if (req.method === "POST" && pemanggil.role !== "guru" && pemanggil.role !== "management") {
+      return json({ error: "Akun ini tidak berhak menyimpan." }, 403);
+    }
     if (req.method === "GET") {
       const url = new URL(req.url);
       const fileId = url.searchParams.get("fileId");
@@ -210,6 +234,10 @@ Deno.serve(async (req: Request) => {
       const { fileId, sheetName, ...payload } = body;
       if (!fileId || !sheetName) {
         return json({ error: "fileId dan sheetName wajib diisi" }, 400);
+      }
+      // Guru hanya boleh menulis ke tab kelasnya sendiri; management ke semua tab.
+      if (pemanggil.role === "guru" && normKelas(sheetName) !== normKelas(pemanggil.kelas)) {
+        return json({ error: "Tidak diizinkan menulis ke tab ini." }, 403);
       }
       await writeTab(fileId, sheetName, payload);
       return json({ ok: true });

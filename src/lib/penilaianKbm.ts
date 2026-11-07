@@ -242,9 +242,17 @@ function nilaiQuran(kl: KelasLaporan, bulan: string, berjalan: boolean, tandaKel
         const tTeks = adaPekan
           ? `${tPekan.map((x, p) => (x != null ? `P${p + 1}: ${fmt(x)}` : "")).filter(Boolean).join(" + ")} = ${fmt(butuh)} baris`
           : `${fmt(tgt as number)} baris × ${pertemuan} pertemuan = ${fmt(butuh)} baris`;
+        // Rincian per pekan (capaian / target), hanya bila target per pekan diisi dan sheet berpola pertemuan.
+        const rinci = adaPekan && z && secZ.type === "pertemuan"
+          ? " Per pekan (capaian/target): " + tPekan.map((x, p) => {
+              if (x == null) return "";
+              const c = slotsDiPekan(bulan, p + 1, secZ.slotCount).reduce((a, slot) => a + (angka(z.nilai?.[slot - 1] ?? "") ?? 0), 0);
+              return `P${p + 1} ${fmt(c)}/${fmt(x)}${c >= x ? " ✓" : ""}`;
+            }).filter(Boolean).join(", ") + "."
+          : "";
         if (!z || z.terisi === 0) items.push({ nama, kategori: "ziyadah", label: labelZ, target: tTeks, capaian, simbol: "kosong", ket: "Belum ada catatan bulan ini." });
-        else if (z.total >= butuh) items.push({ nama, kategori: "ziyadah", label: labelZ, target: tTeks, capaian, simbol: "ok", ket: z.total > butuh ? "Melewati target." : "Tercapai." });
-        else items.push({ nama, kategori: "ziyadah", label: labelZ, target: tTeks, capaian, simbol: "belum", ket: `Kurang ${fmt(butuh - z.total)} baris dari target.` });
+        else if (z.total >= butuh) items.push({ nama, kategori: "ziyadah", label: labelZ, target: tTeks, capaian, simbol: "ok", ket: (z.total > butuh ? "Melewati target." : "Tercapai.") + rinci });
+        else items.push({ nama, kategori: "ziyadah", label: labelZ, target: tTeks, capaian, simbol: "belum", ket: `Kurang ${fmt(butuh - z.total)} baris dari target.` + rinci });
       }
     }
     if (secM) {
@@ -539,8 +547,10 @@ export function susunNarasi(p: Periode, bulan: NilaiBulan[]): Narasi {
   const berulang = santriBelumBerulang(bulan);
   const semuaBulan = berulang.filter((x) => x.bulan.length === bulan.length && bulan.length > 2).length;
   const belumBulanIni = bulan[bulan.length - 1]?.ringkas.santriBelumZ.length ?? 0;
+  const adaLama = bulan.some((b) => bulanQuranLama(b.bulan));
   const quran = [
     `Berdasarkan rencana pembelajaran Al-Qur'an yang disusun guru, ketercapaian target ziyadah dan talaqqi santri ${zTeks}.`,
+    adaLama ? "Untuk bulan Juli sampai Oktober, target ziyadah dan talaqqi dibaca dari rencana (RPB) bulan itu dan ketercapaiannya ditandai oleh tim kurikulum; target per santri baru ada mulai November." : "",
     `Ketercapaian target muroja'ah ${kalimatTren(tM, "santri")}, dan target wirid ${kalimatTren(tW, "santri")}. Muroja'ah tercapai bila jumlah baris muroja'ah minimal sama dengan ziyadah bulan itu; wirid tercapai bila setiap pekan minimal 1 putaran.`,
     bulan.length > 1
       ? berulang.length
