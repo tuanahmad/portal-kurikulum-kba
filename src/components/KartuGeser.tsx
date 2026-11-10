@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { C } from "../data";
+import { DaftarBelumSheet, type BelumRinci } from "./DaftarBelumSheet";
 
 // Kartu status di Home yang bisa digeser: satu kartu = satu kelompok, angka besar di kanan, titik penanda di bawah.
 // Berganti sendiri tiap 5 detik, SELALU ke kanan dan berputar tanpa ujung (dari kartu terakhir langsung ke kartu pertama,
@@ -18,6 +19,7 @@ export type SlideKartu = {
   nada: Nada;
   items?: ItemKartu[];
   belum?: string[]; // nama yang belum mengisi (management); ditampilkan lewat tombol "Lihat yang belum"
+  rincian?: BelumRinci[]; // (management) kelas + nama guru yang belum mengisi: dibuka sebagai lembar per jenjang
   to?: string; // ketuk kartu -> halaman ini
 };
 
@@ -118,21 +120,21 @@ export function KartuGeser({ slides }: { slides: SlideKartu[] }) {
         {daftar.map((s, idx) => {
           const buka = terbuka === s.key;
           const isi = (
-            <div className="relative h-full p-4 sm:p-5 md:px-14 text-white flex flex-col justify-between pb-8 sm:pb-9" style={{ minHeight: 176 }}>
+            <div className="relative h-full p-4 sm:p-5 md:px-14 text-white flex flex-col justify-between pb-8 sm:pb-9 min-h-[150px] sm:min-h-[176px]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-xs font-bold uppercase tracking-[0.16em] opacity-90">{s.judul}</div>
                   {s.sub && <div className="text-[11px] opacity-75 mt-0.5">{s.sub}</div>}
                 </div>
                 {s.angka && (
-                  <div className="text-4xl font-semibold leading-none" style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontVariantNumeric: "lining-nums" }}>
+                  <div className="text-[32px] sm:text-4xl font-semibold leading-none" style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontVariantNumeric: "lining-nums" }}>
                     {s.angka}
                   </div>
                 )}
               </div>
               <div>
-                <div className="text-base sm:text-lg font-semibold leading-snug">{s.utama}</div>
-                {buka && s.belum ? (
+                <div className="text-[15px] sm:text-lg font-semibold leading-snug">{s.utama}</div>
+                {buka && s.belum && !s.rincian ? (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {s.belum.map((x) => (
                       <span key={x} className="text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.22)" }}>
@@ -170,9 +172,14 @@ export function KartuGeser({ slides }: { slides: SlideKartu[] }) {
                       e.stopPropagation();
                       setTerbuka(buka ? null : s.key);
                     }}
-                    className="mt-2 text-[11px] font-bold underline underline-offset-2"
+                    className={
+                      s.rincian
+                        ? "mt-3 inline-flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-1.5 rounded-full active:scale-95 transition-transform"
+                        : "mt-2 text-[11px] font-bold underline underline-offset-2"
+                    }
+                    style={s.rincian ? { background: "rgba(255,255,255,0.95)", color: "#1b2a24", boxShadow: "0 2px 8px rgba(0,0,0,0.18)" } : undefined}
                   >
-                    {buka ? "Tutup" : `Lihat yang belum (${s.belum.length})`}
+                    {s.rincian ? `Lihat yang belum (${s.belum.length})  ›` : buka ? "Tutup" : `Lihat yang belum (${s.belum.length})`}
                   </button>
                 )}
               </div>
@@ -207,6 +214,10 @@ export function KartuGeser({ slides }: { slides: SlideKartu[] }) {
           </div>
         </>
       )}
+      {(() => {
+        const s = slides.find((x) => x.key === terbuka && x.rincian);
+        return s?.rincian ? <DaftarBelumSheet judul={s.judul} sub={s.sub} rincian={s.rincian} tutup={() => setTerbuka(null)} /> : null;
+      })()}
     </section>
   );
 }

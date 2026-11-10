@@ -97,7 +97,7 @@ export default function InstrumenPage() {
         {/* Pilih kategori (Modul / Target / Panduan) */}
         {!activeFolder && (
           <main className="mt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
               {INSTRUMEN_FOLDERS.map((f, i) => {
                 const nodes = state.result?.[f.folderId];
                 const count = nodes ? nodes.length : null;

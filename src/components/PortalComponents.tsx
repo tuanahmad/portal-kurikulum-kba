@@ -60,21 +60,21 @@ export function AccentCard({
   onClick?: () => void;
 }) {
   const className =
-    "kartu-muncul group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between min-h-[152px] text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2";
+    "kartu-muncul group relative overflow-hidden rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between min-h-[108px] sm:min-h-[152px] text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2";
   const style = { background: lembut(gradient), boxShadow: "0 4px 14px rgba(28,74,51,0.14), inset 0 0 0 1px rgba(255,255,255,0.28)", "--tw-ring-color": C.gold } as any;
 
   const inner = (
     <>
       <span
-        className="absolute -right-6 -top-6 w-28 h-28 rounded-full transition-transform duration-500 group-hover:scale-125"
+        className="absolute -right-5 -top-5 w-20 h-20 sm:-right-6 sm:-top-6 sm:w-28 sm:h-28 rounded-full transition-transform duration-500 group-hover:scale-125"
         style={{ background: "rgba(255,255,255,0.08)" }}
         aria-hidden="true"
       />
-      <span className="relative w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.16)" }}>
+      <span className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.16)" }}>
         {icon}
       </span>
-      <div className="relative mt-4">
-        <span className="font-semibold text-white block">{title}</span>
+      <div className="relative mt-3 sm:mt-4">
+        <span className="font-semibold text-white block text-[13.5px] leading-snug sm:text-base">{title}</span>
       </div>
     </>
   );

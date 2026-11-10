@@ -403,7 +403,7 @@ function ManagementJurnal() {
 
         {mode === null && (
           <main className="mt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
               <AccentCard
                 title="Preview per Hari"
                 desc="Baca jurnal semua guru pada satu hari, urut menurut kelas. Unduh PDF sebulan per guru juga dari sini."

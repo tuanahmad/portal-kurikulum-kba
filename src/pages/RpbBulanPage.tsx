@@ -37,7 +37,7 @@ export default function RpbBulanPage() {
           </h1>
         </div>
 
-        <main className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+        <main className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
           <AccentCard
             to={`/rpb/${bulan}/isi`}
             title="Rencana Pembelajaran Bulanan"

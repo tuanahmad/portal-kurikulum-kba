@@ -12,6 +12,7 @@ import {
   DocIcon as DocIconOutline,
 } from "../components/navIcons";
 import { KartuGeser, type SlideKartu, type Nada } from "../components/KartuGeser";
+import { bacaNamaGuruKelas } from "../lib/namaGuru";
 
 export default function HomePage() {
   const { role, kelas, fullName } = useAuth();
@@ -88,7 +89,7 @@ function GuruMenu() {
   return (
     <main>
     <GuruHariIni />
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
       <HomeCard
         to="/instrumen"
         title="Instrumen Ilmu"
@@ -269,19 +270,34 @@ function GuruHariIni() {
   if (libur) {
     slides.push({ key: "hari", judul: "Hari ini", sub: `${labelHari(now)}, ${labelTanggal(now)}`, utama: "Libur. Jurnal dan absen tidak perlu diisi.", nada: "libur" });
   } else {
-    const h = buatSlide("hari", "Hari ini", `${labelHari(now)}, ${labelTanggal(now)}`, ["jurnal", "absen", "absenSantri"], {
-      selesai: "Semua sudah terisi",
-      sebagian: "Masih ada yang belum diisi",
-      belum: "Belum ada yang diisi",
-    });
-    if (h) slides.push(h);
+    // Satu kartu per isian harian (Jurnal / Absen Guru / Absen Santri), supaya statusnya jelas satu-satu.
+    const tanggal = `${labelHari(now)}, ${labelTanggal(now)}`;
+    const angkaAbsen = s.absen === "lengkap" ? "2/2" : s.absen === "sebagian" ? "1/2" : "0/2";
+    for (const [key, judul, angka] of [
+      ["jurnal", "Jurnal", undefined],
+      ["absen", "Absen Guru", angkaAbsen], // pagi + siang
+      ["absenSantri", "Absen Santri", undefined],
+    ] as const) {
+      const r = rows.find((x) => x.key === key);
+      if (!r || r.state === null || r.state === "libur") continue;
+      slides.push({ key, judul, sub: tanggal, utama: r.sub, angka, nada: r.state, to: r.to });
+    }
   }
-  const q = buatSlide("quran", "Al-Qur'an", "Pekan ini", ["quran", "targetQuran"], {
-    selesai: "Capaian dan target sudah lengkap",
-    sebagian: "Sebagian belum lengkap",
-    belum: "Belum diisi",
-  });
-  if (q) slides.push(q);
+  // Dua kartu terpisah: Capaian Al-Qur'an (pekan ini) dan Target Al-Qur'an di RPB (bulan ini, per santri).
+  const rq = rows.find((x) => x.key === "quran");
+  if (rq && rq.state !== null) slides.push({ key: "quran", judul: "Capaian Al-Qur'an", sub: "Pekan ini", utama: rq.sub.replace(/^Pekan ini /, "").replace(/^./, (c) => c.toUpperCase()), nada: rq.state === "libur" ? "libur" : rq.state, to: rq.to });
+  const rt = rows.find((x) => x.key === "targetQuran");
+  if (rt && rt.state !== null && s.targetQuran) {
+    slides.push({
+      key: "targetQuran",
+      judul: "Target Al-Qur'an",
+      sub: `RPB ${s.targetQuran.bulan}`,
+      utama: rt.sub,
+      angka: `${s.targetQuran.terisi}/${s.targetQuran.total}`, // santri yang angka targetnya sudah diisi
+      nada: rt.state === "libur" ? "libur" : rt.state,
+      to: rt.to,
+    });
+  }
   const b2 = buatSlide("bulan", "Bulan ini", "Rencana & Refleksi", ["rencana"], {
     selesai: "RPB dan Refleksi sudah diisi",
     sebagian: "Salah satunya belum diisi",
@@ -297,7 +313,7 @@ function ManagementMenu() {
   return (
     <main>
       <RingkasanHariIni />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
       <HomeCard
         to="/instrumen"
         title="Instrumen Ilmu"
@@ -360,6 +376,18 @@ function abbrevKelas(name: string): string {
 function RingkasanHariIni() {
   const [status, setStatus] = useState<TodayStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [namaGuru, setNamaGuru] = useState<Record<string, string>>({});
+
+  // Nama guru per kelas (untuk daftar "belum mengisi"). Gagal dimuat bukan masalah: daftar memakai nama kelas saja.
+  useEffect(() => {
+    let cancelled = false;
+    bacaNamaGuruKelas()
+      .then((m) => !cancelled && setNamaGuru(m))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -395,6 +423,7 @@ function RingkasanHariIni() {
       angka: `${filled}/${total}`,
       nada,
       belum: missing.map(abbrevKelas),
+      rincian: missing.map((k) => ({ kelas: k, guru: namaGuru[k] ?? "" })),
       to,
     };
   };
@@ -411,7 +440,7 @@ function OlahragaMenu() {
   return (
     <main>
     <OlahragaHariIni />
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
       <HomeCard
         to="/instrumen"
         title="Panduan Olahraga"
@@ -540,23 +569,23 @@ function HomeCard({
   return (
     <Link
       to={to}
-      className="kartu-muncul group relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between min-h-[172px] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2"
+      className="kartu-muncul group relative overflow-hidden rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between min-h-[112px] sm:min-h-[172px] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2"
       style={{ background: lembut(gradient), boxShadow: "0 4px 14px rgba(28,74,51,0.14), inset 0 0 0 1px rgba(255,255,255,0.28)", "--tw-ring-color": C.gold } as any}
     >
       {/* dekorasi lingkaran samar, membesar pas di-hover */}
       <span
-        className="absolute -right-6 -top-6 w-28 h-28 rounded-full transition-transform duration-500 group-hover:scale-125"
+        className="absolute -right-5 -top-5 w-20 h-20 sm:-right-6 sm:-top-6 sm:w-28 sm:h-28 rounded-full transition-transform duration-500 group-hover:scale-125"
         style={{ background: "rgba(255,255,255,0.08)" }}
         aria-hidden="true"
       />
       <span
-        className="relative w-11 h-11 rounded-xl flex items-center justify-center"
+        className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center"
         style={{ background: "rgba(255,255,255,0.16)" }}
       >
         {icon}
       </span>
-      <div className="relative mt-4">
-        <span className="font-semibold text-white block">{title}</span>
+      <div className="relative mt-3 sm:mt-4">
+        <span className="font-semibold text-white block text-[13.5px] leading-snug sm:text-base">{title}</span>
       </div>
     </Link>
   );

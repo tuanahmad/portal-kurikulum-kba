@@ -1145,7 +1145,7 @@ export function OlahragaModePicker() {
           <p className="text-sm mt-1" style={{ color: C.muted }}>Kuttab Awwal 1–3 · Ikhwan & Akhwat</p>
         </header>
 
-        <main className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <main className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
           <AccentCard
             title="Rencana Kegiatan"
             desc="Rencana bulanan tiap kelas"
@@ -1232,7 +1232,7 @@ function KelompokPicker({ onChange }: { onChange: (k: OlahragaKelompok) => void 
       <span className="block text-xs font-bold uppercase tracking-wider mb-2.5 px-1" style={{ color: C.green }}>
         Pilih Kelompok
       </span>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <AccentCard title={KELOMPOK_LABEL.ikhwan} icon={<KelompokIcon />} gradient={GRADIENTS[0]} onClick={() => onChange("ikhwan")} />
         <AccentCard title={KELOMPOK_LABEL.akhwat} icon={<KelompokIcon />} gradient={GRADIENTS[1]} onClick={() => onChange("akhwat")} />
       </div>

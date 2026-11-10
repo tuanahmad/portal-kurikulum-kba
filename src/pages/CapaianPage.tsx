@@ -120,7 +120,7 @@ function CapaianLinks({
   const quranTo = guru ? "/capaian/quran" : `/capaian/quran?kelas=${encodeURIComponent(kelasName)}`;
   const tasmiTo = guru ? "/capaian/tasmi" : `/capaian/tasmi?kelas=${encodeURIComponent(kelasName)}`;
   return (
-    <main className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+    <main className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
       <AccentCard
         title="Capaian Ilmu"
         desc={guru ? "Isi langsung di app · per santri tiap bulan" : "Sifatnya deskriptif · Diisi tiap tanggal 30"}
