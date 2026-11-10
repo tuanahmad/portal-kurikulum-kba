@@ -4,6 +4,7 @@ import { ToastHost } from "./components/Toast";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { WarnaBar } from "./components/WarnaBar";
 import { AppLayout } from "./components/AppLayout";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
@@ -29,6 +30,7 @@ const SajianDataPage = lazy(() => import("./pages/SajianDataPage"));
 export default function App() {
   return (
     <BrowserRouter>
+      <WarnaBar foto="#1B3327" />
       <AuthProvider>
         <Suspense fallback={<FullPageSkeleton />}>
         <Routes>

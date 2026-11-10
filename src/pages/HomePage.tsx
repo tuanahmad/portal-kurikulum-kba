@@ -21,7 +21,7 @@ export default function HomePage() {
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
 
       {/* Hero foto — full width, parallax di layar besar (md ke atas), scroll biasa di mobile */}
-      <div className="relative h-[26rem] sm:h-[30rem] md:h-[34rem] overflow-hidden" style={{ background: "#1B3327 url(/images/hero-banner.jpg) center / cover no-repeat" }}>
+      <div data-hero className="relative h-[26rem] sm:h-[30rem] md:h-[34rem] overflow-hidden" style={{ background: "#1B3327 url(/images/hero-banner.jpg) center / cover no-repeat" }}>
         {/* Parallax (HP & layar besar): lapisan foto menempel ke layar (fixed) lalu dipotong seukuran hero (clip-path).
             Sedikit melebar ke kiri-kanan supaya tidak ada garis celah di tepi (yang muncul pada background-attachment: fixed). */}
         <div className="absolute inset-0" style={{ clipPath: "inset(0)" }} aria-hidden="true">
@@ -109,13 +109,6 @@ function GuruMenu() {
         desc="Capaian ilmu & Al-Qur'an santri di kelasmu."
         gradient={`linear-gradient(135deg, #2F8A63 0%, #1F6244 100%)`}
         icon={<ChartIcon />}
-      />
-      <HomeCard
-        to="/absen"
-        title="Absen Guru"
-        desc="Isi kehadiran harian."
-        gradient={`linear-gradient(135deg, #E3A744 0%, #C98A25 100%)`}
-        icon={<DocIcon />}
       />
       <HomeCard
         to="/jurnal"
@@ -345,7 +338,7 @@ function ManagementMenu() {
         title="Rekap Olahraga"
         desc="Rencana, evaluasi & absen olahraga Kuttab Awwal 1–3 (ikhwan & akhwat)."
         gradient={`linear-gradient(135deg, #2F8A63 0%, #1F6244 100%)`}
-        icon={<ChartIcon />}
+        icon={<AnggarIcon />}
       />
       </div>
     </main>
@@ -593,6 +586,23 @@ function ChartIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
       <path d="M4 20V10M11 20V4M18 20v-7" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
       <path d="M3 20h18" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Atlet anggar dalam sikap menusuk (lunge) -- ikon kartu Rekap Olahraga (putih, seperti ikon kartu lain). */
+function AnggarIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <g transform="translate(12 12) scale(0.82) translate(-12.4 -11.55)">
+      <circle cx="8.6" cy="4.6" r="2" stroke="#FFF" strokeWidth="2.07" />
+      <path d="M8.9 6.9 L10.6 13" stroke="#FFF" strokeWidth="2.07" strokeLinecap="round" />
+      <path d="M9.4 9 L15.2 8.3" stroke="#FFF" strokeWidth="2.07" strokeLinecap="round" />
+      <path d="M15.2 8.3 L22 7.1" stroke="#FFF" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="M9 8.8 L6 7.6 L4.8 5.2" stroke="#FFF" strokeWidth="2.07" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10.6 13 L14.2 15.2 L14.2 20.5" stroke="#FFF" strokeWidth="2.07" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10.6 13 L6 17 L2.8 20" stroke="#FFF" strokeWidth="2.07" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
     </svg>
   );
 }

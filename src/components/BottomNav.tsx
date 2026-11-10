@@ -28,7 +28,8 @@ export function BottomNav() {
         }}
       >
         {items.map((it) => {
-          const active = pathname === it.to;
+          // Rekap Olahraga punya sub-halaman (/olahraga/rencana, /evaluasi, /absen): tetap menyala di semuanya.
+          const active = pathname === it.to || (it.to === "/olahraga" && pathname.startsWith("/olahraga"));
           const Icon = it.icon;
           const isHome = it.to === "/home";
 

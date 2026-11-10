@@ -14,6 +14,15 @@ const GURU_NAV: NavItem[] = [
   { to: "/jurnal", label: "Jurnal", icon: NotebookIcon },
 ];
 
+// Management (HP): tanpa Instrumen, ditambah Rekap Olahraga di paling kanan. Home tetap di tengah (index 2 dari 5).
+const MANAGEMENT_NAV: NavItem[] = [
+  { to: "/rpb", label: "Rencana", icon: DocIcon },
+  { to: "/capaian", label: "Capaian", icon: CapaianIcon },
+  { to: "/home", label: "Home", icon: HomeIcon },
+  { to: "/jurnal", label: "Jurnal", icon: NotebookIcon },
+  { to: "/olahraga", label: "Olahraga", icon: AnggarIcon },
+];
+
 const OLAHRAGA_NAV: NavItem[] = [
   { to: "/instrumen", label: "Panduan", icon: BookIcon },
   { to: "/olahraga/rencana", label: "Rencana", icon: DocIcon },
@@ -32,7 +41,7 @@ const MANAGEMENT_NAV_FULL: NavItem[] = [
   { to: "/capaian", label: "Capaian Santri", icon: CapaianIcon },
   { to: "/absen", label: "Absen Guru", icon: CalendarCheckIcon },
   { to: "/jurnal", label: "Daily Jurnal", icon: NotebookIcon },
-  { to: "/olahraga", label: "Rekap Olahraga", icon: WhistleIcon },
+  { to: "/olahraga", label: "Rekap Olahraga", icon: AnggarIcon },
   { to: "/sajian-data", label: "Sajian Data", icon: BarChartIcon },
 ];
 
@@ -40,6 +49,7 @@ const MANAGEMENT_NAV_FULL: NavItem[] = [
  *  Absen-nya ada di Menu Profil (HP) / hamburger (desktop), sama seperti guru kelas. */
 export function navItemsFor(role: "management" | "guru" | "olahraga" | null): NavItem[] {
   if (role === "olahraga") return OLAHRAGA_NAV;
+  if (role === "management") return MANAGEMENT_NAV;
   return GURU_NAV;
 }
 
@@ -160,17 +170,27 @@ export function BarChartIcon({ active }: { active?: boolean }) {
   );
 }
 
-export function WhistleIcon({ active }: { active?: boolean }) {
+/** Atlet anggar dalam sikap menusuk (lunge) -- ikon Rekap Olahraga. */
+export function AnggarIcon({ active }: { active?: boolean }) {
+  // Digambar dalam kotak 24 tetapi mengisi hampir penuh; dikecilkan supaya ukurannya sama dengan ikon lain (garis dikompensasi).
+  const t = (active ? 2.1 : 1.7) / 0.82;
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M13 8h7a1 1 0 0 1 1 1v1a6 6 0 1 1-8.5-5.4L13 8Z"
-        stroke="currentColor"
-        strokeWidth={active ? 2.1 : 1.7}
-        strokeLinejoin="round"
-      />
-      <circle cx="8.5" cy="13" r="2.5" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} />
-      <path d="M13 3.5h4" stroke="currentColor" strokeWidth={active ? 2.1 : 1.7} strokeLinecap="round" />
+      <g transform="translate(12 12) scale(0.82) translate(-12.4 -11.55)">
+      {/* kepala (bertopeng) */}
+      <circle cx="8.6" cy="4.6" r="2" stroke="currentColor" strokeWidth={t} />
+      {/* badan condong ke depan */}
+      <path d="M8.9 6.9 L10.6 13" stroke="currentColor" strokeWidth={t} strokeLinecap="round" />
+      {/* lengan depan memegang pedang lurus ke depan */}
+      <path d="M9.4 9 L15.2 8.3" stroke="currentColor" strokeWidth={t} strokeLinecap="round" />
+      <path d="M15.2 8.3 L22 7.1" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+      {/* lengan belakang terangkat */}
+      <path d="M9 8.8 L6 7.6 L4.8 5.2" stroke="currentColor" strokeWidth={t} strokeLinecap="round" strokeLinejoin="round" />
+      {/* kaki depan menekuk (lunge) */}
+      <path d="M10.6 13 L14.2 15.2 L14.2 20.5" stroke="currentColor" strokeWidth={t} strokeLinecap="round" strokeLinejoin="round" />
+      {/* kaki belakang lurus */}
+      <path d="M10.6 13 L6 17 L2.8 20" stroke="currentColor" strokeWidth={t} strokeLinecap="round" strokeLinejoin="round" />
+      </g>
     </svg>
   );
 }
