@@ -6,6 +6,7 @@ import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import { PageLoadingSkeleton } from "../components/Skeleton";
+import UnduhKehadiranBulan from "../components/UnduhKehadiranBulan";
 import { PickerCard } from "../components/PickerCard";
 import { RuleCard } from "../components/RuleCard";
 import { AbsenBulananTable } from "../components/AbsenBulananTable";
@@ -1126,6 +1127,15 @@ function ManagementAbsenSantri() {
         </h1>
         <p className="text-sm mt-1" style={{ color: C.muted }}>Kehadiran santri per minggu — semua kelas</p>
       </header>
+
+      <UnduhKehadiranBulan
+        judul="Unduh kehadiran per bulan"
+        keterangan="PDF daftar kehadiran tiap santri per kelas, lalu bagian olahraga di bawahnya, lengkap dengan keterangan tidak hadir."
+        onUnduh={async (y, m0) => {
+          const { unduhKehadiranBulanan } = await import("../lib/kehadiranSantriPdf");
+          await unduhKehadiranBulanan(y, m0, "gabungan");
+        }}
+      />
 
       <WeekNav
         label={labelRentangPekan(days)}

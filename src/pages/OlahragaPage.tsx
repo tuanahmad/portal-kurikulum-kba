@@ -12,6 +12,7 @@ import { useDraft } from "../lib/useDraft";
 import { RuleCard } from "../components/RuleCard";
 import { MonthGrid } from "../components/MonthGrid";
 import { PickerCard } from "../components/PickerCard";
+import UnduhKehadiranBulan from "../components/UnduhKehadiranBulan";
 import { bacaAbsenSantriOlahragaRentang, type BarisAbsenSantriOlahraga, bacaAbsenSantriOlahraga, simpanAbsenSantriOlahraga, entriBaru, sudahDiabsen, type AbsenHariOlahraga, type EntriSantriOlahraga } from "../lib/absenSantriOlahraga";
 import { AccentCard, BackButton } from "../components/PortalComponents";
 import {
@@ -1779,6 +1780,15 @@ function ManagementAbsenSantriOlahraga() {
         sub={atThisWeek ? "Pekan ini" : undefined}
         onPrev={() => setMonday(shiftWeek(monday, -1))}
         onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
+      />
+
+      <UnduhKehadiranBulan
+        judul="Unduh kehadiran per bulan"
+        keterangan="PDF daftar kehadiran tiap santri di olahraga, diurutkan per kelompok dan tingkat, lengkap dengan keterangan tidak hadir."
+        onUnduh={async (y, m0) => {
+          const { unduhKehadiranBulanan } = await import("../lib/kehadiranSantriPdf");
+          await unduhKehadiranBulanan(y, m0, "olahraga");
+        }}
       />
       {error && (
         <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
