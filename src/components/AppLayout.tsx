@@ -4,12 +4,14 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { ProfileMenu } from "./ProfileMenu";
+import { StatusKoneksi } from "./StatusKoneksi";
 
 /** Layout bersama untuk semua halaman setelah login: menu overlay di desktop, bottom tab di mobile/tablet. */
 export function AppLayout() {
   const { pathname } = useLocation();
   return (
     <>
+      <StatusKoneksi />
       <Sidebar />
       <ProfileMenu />
       <div key={pathname} className="halaman-masuk">

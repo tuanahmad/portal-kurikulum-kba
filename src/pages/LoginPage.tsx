@@ -23,7 +23,14 @@ export default function LoginPage() {
     setSubmitting(true);
     const { error } = await signIn(username, pin);
     setSubmitting(false);
-    if (error) setError("Username atau PIN salah. Coba lagi.");
+    if (error) {
+      // Gagal karena jaringan (bukan salah PIN): jangan membuat guru mengira PIN-nya salah.
+      setError(
+        /failed to fetch|networkerror|load failed|network request failed|aborted|timeout/i.test(error)
+          ? "Tidak ada sinyal. Login butuh sinyal; coba lagi di tempat yang sinyalnya lebih baik. Setelah berhasil masuk, aplikasi tetap bisa dibuka saat sinyal jelek."
+          : "Username atau PIN salah. Coba lagi."
+      );
+    }
   }
 
   return (

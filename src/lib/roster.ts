@@ -20,9 +20,49 @@ export function kelompokSantri(kelas: string, nama: string): "ikhwan" | "akhwat"
   return k === "ikhwan" || k === "akhwat" ? k : null;
 }
 
+// Salinan roster terakhir yang berhasil dimuat, disimpan di HP supaya halaman tetap punya daftar santri saat tanpa sinyal.
+// Hanya berisi nama santri yang memang boleh dilihat akun itu (hasil RLS); dihapus saat keluar akun.
+const KUNCI_SALINAN = "portal-roster:v1";
+
+function simpanSalinan(m: Record<string, string[]>, kel: Record<string, Record<string, string>>) {
+  try {
+    localStorage.setItem(KUNCI_SALINAN, JSON.stringify({ m, kel, t: Date.now() }));
+  } catch {
+    /* penyimpanan penuh / diblokir: abaikan */
+  }
+}
+
+/** Pakai salinan roster di HP (true kalau ada). Dipanggil saat mulai tanpa sinyal supaya halaman langsung punya daftar santri. */
+export function pakaiSalinanRoster(): boolean {
+  return pakaiSalinan();
+}
+
+function pakaiSalinan(): boolean {
+  try {
+    const raw = localStorage.getItem(KUNCI_SALINAN);
+    if (!raw) return false;
+    const d = JSON.parse(raw) as { m?: Record<string, string[]>; kel?: Record<string, Record<string, string>> };
+    if (!d.m) return false;
+    cache = d.m;
+    kelompokCache = d.kel ?? {};
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function kosongkanRoster() {
   cache = null;
   kelompokCache = null;
+}
+
+/** Keluar akun: buang juga salinan di HP (HP bisa dipakai bergantian). */
+export function hapusSalinanRoster() {
+  try {
+    localStorage.removeItem(KUNCI_SALINAN);
+  } catch {
+    /* abaikan */
+  }
 }
 
 /** Muat roster dari database. Tidak pernah melempar error: kalau gagal, cache lama (atau null) dibiarkan. */
@@ -43,7 +83,10 @@ export async function muatRoster(): Promise<void> {
     }
     cache = m;
     kelompokCache = kel;
+    simpanSalinan(m, kel);
   } catch {
-    /* gagal (jaringan/izin): biarkan, halaman memakai cadangan */
+    // Gagal (jaringan/izin): kalau belum ada daftar di memori, pakai salinan terakhir di HP; kalau juga tidak ada,
+    // halaman memakai cadangan.
+    if (!cache) pakaiSalinan();
   }
 }
