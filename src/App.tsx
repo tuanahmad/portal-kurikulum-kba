@@ -1,6 +1,7 @@
 import { FullPageSkeleton } from "./components/Skeleton";
 import { lazy, Suspense } from "react";
 import { ToastHost } from "./components/Toast";
+import { PerayaanHost } from "./components/Perayaan";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -151,6 +152,7 @@ export default function App() {
         </Routes>
         </Suspense>
         <ToastHost />
+        <PerayaanHost />
       </AuthProvider>
     </BrowserRouter>
   );

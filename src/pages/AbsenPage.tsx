@@ -1,5 +1,6 @@
 import { GagalMuat } from "../components/GagalMuat";
 import { toast } from "../components/Toast";
+import { rayakan } from "../components/Perayaan";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { C } from "../data";
@@ -262,6 +263,7 @@ function AbsenDayCard({
       setForm(saved);
       draft.clear();
       toast.sukses("Tersimpan");
+      rayakan("JOSJIS BOLO"); // kembang api + tulisan besar merah setelah absen tersimpan
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -918,6 +920,7 @@ function GuruAbsenSantri() {
       setBaseline(JSON.parse(JSON.stringify(form)));
       draft.clear();
       toast.sukses("Tersimpan");
+      rayakan("JOSJIS BOLO"); // kembang api + tulisan besar merah setelah absen tersimpan
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
