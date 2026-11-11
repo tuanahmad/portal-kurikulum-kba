@@ -1066,7 +1066,7 @@ function SantriSesiToggle({
 
 /* ═══════════════════════ Absen Santri — Management ═══════════════════════ */
 
-type TidakHadirEntry = { nama: string; sesi: "Pagi" | "Siang"; keterangan: string };
+type TidakHadirEntry = { nama: string; pagi: boolean; siang: boolean; ketPagi: string; ketSiang: string };
 type KelasAbsenStat = {
   kelas: string;
   hasData: boolean;
@@ -1080,14 +1080,17 @@ function computeAbsenSantriStats(rows: AbsenSantriRekapRow[], days: Date[]): Kel
     const perHari = days.map((date) => {
       const key = ymd(date);
       const rowsHari = rowsKelas.filter((r) => r.tanggal === key);
+      // Satu baris per santri (pagi dan/atau siang digabung dalam satu baris), supaya tiap nama terbaca sendiri.
       const tidakHadir: TidakHadirEntry[] = [];
       for (const r of rowsHari) {
-        if (r.status_pagi === "tidak_hadir") tidakHadir.push({ nama: r.nama_santri, sesi: "Pagi", keterangan: "" });
-        if (r.status_siang === "tidak_hadir") tidakHadir.push({ nama: r.nama_santri, sesi: "Siang", keterangan: "" });
+        const pagi = r.status_pagi === "tidak_hadir";
+        const siang = r.status_siang === "tidak_hadir";
+        if (pagi || siang) tidakHadir.push({ nama: r.nama_santri, pagi, siang, ketPagi: (r.keterangan_pagi ?? "").trim(), ketSiang: (r.keterangan_siang ?? "").trim() });
       }
+      tidakHadir.sort((a, b) => a.nama.localeCompare(b.nama));
       return { date, tidakHadir, adaData: rowsHari.length > 0 };
     });
-    const kejadianTidakHadir = perHari.reduce((sum, h) => sum + h.tidakHadir.length, 0);
+    const kejadianTidakHadir = perHari.reduce((sum, h) => sum + h.tidakHadir.reduce((n, t) => n + (t.pagi ? 1 : 0) + (t.siang ? 1 : 0), 0), 0);
     const hasData = rowsKelas.length > 0;
     return { kelas: name, hasData, kejadianTidakHadir, perHari };
   });
@@ -1209,14 +1212,25 @@ function ManagementAbsenSantri() {
                           ) : h.tidakHadir.length === 0 ? (
                             <p className="text-xs font-medium" style={{ color: C.green }}>Semua santri hadir</p>
                           ) : (
-                            <p className="text-xs" style={{ color: C.ink }}>
-                              {h.tidakHadir.map((t, i) => (
-                                <span key={i}>
-                                  {i > 0 && ", "}
-                                  {t.nama} <span style={{ color: C.muted }}>({t.sesi})</span>
-                                </span>
+                            <ul className="space-y-2">
+                              {h.tidakHadir.map((t) => (
+                                <li key={t.nama} className="rounded-xl px-3 py-2" style={{ background: "#FDF3F2", border: "1px solid #F1CFCB" }}>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="text-sm font-semibold" style={{ color: C.ink }}>{t.nama}</span>
+                                    <span className="flex gap-1 shrink-0">
+                                      {t.pagi && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#FFF", color: "#9F240B", border: "1px solid #E8A6A0" }}>Pagi</span>}
+                                      {t.siang && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#FFF", color: "#9F240B", border: "1px solid #E8A6A0" }}>Siang</span>}
+                                    </span>
+                                  </div>
+                                  {(t.ketPagi || t.ketSiang) && (
+                                    <div className="mt-1 text-xs leading-relaxed" style={{ color: C.muted }}>
+                                      {t.ketPagi && <div>{t.pagi && t.siang ? "Pagi: " : ""}{t.ketPagi}</div>}
+                                      {t.ketSiang && <div>{t.pagi && t.siang ? "Siang: " : ""}{t.ketSiang}</div>}
+                                    </div>
+                                  )}
+                                </li>
                               ))}
-                            </p>
+                            </ul>
                           )}
                         </div>
                       </div>

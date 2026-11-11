@@ -109,6 +109,7 @@ export async function deleteTasmiRecord(id: string): Promise<void> {
 }
 
 export type TasmiRekapRow = {
+  id: string;
   kelas: string;
   nama_santri: string;
   juz: string;
@@ -124,7 +125,7 @@ export type TasmiRekapRow = {
 export async function readTasmiRekapTahun(year: number): Promise<TasmiRekapRow[]> {
   const { data, error } = await supabase
     .from("tasmi_records")
-    .select("kelas, nama_santri, juz, nama_guru, jumlah_kesalahan, tanggal")
+    .select("id, kelas, nama_santri, juz, nama_guru, jumlah_kesalahan, tanggal")
     .gte("tanggal", `${year}-01-01`)
     .lte("tanggal", `${year}-12-31`)
     .order("tanggal", { ascending: true });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { C, KELAS_LIST } from "../data";
+import { C, KELAS_LIST, jenjangOf } from "../data";
 import { PageLoadingSkeleton } from "./Skeleton";
 import {
   readJurnalHari,
@@ -42,6 +42,28 @@ function ArrowBtn({ dir, disabled, onClick }: { dir: "prev" | "next"; disabled?:
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ transform: dir === "next" ? "rotate(180deg)" : "none" }}>
         <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
+    </button>
+  );
+}
+
+const JENJANG_JURNAL = ["Kuttab Awwal", "Qonuni"] as const;
+
+/** Tombol unduh PDF jurnal sebulan (ikon + "PDF"), kecil supaya tidak berulang besar di tiap guru. */
+function TombolPdf({ onClick, sibuk, bulan }: { onClick: () => void; sibuk: boolean; bulan: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={sibuk}
+      title={`Download PDF jurnal ${bulan}`}
+      aria-label={`Download PDF jurnal ${bulan}`}
+      className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-full active:scale-95 transition-transform"
+      style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}`, opacity: sibuk ? 0.6 : 1 }}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {sibuk ? "…" : "PDF"}
     </button>
   );
 }
@@ -127,67 +149,88 @@ export default function JurnalPerHari() {
 
       {items && (
         <>
-          <p className="mt-4 text-xs px-1" style={{ color: C.muted }}>
-            <span className="font-semibold" style={{ color: C.ink }}>{terisi}</span> dari{" "}
-            <span className="font-semibold" style={{ color: C.ink }}>{items.length}</span> guru sudah mengisi jurnal pada hari ini.
-          </p>
-          <div className="mt-3 space-y-3">
-            {items.map((it) => {
-              const isi = isEntryFilled(it.entry);
-              return (
-                <article key={it.userId} className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold"
-                      style={{ background: isi ? C.green : C.leaf, color: isi ? "#FFF" : C.green }}
-                    >
-                      {(it.nama || it.kelas).trim().charAt(0).toUpperCase()}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold truncate" style={{ color: C.ink }}>{it.nama}</div>
-                      <div className="text-xs truncate" style={{ color: C.muted }}>{it.kelas}</div>
-                    </div>
-                    <span
-                      className="text-[10px] font-semibold px-2.5 py-1 rounded-full shrink-0"
-                      style={isi ? { background: C.leaf, color: C.green, border: `1px solid ${C.green}` } : { background: "#F4F1EC", color: C.muted }}
-                    >
-                      {isi ? "Terisi" : "Belum mengisi"}
-                    </span>
-                  </div>
-
-                  {isi && (
-                    <div className="mt-3 space-y-3">
-                      {PERTANYAAN_JURNAL.map((q) => {
-                        const v = (it.entry as NonNullable<typeof it.entry>)[q.key]?.trim();
-                        return (
-                          <div key={q.key}>
-                            <div className="text-[11px] font-semibold leading-snug" style={{ color: C.green }}>{q.label}</div>
-                            <div className="mt-0.5 text-sm leading-relaxed whitespace-pre-wrap break-words" style={{ color: v ? C.ink : C.muted }}>
-                              {v || "—"}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  <div className="mt-3 pt-3 flex justify-end" style={{ borderTop: `1px solid ${C.line}` }}>
-                    <button
-                      onClick={() => unduhPdf(it)}
-                      disabled={pdfBusy === it.userId}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors hover:opacity-80"
-                      style={{ background: C.leaf, color: C.green, border: `1px solid ${C.green}`, opacity: pdfBusy === it.userId ? 0.6 : 1 }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      {pdfBusy === it.userId ? "Menyiapkan…" : `Download PDF ${NAMA_BULAN[tgl.getMonth()]}`}
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
+          <div className="mt-4 grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-xl py-2.5" style={{ background: C.leaf }}>
+              <div className="text-2xl font-semibold leading-none" style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>{terisi}</div>
+              <div className="text-[11px] mt-1" style={{ color: C.muted }}>sudah mengisi</div>
+            </div>
+            <div className="rounded-xl py-2.5" style={{ background: items.length - terisi > 0 ? "#FDEBEA" : C.leaf }}>
+              <div className="text-2xl font-semibold leading-none" style={{ color: items.length - terisi > 0 ? "#9F240B" : C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>{items.length - terisi}</div>
+              <div className="text-[11px] mt-1" style={{ color: C.muted }}>belum mengisi</div>
+            </div>
           </div>
+
+          {/* Sudah mengisi: isi jurnal ditampilkan penuh, dikelompokkan per jenjang */}
+          {JENJANG_JURNAL.map((j) => {
+            const daftar = items.filter((it) => isEntryFilled(it.entry) && jenjangOf(it.kelas) === j);
+            if (!daftar.length) return null;
+            return (
+              <section key={`isi-${j}`} className="mt-5">
+                <h2 className="text-sm font-bold mb-2" style={{ color: C.green }}>{j} · {daftar.length} sudah mengisi</h2>
+                <div className="space-y-3">
+                  {daftar.map((it) => (
+                    <article key={it.userId} className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                      <div className="flex items-center gap-3">
+                        <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold" style={{ background: C.green, color: "#FFF" }}>
+                          {(it.nama || it.kelas).trim().charAt(0).toUpperCase()}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold truncate" style={{ color: C.ink }}>{it.nama}</div>
+                          <div className="text-xs truncate" style={{ color: C.muted }}>{it.kelas}</div>
+                        </div>
+                        <TombolPdf onClick={() => unduhPdf(it)} sibuk={pdfBusy === it.userId} bulan={NAMA_BULAN[tgl.getMonth()]} />
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        {PERTANYAAN_JURNAL.map((q) => {
+                          const v = (it.entry as NonNullable<typeof it.entry>)[q.key]?.trim();
+                          return (
+                            <div key={q.key} className="rounded-xl px-3 py-2" style={{ background: C.mist }}>
+                              <div className="text-[11px] font-bold leading-snug" style={{ color: C.green }}>{q.label}</div>
+                              <div className="mt-1 text-sm leading-relaxed whitespace-pre-wrap break-words" style={{ color: v ? C.ink : C.muted }}>
+                                {v || "—"}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+
+          {/* Belum mengisi: daftar ringkas per jenjang (nama + kelas), tanpa kartu besar */}
+          {items.length - terisi > 0 && (
+            <section className="mt-6">
+              <h2 className="text-sm font-bold mb-2" style={{ color: "#9F240B" }}>Belum mengisi · {items.length - terisi}</h2>
+              <div className="space-y-3">
+                {JENJANG_JURNAL.map((j) => {
+                  const daftar = items.filter((it) => !isEntryFilled(it.entry) && jenjangOf(it.kelas) === j);
+                  if (!daftar.length) return null;
+                  return (
+                    <div key={`kosong-${j}`}>
+                      <div className="text-xs font-semibold mb-1" style={{ color: C.muted }}>{j} · {daftar.length} kelas</div>
+                      <ul className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                        {daftar.map((it, i) => (
+                          <li key={it.userId} className="flex items-center gap-3 px-3.5 py-2.5" style={{ borderTop: i ? `1px solid ${C.line}` : undefined }}>
+                            <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold" style={{ background: "#FDEBEA", color: "#9F240B" }}>
+                              {(it.nama || it.kelas).trim().charAt(0).toUpperCase()}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-semibold truncate" style={{ color: C.ink }}>{it.nama}</div>
+                              <div className="text-xs truncate" style={{ color: C.muted }}>{it.kelas}</div>
+                            </div>
+                            <TombolPdf onClick={() => unduhPdf(it)} sibuk={pdfBusy === it.userId} bulan={NAMA_BULAN[tgl.getMonth()]} />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </>
       )}
     </main>

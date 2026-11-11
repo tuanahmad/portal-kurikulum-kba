@@ -99,6 +99,8 @@ export type AbsenSantriRekapRow = {
   nama_santri: string;
   status_pagi: SantriStatus;
   status_siang: SantriStatus;
+  keterangan_pagi?: string | null;
+  keterangan_siang?: string | null;
 };
 
 /** Rekap SEMUA kelas 1 rentang tanggal (biasanya 1 pekan, Senin-Jumat) sekaligus -- buat rekap
@@ -107,7 +109,7 @@ export type AbsenSantriRekapRow = {
 export async function readAbsenSantriRekapRentang(fromYmd: string, toYmd: string): Promise<AbsenSantriRekapRow[]> {
   const { data, error } = await supabase
     .from("absen_santri")
-    .select("kelas, tanggal, nama_santri, status_pagi, status_siang")
+    .select("kelas, tanggal, nama_santri, status_pagi, status_siang, keterangan_pagi, keterangan_siang")
     .gte("tanggal", fromYmd)
     .lte("tanggal", toYmd);
   if (error) throw new Error(error.message);

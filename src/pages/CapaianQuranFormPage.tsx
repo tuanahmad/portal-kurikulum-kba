@@ -4,7 +4,7 @@ import { isianSama } from "../lib/jaringan";
 import { EmptyState } from "../components/EmptyState";
 import { toast } from "../components/Toast";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { C, capaianQuranFileId, capaianRoster, isMonthOpen, sheetUrl, tanggalSlot, rentangPekan, slotUntukTanggal, pekanGridCount, slotsDiPekan, pekanUntukSlot, polaGridBulan } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -249,6 +249,23 @@ export default function CapaianQuranFormPage() {
             <p className="text-sm" style={{ color: C.muted }}>{kelas}</p>
           </div>
         </div>
+
+        {/* Management: rekap tasmi' semua kelas ada di sini (bagian dari Capaian Al-Qur'an) */}
+        {!isGuru && (
+          <Link
+            to="/capaian/tasmi-rekap"
+            className="mt-5 flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
+            style={{ background: C.leaf, border: `1px solid ${C.green}` }}
+          >
+            <div>
+              <div className="text-sm font-bold" style={{ color: C.green }}>Rekap Tasmi' Tahunan</div>
+              <div className="text-xs mt-0.5" style={{ color: C.muted }}>Santri yang sudah tasmi' tiap kelas, kelas yang belum, dan unduh Syahadah</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ color: C.green, flexShrink: 0 }}>
+              <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
+        )}
 
         <div className="mt-6 space-y-6">
           {/* Langkah 1 — Bulan */}

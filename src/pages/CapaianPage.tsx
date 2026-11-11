@@ -70,20 +70,6 @@ function ManagementCapaian() {
           </p>
         </header>
 
-        <Link
-          to="/capaian/tasmi-rekap"
-          className="mt-6 flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
-          style={{ background: C.leaf, border: `1px solid ${C.green}` }}
-        >
-          <div>
-            <div className="text-sm font-bold" style={{ color: C.green }}>Rekap Tasmi' Tahunan</div>
-            <div className="text-xs mt-0.5" style={{ color: C.muted }}>Rata² juz &amp; kelas yang belum tasmi' per tahun — semua kelas</div>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ color: C.green, flexShrink: 0 }}>
-            <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Link>
-
         <div className="mt-6">
           <PickerCard
             items={KELAS_LIST.map((k) => ({ label: k.name }))}
