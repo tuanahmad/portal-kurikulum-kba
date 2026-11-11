@@ -452,7 +452,7 @@ export function RpbRekap({ data, kelas, namaGuru }: { data: RpbTabData; kelas: s
 
       {quranTerisi.length > 0 && (
         <div>
-          <SectionBar no="D" title="Rencana Al-Qur'an per Santri" subtitle={`${quranTerisi.length} santri`} />
+          <SectionBar no="D" title="Rencana Al-Qur'an Santri" subtitle={`${quranTerisi.length} santri`} />
           <div className="mt-3 space-y-3">
             {quranTerisi.map((q, n) => (
               <RekapAccordion key={n} badge={String(n + 1)} title={q.nama}>
@@ -717,15 +717,10 @@ function InfoValue({ label, value, large }: { label: string; value: string; larg
   );
 }
 
-function SectionBar({ no, title, subtitle }: { no: string; title: string; subtitle?: string }) {
+/** Judul bagian. Huruf urutan (A, B, C, ...) sengaja tidak ditampilkan supaya tampilan bersih; `no` tetap diterima agar pemanggil lama valid. */
+function SectionBar({ title, subtitle }: { no?: string; title: string; subtitle?: string }) {
   return (
-    <div className="flex items-center gap-3 px-1">
-      <span
-        className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-        style={{ background: C.leaf, color: C.green, fontFamily: "Georgia, serif" }}
-      >
-        {no}
-      </span>
+    <div className="px-1">
       <div className="min-w-0">
         <div className="text-sm font-bold uppercase tracking-[0.1em]" style={{ color: C.green }}>{title}</div>
         {subtitle && <div className="text-xs" style={{ color: C.muted }}>{subtitle}</div>}
