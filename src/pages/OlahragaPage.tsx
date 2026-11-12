@@ -1505,6 +1505,14 @@ function ManagementJurnalOlahraga() {
             onPrev={() => setMonday(shiftWeek(monday, -1))}
             onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
           />
+          <UnduhKehadiranBulan
+            judul="Unduh jurnal per bulan"
+            keterangan={`PDF jurnal guru olahraga ${KELOMPOK_LABEL[kelompok]} selama satu bulan (Senin-Rabu).`}
+            onUnduh={async (y, m0) => {
+              const { unduhJurnalOlahragaBulanan } = await import("../lib/olahragaPdf");
+              await unduhJurnalOlahragaBulanan(y, m0, kelompok, nama ?? `Guru Olahraga ${KELOMPOK_LABEL[kelompok]}`);
+            }}
+          />
           {error && (
             <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
               {error}
@@ -1901,6 +1909,14 @@ function ManagementAbsenOlahraga() {
         onNext={atThisWeek ? undefined : () => setMonday(shiftWeek(monday, 1))}
       />
 
+      <UnduhKehadiranBulan
+        judul="Unduh absen guru per bulan"
+        keterangan="PDF absen guru olahraga (Ikhwan dan Akhwat) selama satu bulan, lengkap dengan keterangan."
+        onUnduh={async (y, m0) => {
+          const { unduhAbsenGuruOlahragaBulanan } = await import("../lib/olahragaPdf");
+          await unduhAbsenGuruOlahragaBulanan(y, m0);
+        }}
+      />
       {error && (
         <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
           {error}

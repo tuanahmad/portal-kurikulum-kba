@@ -27,13 +27,13 @@ function bersih(s: unknown): string {
 }
 
 /** Semua hari kerja (Senin-Jumat) di bulan itu + tanggal akhir pekan yang kebetulan punya isian. */
-function hariUntukBulan(year: number, month0: number, entries: Record<string, JurnalEntry>): Date[] {
+function hariUntukBulan(year: number, month0: number, entries: Record<string, JurnalEntry>, hariKerja: number[] = [1, 2, 3, 4, 5]): Date[] {
   const out: Date[] = [];
   const d = new Date(year, month0, 1);
   while (d.getMonth() === month0) {
     const dow = d.getDay();
     const key = ymd(d);
-    if ((dow >= 1 && dow <= 5) || isEntryFilled(entries[key])) out.push(new Date(d));
+    if (hariKerja.includes(dow) || isEntryFilled(entries[key])) out.push(new Date(d));
     d.setDate(d.getDate() + 1);
   }
   return out;
@@ -50,6 +50,8 @@ export async function buatPdfJurnalBulanan(p: {
   year: number;
   month0: number;
   entries: Record<string, JurnalEntry>;
+  /** Hari kerja (0=Minggu..6); bawaan Senin-Jumat. Guru olahraga: [1,2,3]. */
+  hariKerja?: number[];
 }): Promise<{ doc: any; fileName: string }> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -94,7 +96,7 @@ export async function buatPdfJurnalBulanan(p: {
   y += 3;
 
   // ── Isi per hari ──
-  const hari = hariUntukBulan(p.year, p.month0, p.entries);
+  const hari = hariUntukBulan(p.year, p.month0, p.entries, p.hariKerja);
   for (const d of hari) {
     const e = p.entries[ymd(d)];
     const judulHari = `${labelHari(d)}, ${labelTanggal(d)}`;
