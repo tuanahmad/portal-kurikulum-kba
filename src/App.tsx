@@ -27,6 +27,7 @@ const TasmiSertifikatPage = lazy(() => import("./pages/TasmiSertifikatPage"));
 import { SERTIFIKAT_TASMI_AKTIF } from "./data";
 const TasmiRekapPage = lazy(() => import("./pages/TasmiRekapPage"));
 const SajianDataPage = lazy(() => import("./pages/SajianDataPage"));
+const KalenderPage = lazy(() => import("./pages/KalenderPage"));
 
 export default function App() {
   return (
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="/capaian" element={<CapaianPage />} />
             <Route path="/absen" element={<AbsenPage />} />
             <Route path="/jurnal" element={<JurnalPage />} />
+            <Route path="/kalender" element={<KalenderPage />} />
             <Route
               path="/sajian-data"
               element={

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { C, getGreeting, KELAS_LIST } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { readTodayStatus, readStatusGuru, readStatusOlahraga, type TodayStatus, type StatusGuruHariIni, type StatusOlahraga } from "../lib/dashboardStatus";
-import { labelHari, labelTanggal } from "../lib/jurnal";
+import { labelHari, labelTanggal, ymd, NAMA_BULAN } from "../lib/jurnal";
 import {
   NotebookIcon as NotebookIconOutline,
   CalendarCheckIcon as CalendarCheckIconOutline,
@@ -13,6 +13,8 @@ import {
 } from "../components/navIcons";
 import { KartuGeser, type SlideKartu, type Nada } from "../components/KartuGeser";
 import { bacaNamaGuruKelas } from "../lib/namaGuru";
+import { bacaAcara, acaraPadaTanggal, type Acara } from "../lib/kalender";
+import { pengingatRutin } from "../lib/pengingat";
 
 export default function HomePage() {
   const { role, kelas, fullName } = useAuth();
@@ -76,11 +78,84 @@ export default function HomePage() {
 
         {role === "guru" ? <GuruMenu /> : role === "olahraga" ? <OlahragaMenu /> : <ManagementMenu />}
 
+        <KartuKalender />
+
         <footer className="mt-10 text-center text-xs" style={{ color: C.muted }}>
           <p className="font-semibold" style={{ color: C.green }}>Kuttab Budi Ashari</p>
         </footer>
       </div>
     </div>
+  );
+}
+
+/** Kartu kalender di paling bawah Beranda, selebar dua kartu menu: kiri judul, kanan kalender bulan ini (titik = ada acara).
+ *  Ketuk untuk membuka kalender penuh. */
+function KartuKalender() {
+  const { role } = useAuth();
+  const sekarang = new Date();
+  const th = sekarang.getFullYear();
+  const bl = sekarang.getMonth();
+  const hariIni = ymd(sekarang);
+  const [acara, setAcara] = useState<Acara[]>([]);
+  useEffect(() => {
+    let batal = false;
+    bacaAcara(ymd(new Date(th, bl, 1)), ymd(new Date(th, bl + 1, 0))).then((a) => !batal && setAcara(a)).catch(() => {});
+    return () => {
+      batal = true;
+    };
+  }, [th, bl]);
+
+  const geser = (new Date(th, bl, 1).getDay() + 6) % 7; // Senin di kolom pertama
+  const jumlah = new Date(th, bl + 1, 0).getDate();
+  const sel: (number | null)[] = [...Array(geser).fill(null), ...Array.from({ length: jumlah }, (_, i) => i + 1)];
+  const libur = (d: number) => acara.some((a) => a.jenis === "libur" && acaraPadaTanggal(a, ymd(new Date(th, bl, d))));
+  const ada = (d: number) =>
+    acara.some((a) => acaraPadaTanggal(a, ymd(new Date(th, bl, d)))) || ((role === "guru" || role === "management") && pengingatRutin(new Date(th, bl, d)).length > 0);
+
+  return (
+    <Link
+      to="/kalender"
+      aria-label={`Kalender ${NAMA_BULAN[bl]} ${th}`}
+      className="kartu-muncul group relative overflow-hidden mt-3 sm:mt-5 rounded-2xl p-3.5 sm:p-5 flex items-center gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2"
+      style={{ background: lembut("linear-gradient(135deg, #3B6EA5 0%, #274C74 100%)"), boxShadow: "0 4px 14px rgba(28,74,51,0.14), inset 0 0 0 1px rgba(255,255,255,0.28)", "--tw-ring-color": C.gold } as any}
+    >
+      <span className="absolute -left-6 -top-6 w-24 h-24 sm:w-28 sm:h-28 rounded-full transition-transform duration-500 group-hover:scale-125" style={{ background: "rgba(255,255,255,0.08)" }} aria-hidden="true" />
+      <div className="relative flex-1 min-w-0 self-stretch flex flex-col justify-between">
+        <span className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.16)" }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3.5" y="5" width="17" height="15" rx="2.5" stroke="#FFF" strokeWidth="1.7" />
+            <path d="M3.5 10h17M8 3.5v3M16 3.5v3" stroke="#FFF" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
+        </span>
+        <div className="mt-3">
+          <span className="font-semibold text-white block text-[15px] sm:text-lg leading-snug">Kalender</span>
+        </div>
+      </div>
+      <div className="relative shrink-0 w-[58%] max-w-[250px] rounded-xl p-2" style={{ background: "rgba(255,255,255,0.14)" }}>
+        <div className="text-center text-[11px] font-semibold text-white mb-1">{NAMA_BULAN[bl]} {th}</div>
+        <div className="grid grid-cols-7 gap-y-0.5 text-center text-[9px] sm:text-[10px] text-white/70">
+          {["S", "S", "R", "K", "J", "S", "A"].map((h, i) => <span key={i}>{h}</span>)}
+          {sel.map((d, i) =>
+            d === null ? (
+              <span key={i} />
+            ) : (
+              <span
+                key={i}
+                className="relative mx-auto w-[18px] h-[18px] sm:w-5 sm:h-5 flex items-center justify-center rounded-full font-semibold"
+                style={{
+                  color: libur(d) ? "#FFB4AB" : "#FFF",
+                  background: ymd(new Date(th, bl, d)) === hariIni ? "rgba(255,255,255,0.3)" : "transparent",
+                  boxShadow: ymd(new Date(th, bl, d)) === hariIni ? "inset 0 0 0 1.5px #FFF" : undefined,
+                }}
+              >
+                {d}
+                {ada(d) && <span className="absolute -bottom-0.5 w-1 h-1 rounded-full" style={{ background: libur(d) ? "#FF8A7A" : C.gold }} />}
+              </span>
+            )
+          )}
+        </div>
+      </div>
+    </Link>
   );
 }
 

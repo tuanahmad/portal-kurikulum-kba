@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { ramahkanGalat } from "./jaringan";
+import { tanggalLibur } from "./kalender";
 import { KELAS_LIST, capaianRoster, olahragaRoster } from "../data";
 import { TINGKAT_LIST, KELOMPOK_LABEL, type OlahragaKelompok } from "./olahraga";
 import { bacaAbsenSantriOlahragaRentang } from "./absenSantriOlahraga";
@@ -18,13 +19,14 @@ export type GrupKehadiran = { judul: string; baris: BarisKehadiran[]; seharusnya
 /** Hari efektif bulan itu: hari sekolah (hari-hari dalam pekan yang diberikan) dari tanggal 1 sampai hari ini (bulan
  *  berjalan) atau akhir bulan. Hari yang TIDAK ADA satu pun catatan absen dianggap libur dan tidak dihitung: aplikasi
  *  belum punya kalender libur. Kalau dikosongkan semua guru pada hari sekolah, hari itu ikut terhitung libur. */
-export function hariEfektif(y: number, m0: number, hariSekolah: number[], tanggalAdaCatatan: Set<string>, hariIni = new Date()): number {
+export function hariEfektif(y: number, m0: number, hariSekolah: number[], tanggalAdaCatatan: Set<string>, hariIni = new Date(), libur: Set<string> = new Set()): number {
   const batas = new Date(y, m0 + 1, 0).getDate();
   let n = 0;
   for (let d = 1; d <= batas; d++) {
     const tgl = new Date(y, m0, d);
     if (tgl > hariIni) break;
-    if (hariSekolah.includes(tgl.getDay()) && tanggalAdaCatatan.has(`${y}-${pad(m0 + 1)}-${pad(d)}`)) n++;
+    const kunci = `${y}-${pad(m0 + 1)}-${pad(d)}`;
+    if (hariSekolah.includes(tgl.getDay()) && tanggalAdaCatatan.has(kunci) && !libur.has(kunci)) n++;
   }
   return n;
 }
@@ -78,7 +80,8 @@ const kosongKelas = (nama: string): BarisKehadiran => ({ nama, hadir: 0, tidak: 
 export async function kehadiranKelasBulan(y: number, m0: number): Promise<GrupKehadiran[]> {
   const rows = await bacaAbsenKelasBulan(awalBulan(y, m0), akhirBulan(y, m0));
   // Senin-Jumat, 2 sesi per hari (pagi + siang).
-  const seharusnya = hariEfektif(y, m0, [1, 2, 3, 4, 5], new Set(rows.map((r) => r.tanggal))) * 2;
+  const libur = await tanggalLibur(awalBulan(y, m0), akhirBulan(y, m0)).catch(() => new Set<string>());
+  const seharusnya = hariEfektif(y, m0, [1, 2, 3, 4, 5], new Set(rows.map((r) => r.tanggal)), new Date(), libur) * 2;
   return KELAS_LIST.map(({ name }) => {
     const peta = new Map<string, BarisKehadiran>();
     for (const r of rows.filter((x) => x.kelas === name)) {
@@ -107,9 +110,10 @@ export async function kehadiranOlahragaBulan(y: number, m0: number): Promise<Gru
   // Hari sekolah diambil dari absen KELAS (diisi semua guru kelas), bukan dari guru olahraga: kalau guru olahraga belum
   // mengisi sama sekali, pertemuan yang seharusnya tetap terhitung. Catatan olahraga ikut ditambahkan (jaga-jaga).
   const hariSekolah = new Set<string>([...(await bacaAbsenKelasBulan(awalBulan(y, m0), akhirBulan(y, m0))).map((r) => r.tanggal), ...rows.map((r) => r.tanggal)]);
+  const libur = await tanggalLibur(awalBulan(y, m0), akhirBulan(y, m0)).catch(() => new Set<string>());
   return kelompok.flatMap((k) => {
     // Olahraga Senin-Rabu.
-    const seharusnya = hariEfektif(y, m0, [1, 2, 3], hariSekolah);
+    const seharusnya = hariEfektif(y, m0, [1, 2, 3], hariSekolah, new Date(), libur);
     return TINGKAT_LIST.map((t) => {
       const peta = new Map<string, BarisKehadiran>();
       for (const r of rows.filter((x) => x.kelompok === k && x.tingkat === t)) {

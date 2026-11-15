@@ -63,6 +63,13 @@ export const RPB_FILES = [
   { id: "1_hXCdGZcnqz7OlV7egvpXZuO0VNU0w908r0senMbaus", name: "Oktober" },
   { id: "1__E6lEwrxZFIKrnDvGqWWthvUGGO4mleW1S_MjP1Hf4", name: "November" },
   { id: "1-LOGnWYGRyyak1PZDoLMtdPQawWpkd9Cy4yACY4hj6A", name: "Desember" },
+  // Januari-Juni 2027: salinan kerangka kosong dari Desember (dibuat 2026-11-15), terkunci sampai bulannya tiba.
+  { id: "1JbMZY6AVuaF3COYhahJfzCB7YzhyFqw4y-F5a5Mp-Bo", name: "Januari" },
+  { id: "1g5MEdkzTj23QUo0xUeYH0iw_XU7oCyqUCBI9MtjSqE8", name: "Februari" },
+  { id: "11fw_rWILLdewaAZhIuZ2tPKEUg_C-xDMqeFAM-W9J28", name: "Maret" },
+  { id: "1NvC3BX3bNguEJoCNkjqECbJyeWQ07OAfWgy0istGKxQ", name: "April" },
+  { id: "17j3soc1oXR8XkILJLpeIRJdPBfCzb_ZkhBdkQ_BP75k", name: "Mei" },
+  { id: "1c1JE2tQKRn2M5stHGTlVJj7tcEVAcPPmDgt-Fx65Xr4", name: "Juni" },
 ];
 
 // Refleksi (RefleksiFormPage) — sama kayak RPB, semua bulan sekarang nunjuk ke dokumen Sheets
@@ -74,6 +81,13 @@ export const REFLEKSI_FILES: { id: string; name: string }[] = [
   { id: "1gpDtKnA-f33YD807ozYNiBAgoT0TbxLkhZ-ifa14R3c", name: "Oktober" },
   { id: "1TrqfwZD-2gIDwI98dUv3SPM_GDCEs05QUZ_EkmSNl-Y", name: "November" },
   { id: "1oAiOtf94lFdGHYn_OdSmC_yCnls2m10SwZlhSKiCrJk", name: "Desember" },
+  // Januari-Juni 2027: salinan kerangka kosong dari Desember (dibuat 2026-11-15).
+  { id: "1yZmfL9A89bk9aZAsJjddUSqT1Jpt_5OiknIMGjzebrU", name: "Januari" },
+  { id: "13I7UJ3KdZnSPRbbUOfLnOS4nmh5aplo3U44Vp4AAWzg", name: "Februari" },
+  { id: "1jXV9ulRgC5SXBNxWkqb4f0aWqpurnQ2-8BBNjTIQ-xk", name: "Maret" },
+  { id: "10ivfzEkhL0KIs9EmXZrPPQroVs-kFoxZ8NkmpKIIAF0", name: "April" },
+  { id: "1O-rMV4S89WKvg1C2CR0tpnzZPXMqGPKMIdIm-Rr-y0Q", name: "Mei" },
+  { id: "1J5xViH4qeoFGnfEKBKOvw63pLouW6QUFt8b0tKnjaZ0", name: "Juni" },
 ];
 
 /** Roster buat Capaian Al-Qur'an — per kelas (1A & 1B dipisah, guru & sheet-nya beda). */
