@@ -5,6 +5,14 @@ import { type AbsenStatus } from "./absen";
 export type OlahragaTingkat = "KA 1" | "KA 2" | "KA 3";
 export const TINGKAT_LIST: OlahragaTingkat[] = ["KA 1", "KA 2", "KA 3"];
 
+/** Jadwal olahraga: tiap tingkat punya SATU hari dalam sepekan (0 = Minggu ... 6 = Sabtu): KA 1 Senin, KA 2 Selasa, KA 3 Rabu. */
+export const HARI_TINGKAT: Record<OlahragaTingkat, number> = { "KA 1": 1, "KA 2": 2, "KA 3": 3 };
+
+/** Tingkat yang berolahraga pada tanggal itu (null kalau bukan hari olahraga). */
+export function tingkatPadaTanggal(d: Date): OlahragaTingkat | null {
+  return TINGKAT_LIST.find((t) => HARI_TINGKAT[t] === d.getDay()) ?? null;
+}
+
 // Tahun ajaran Juli–Desember (samakan dgn fitur lain).
 export const BULAN_OLAHRAGA = [
   "Juli",

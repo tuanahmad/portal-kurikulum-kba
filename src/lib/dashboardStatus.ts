@@ -6,7 +6,7 @@ import { readRpbTab, susunRencanaQuran, angkaTargetQuran, type RpbTabData } from
 import { readReflectionTab, type ReflectionData } from "./refleksiSheet";
 import { readCapaianQuran } from "./capaianQuranSheet";
 import { readAbsenSantriDay } from "./absenSantri";
-import { readAbsenOlahragaRange, isAbsenOlahragaFilled, readOlahragaBulan, isRencanaFilled, readEvaluasiAnak, isEvalAnakFilled, TINGKAT_LIST, type OlahragaKelompok } from "./olahraga";
+import { readAbsenOlahragaRange, isAbsenOlahragaFilled, readOlahragaBulan, isRencanaFilled, readEvaluasiAnak, isEvalAnakFilled, TINGKAT_LIST, tingkatPadaTanggal, type OlahragaKelompok } from "./olahraga";
 import { olahragaRoster } from "../data";
 import { bacaAbsenSantriOlahraga, sudahDiabsen } from "./absenSantriOlahraga";
 
@@ -161,8 +161,8 @@ export async function readStatusOlahraga(userId: string, kelompok: OlahragaKelom
     bulan,
     jurnal: j.status === "fulfilled" ? isEntryFilled(j.value[today]) : null,
     absen: a.status === "fulfilled" ? isAbsenOlahragaFilled(a.value[today]) : null,
-    // absen santri dianggap lengkap kalau SEMUA tingkat yang punya santri sudah diabsen hari ini
-    absenSantri: as.status === "fulfilled" ? TINGKAT_LIST.filter((t) => olahragaRoster(t, kelompok).length > 0).every((t) => sudahDiabsen(as.value, t)) : null,
+    // absen santri dianggap lengkap kalau tingkat yang dijadwalkan HARI INI (Senin KA 1, Selasa KA 2, Rabu KA 3) sudah diabsen
+    absenSantri: as.status === "fulfilled" ? TINGKAT_LIST.filter((t) => t === tingkatPadaTanggal(now) && olahragaRoster(t, kelompok).length > 0).every((t) => sudahDiabsen(as.value, t)) : null,
     rencana: r.status === "fulfilled" ? { terisi: TINGKAT_LIST.filter((t) => isRencanaFilled(r.value[t])).length, total: TINGKAT_LIST.length } : null,
     evaluasi:
       e.status === "fulfilled"

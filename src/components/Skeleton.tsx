@@ -10,21 +10,19 @@ export function SkeletonBlock({ className = "", style = {} }: { className?: stri
 }
 
 /** Skeleton satu halaman penuh: dipakai selagi cek sesi login (ProtectedRoute) */
+/** Layar muat satu halaman penuh: sama dengan layar pembuka di index.html (latar polos, logo di tengah, berdetak) supaya
+ *  perpindahan dari layar pembuka ke halaman berikutnya tidak berganti rupa. */
 export function FullPageSkeleton() {
   return (
-    <div className="min-h-dvh" style={{ background: C.mist }}>
-      <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${C.green}, ${C.gold}, ${C.green})` }} />
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <div className="flex flex-col items-center gap-3 mb-8">
-          <SkeletonBlock className="w-20 h-20 rounded-full" />
-          <SkeletonBlock className="w-48 h-4" />
-          <SkeletonBlock className="w-64 h-3" />
-        </div>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <SkeletonBlock className="h-32 rounded-2xl" />
-          <SkeletonBlock className="h-32 rounded-2xl" />
-        </div>
-      </div>
+    <div role="status" aria-label="Memuat" className="fixed inset-0 z-[9998] flex items-center justify-center" style={{ background: C.mist }}>
+      <style>{`@keyframes layar-muat-detak { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .layar-muat-logo { animation: none !important; } }`}</style>
+      <img
+        src="/icon-512.png"
+        alt=""
+        className="layar-muat-logo"
+        style={{ width: "min(228px, 58vw)", height: "min(228px, 58vw)", animation: "layar-muat-detak 1.6s ease-in-out infinite" }}
+      />
     </div>
   );
 }

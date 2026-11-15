@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, rosterReady]);
 
   // Splash logo di index.html (tampil instan sebelum React siap) — begitu sesi login kelar
-  // dicek, hilangin dengan fade lalu buang elemennya biar gak nyangkut di DOM. Ditahan minimal
+  // dicek, logo membesar sedikit sambil memudar, lalu buang elemennya biar gak nyangkut di DOM. Ditahan minimal
   // 1 detik biar animasinya kelihatan (kalau cek sesi kelar kelewat cepat, jadi cuma kedip).
   const splashShownAt = useRef(Date.now());
   useEffect(() => {
@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const remaining = Math.max(0, 1000 - elapsed);
     const hideTimer = setTimeout(() => {
       el.classList.add("app-splash-hide");
-      setTimeout(() => el.remove(), 350);
+      setTimeout(() => el.remove(), 750); // sesuai lama animasi keluar di index.html (0,7 detik)
     }, remaining);
     return () => clearTimeout(hideTimer);
   }, [loading]);

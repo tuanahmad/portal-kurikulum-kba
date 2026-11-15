@@ -2,7 +2,7 @@ import { supabase } from "./supabaseClient";
 import { ramahkanGalat } from "./jaringan";
 import { tanggalLibur } from "./kalender";
 import { KELAS_LIST, capaianRoster, olahragaRoster } from "../data";
-import { TINGKAT_LIST, KELOMPOK_LABEL, type OlahragaKelompok } from "./olahraga";
+import { TINGKAT_LIST, HARI_TINGKAT, KELOMPOK_LABEL, type OlahragaKelompok } from "./olahraga";
 import { bacaAbsenSantriOlahragaRentang } from "./absenSantriOlahraga";
 
 // Rekap kehadiran SANTRI per bulan, dihitung per anak (untuk diunduh sebagai PDF oleh management).
@@ -112,9 +112,9 @@ export async function kehadiranOlahragaBulan(y: number, m0: number): Promise<Gru
   const hariSekolah = new Set<string>([...(await bacaAbsenKelasBulan(awalBulan(y, m0), akhirBulan(y, m0))).map((r) => r.tanggal), ...rows.map((r) => r.tanggal)]);
   const libur = await tanggalLibur(awalBulan(y, m0), akhirBulan(y, m0)).catch(() => new Set<string>());
   return kelompok.flatMap((k) => {
-    // Olahraga Senin-Rabu.
-    const seharusnya = hariEfektif(y, m0, [1, 2, 3], hariSekolah, new Date(), libur);
     return TINGKAT_LIST.map((t) => {
+      // Tiap tingkat olahraga SEKALI seminggu: KA 1 Senin, KA 2 Selasa, KA 3 Rabu.
+      const seharusnya = hariEfektif(y, m0, [HARI_TINGKAT[t]], hariSekolah, new Date(), libur);
       const peta = new Map<string, BarisKehadiran>();
       for (const r of rows.filter((x) => x.kelompok === k && x.tingkat === t)) {
         const b = peta.get(r.nama_santri) ?? { nama: r.nama_santri, hadir: 0, tidak: 0, catatan: [] };

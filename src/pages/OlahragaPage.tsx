@@ -13,6 +13,7 @@ import { RuleCard } from "../components/RuleCard";
 import { MonthGrid } from "../components/MonthGrid";
 import { PickerCard } from "../components/PickerCard";
 import UnduhKehadiranBulan from "../components/UnduhKehadiranBulan";
+import { tingkatPadaTanggal } from "../lib/olahraga";
 import { bacaAbsenSantriOlahragaRentang, type BarisAbsenSantriOlahraga, bacaAbsenSantriOlahraga, simpanAbsenSantriOlahraga, entriBaru, sudahDiabsen, type AbsenHariOlahraga, type EntriSantriOlahraga } from "../lib/absenSantriOlahraga";
 import { AccentCard, BackButton } from "../components/PortalComponents";
 import {
@@ -2167,7 +2168,7 @@ function AbsenOlahragaTab({ kelompok }: { kelompok: OlahragaKelompok }) {
 }
 
 const ATURAN_ABSEN_SANTRI = [
-  "Tandai kehadiran santri tiap pertemuan olahraga (Senin, Selasa, Rabu), per tingkat KA 1–3.",
+  "Jadwal olahraga terpisah per hari: Senin Kuttab Awwal 1, Selasa Kuttab Awwal 2, Rabu Kuttab Awwal 3. Tiap hari hanya tingkat itu yang diabsen.",
   "Semua santri awalnya Hadir; ketuk Tidak Hadir untuk yang absen dan tulis keterangannya.",
   "Hari yang terlewat masih bisa dikoreksi; tanggal yang belum tiba belum bisa diisi.",
 ];
@@ -2265,9 +2266,11 @@ function HariAbsenSantriOlahraga({
   onSaved: (a: AbsenHariOlahraga) => void;
 }) {
   const tanggal = ymd(date);
-  const roster = useMemo(() => Object.fromEntries(TINGKAT_LIST.map((t) => [t, olahragaRoster(t, kelompok)])) as Record<OlahragaTingkat, string[]>, [kelompok]);
+  // Hanya tingkat yang dijadwalkan pada hari itu (Senin KA 1, Selasa KA 2, Rabu KA 3).
+  const tingkatHari = useMemo(() => TINGKAT_LIST.filter((t) => t === tingkatPadaTanggal(date)), [date]);
+  const roster = useMemo(() => Object.fromEntries(tingkatHari.map((t) => [t, olahragaRoster(t, kelompok)])) as Record<OlahragaTingkat, string[]>, [kelompok, tingkatHari]);
   const dasar = (): Record<OlahragaTingkat, Record<string, EntriSantriOlahraga>> =>
-    Object.fromEntries(TINGKAT_LIST.map((t) => [t, Object.fromEntries(roster[t].map((n) => [n, tersimpan?.[t]?.[n] ?? entriBaru()]))])) as never;
+    Object.fromEntries(tingkatHari.map((t) => [t, Object.fromEntries(roster[t].map((n) => [n, tersimpan?.[t]?.[n] ?? entriBaru()]))])) as never;
   const [form, setForm] = useState(dasar);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -2277,9 +2280,10 @@ function HariAbsenSantriOlahraga({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tersimpan, tanggal, kelompok]);
 
-  const totalSantri = TINGKAT_LIST.reduce((a, t) => a + roster[t].length, 0);
-  const sudahTingkat = TINGKAT_LIST.filter((t) => sudahDiabsen(tersimpan, t)).length;
-  const lengkap = sudahTingkat === TINGKAT_LIST.filter((t) => roster[t].length > 0).length && sudahTingkat > 0;
+  const totalSantri = tingkatHari.reduce((a, t) => a + roster[t].length, 0);
+  const sudahTingkat = tingkatHari.filter((t) => sudahDiabsen(tersimpan, t)).length;
+  const lengkap = sudahTingkat === tingkatHari.filter((t) => roster[t].length > 0).length && sudahTingkat > 0;
+  const namaTingkat = tingkatHari[0] ? `Kuttab Awwal ${tingkatHari[0].replace("KA ", "")}` : "";
   const dirty = JSON.stringify(form) !== JSON.stringify(dasar());
 
   const ubah = (t: OlahragaTingkat, nama: string, patch: Partial<EntriSantriOlahraga>) =>
@@ -2308,7 +2312,7 @@ function HariAbsenSantriOlahraga({
             {isToday && <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: C.green, color: "#FFF" }}>HARI INI</span>}
           </span>
           <span className="block text-xs" style={{ color: C.muted }}>
-            {!editable ? "Belum bisa diisi" : lengkap ? "Semua tingkat sudah diabsen" : sudahTingkat > 0 ? `${sudahTingkat} tingkat sudah diabsen` : "Belum diabsen"}
+            {!editable ? "Belum bisa diisi" : lengkap ? `${namaTingkat} sudah diabsen` : `${namaTingkat} · belum diabsen`}
           </span>
         </span>
         <span className="text-xs shrink-0" style={{ color: C.muted }}>{open ? "▲" : "▼"}</span>
@@ -2317,7 +2321,7 @@ function HariAbsenSantriOlahraga({
       {open && editable && (
         <div className="px-3.5 pb-4 pt-3 space-y-4" style={{ borderTop: `1px solid ${C.line}` }}>
           {totalSantri === 0 && <p className="text-sm" style={{ color: C.muted }}>Belum ada daftar santri untuk kelompok ini.</p>}
-          {TINGKAT_LIST.filter((t) => roster[t].length > 0).map((t) => (
+          {tingkatHari.filter((t) => roster[t].length > 0).map((t) => (
             <div key={t}>
               <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>
                 Kuttab Awwal {t.replace("KA ", "")} · {roster[t].length} santri

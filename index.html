@@ -20,7 +20,6 @@
         align-items: center;
         justify-content: center;
         background: #FBFAF7;
-        transition: opacity 0.35s ease;
       }
       /* Ukuran & tampilan disamakan dengan layar logo bawaan Android (ikon aplikasi di tengah, tanpa bayangan),
          supaya perpindahan dari layar Android ke animasi ini tidak terasa -- logonya langsung "berdetak". */
@@ -33,9 +32,18 @@
         width: 100%;
         height: 100%;
       }
+      /* Keluar: logo membesar sedikit sambil memudar (0,7 detik), lalu aplikasi terlihat. */
       #app-splash.app-splash-hide {
-        opacity: 0;
         pointer-events: none;
+        animation: app-splash-pudar 0.7s ease-in forwards;
+      }
+      #app-splash.app-splash-hide #app-splash-card {
+        animation: app-splash-besar 0.7s ease-in forwards;
+      }
+      @keyframes app-splash-pudar { to { opacity: 0; } }
+      @keyframes app-splash-besar { from { transform: scale(1); } to { transform: scale(1.5); } }
+      @media (prefers-reduced-motion: reduce) {
+        #app-splash.app-splash-hide #app-splash-card { animation: none; }
       }
       @keyframes app-splash-breathe {
         0%, 100% { transform: scale(1); }

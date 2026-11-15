@@ -3,7 +3,7 @@ import { persenHadir, belumDiabsen, labelPeriode, kehadiranKelasBulan, kehadiran
 const CATATAN_KELAS =
   "Dihitung per sesi (pagi dan siang, Senin-Jumat). Persen = sesi hadir dibagi total sesi bulan itu, bukan yang diisi guru. Hari tanpa catatan absen sama sekali dianggap libur. Belum diabsen = total dikurangi hadir dan tidak hadir.";
 const CATATAN_OLAHRAGA =
-  "Dihitung per pertemuan olahraga (Senin-Rabu). Persen = pertemuan hadir dibagi total pertemuan bulan itu, bukan yang diisi guru. Hari tanpa absen kelas sama sekali dianggap libur. Belum diabsen = total dikurangi hadir dan tidak hadir.";
+  "Dihitung per pertemuan olahraga (tiap tingkat sekali seminggu: KA 1 Senin, KA 2 Selasa, KA 3 Rabu). Persen = pertemuan hadir dibagi total pertemuan bulan itu, bukan yang diisi guru. Hari tanpa absen kelas sama sekali dianggap libur. Belum diabsen = total dikurangi hadir dan tidak hadir.";
 
 /** Dipanggil tombol "Unduh PDF": "gabungan" = bagian kelas lalu bagian olahraga dalam satu file; "olahraga" = olahraga saja. */
 export async function unduhKehadiranBulanan(y: number, m0: number, jenis: "gabungan" | "olahraga") {
