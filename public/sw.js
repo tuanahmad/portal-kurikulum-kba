@@ -139,19 +139,62 @@ self.addEventListener("push", (event) => {
   } catch {
     // biarkan default kalau payload bukan JSON valid
   }
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
-      data: { url: data.url || "/home" },
-    })
-  );
+  const opsi = {
+    body: data.body,
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    data: { url: data.url || "/home", aksi: data.aksi || null, actions: data.actions || null },
+  };
+  if (data.tag) opsi.tag = data.tag;
+  if (data.requireInteraction) opsi.requireInteraction = true;
+  // Tombol di notifikasi (Android / Chrome komputer). iPhone mengabaikannya: ketukan biasa tetap membuka aplikasi.
+  if (Array.isArray(data.actions) && data.actions.length) opsi.actions = data.actions.slice(0, 2);
+  event.waitUntil(self.registration.showNotification(data.title, opsi));
 });
 
+/** Absen dari tombol notifikasi: kirim token ke server tanpa membuka aplikasi, lalu tampilkan hasilnya sebagai notifikasi. */
+async function isiDariNotifikasi(notif, d) {
+  const tag = notif.tag || "absen";
+  notif.close();
+  const hasil = (judul, body, extra = {}) =>
+    self.registration.showNotification(judul, { body, icon: "/icon-192.png", badge: "/icon-192.png", tag: tag + "-hasil", data: { url: d.url || "/absen" }, ...extra });
+  try {
+    const res = await fetch(d.aksi.api, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: d.aksi.token }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (res.ok && j.ok) {
+      await hasil(j.sudah ? "Sudah tercatat" : j.uji ? "Uji berhasil" : "Absen tercatat", j.pesan || "Tercatat.");
+      return;
+    }
+    await hasil("Absen belum tercatat", j.pesan || "Ketuk untuk mengisi lewat aplikasi.");
+  } catch {
+    // Tidak ada sinyal: tampilkan lagi dengan tombol coba lagi (tokennya masih berlaku sampai batas jam sesi).
+    await self.registration.showNotification("Absen belum tercatat", {
+      body: "Tidak ada sinyal. Coba lagi, atau isi lewat aplikasi.",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      tag,
+      requireInteraction: true,
+      data: d,
+      actions: [
+        { action: "isi", title: "Coba lagi" },
+        { action: "buka", title: "Buka aplikasi" },
+      ],
+    });
+  }
+}
+
 self.addEventListener("notificationclick", (event) => {
+  const d = event.notification.data || {};
+  if (event.action === "isi" && d.aksi && d.aksi.token && d.aksi.api) {
+    event.waitUntil(isiDariNotifikasi(event.notification, d));
+    return;
+  }
   event.notification.close();
-  const url = event.notification.data?.url || "/home";
+  const url = event.action === "buka" ? "/absen" : d.url || "/home";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientsList) => {
       for (const client of clientsList) {

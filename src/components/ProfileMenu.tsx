@@ -73,6 +73,8 @@ export function ProfileMenu() {
                 <BarChartIcon />
                 <span className="text-sm font-medium">Sajian Data</span>
               </Link>
+              <div className="h-px my-1" style={{ background: C.line }} />
+              <PushNotifToggle variant="light" />
             </>
           )}
           {role === "olahraga" && (
