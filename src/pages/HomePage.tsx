@@ -15,6 +15,7 @@ import { KartuGeser, type SlideKartu, type Nada } from "../components/KartuGeser
 import { bacaNamaGuruKelas } from "../lib/namaGuru";
 import { bacaAcara, acaraPadaTanggal, type Acara } from "../lib/kalender";
 import { pengingatRutin } from "../lib/pengingat";
+import { KartuAktifkanNotif } from "../components/KartuAktifkanNotif";
 
 export default function HomePage() {
   const { role, kelas, fullName } = useAuth();
@@ -163,6 +164,7 @@ function KartuKalender() {
 function GuruMenu() {
   return (
     <main>
+    <KartuAktifkanNotif />
     <GuruHariIni />
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
       <HomeCard
@@ -514,6 +516,7 @@ function RingkasanHariIni() {
 function OlahragaMenu() {
   return (
     <main>
+    <KartuAktifkanNotif />
     <OlahragaHariIni />
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
       <HomeCard
