@@ -65,7 +65,8 @@ async function panggil(aksi: string, body: unknown, token?: string): Promise<{ o
 
 function pesanGalat(e: unknown): string {
   const nama = (e as { name?: string })?.name;
-  if (nama === "NotAllowedError" || nama === "AbortError") return "Dibatalkan atau waktunya habis. Coba lagi.";
+  const rinci = ` (${nama ?? "?"}: ${String((e as { message?: string })?.message ?? "").slice(0, 90)})`;
+  if (nama === "NotAllowedError" || nama === "AbortError") return `Dibatalkan, waktunya habis, atau HP menolak. Pastikan kunci layar/sidik jari HP sudah diatur dan tidak sedang berbagi layar, lalu coba lagi.${rinci}`;
   if (nama === "InvalidStateError") return "Sidik jari di HP ini sudah terdaftar untuk akun ini.";
   if (nama === "NotSupportedError") return "HP ini belum mendukung sidik jari/kunci layar untuk aplikasi.";
   if (e instanceof TypeError) return "Tidak ada sinyal. Coba lagi.";
