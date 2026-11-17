@@ -5,6 +5,9 @@ import { supabase } from "./supabaseClient";
 
 const URL_FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/passkey`;
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
+/** Dimatikan sementara (2026-11-17): di HP uji pendaftaran selalu NotAllowedError. Semua tombol/kartu sidik jari mengikuti fungsi
+ *  `sidikJariDidukung`, jadi cukup ubah ke true untuk menyalakan lagi. Login username + PIN tidak terpengaruh. */
+const FITUR_SIDIK_JARI_AKTIF = false;
 /** "1" kalau HP ini sudah pernah mendaftarkan sidik jari (supaya layar login menampilkan tombolnya). */
 const KUNCI_PERANGKAT = "passkey-perangkat";
 const kunciId = (uid: string) => `passkey-id:${uid}`;
@@ -43,6 +46,7 @@ function bacaLokal(kunci: string): string | null {
 
 /** HP ini punya sensor sidik jari / kunci layar yang bisa dipakai? */
 export async function sidikJariDidukung(): Promise<boolean> {
+  if (!FITUR_SIDIK_JARI_AKTIF) return false;
   try {
     return !!window.PublicKeyCredential && (await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
   } catch {
