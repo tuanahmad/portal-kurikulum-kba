@@ -5,6 +5,7 @@ import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { ProfileMenu } from "./ProfileMenu";
 import { StatusKoneksi } from "./StatusKoneksi";
+import { BarJudulHalaman } from "./BarJudulHalaman";
 
 /** Layout bersama untuk semua halaman setelah login: menu overlay di desktop, bottom tab di mobile/tablet. */
 export function AppLayout() {
@@ -12,6 +13,7 @@ export function AppLayout() {
   return (
     <>
       <StatusKoneksi />
+      <BarJudulHalaman />
       <Sidebar />
       <ProfileMenu />
       <div key={pathname} className="halaman-masuk">

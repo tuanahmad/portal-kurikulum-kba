@@ -83,7 +83,7 @@ const MODE_TITLE: Record<Mode, string> = {
 
 const GRADIENTS = [
   `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`,
-  "linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)",
+  "linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)",
   `linear-gradient(135deg, #2F8A63 0%, #1F6244 100%)`,
 ];
 
@@ -347,12 +347,12 @@ function EvaluasiTingkatCard({
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <button
         type="button"
         onClick={onToggle}
         className="w-full flex items-center gap-3 px-3.5 py-3 text-left transition-colors"
-        style={{ background: open ? C.leaf : "#FFF" }}
+        style={{ background: open ? C.leaf : C.card }}
       >
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
@@ -448,7 +448,7 @@ function EvaluasiTingkatCard({
                 })}
               </div>
 
-              {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
+              {err && <p className="mt-3 text-xs" style={{ color: "var(--c-bahayaTeks)" }}>{err}</p>}
               {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
 
               <button
@@ -610,13 +610,13 @@ function TingkatCard({
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+      style={{ background: C.card, border: `1px solid ${C.line}` }}
     >
       <button
         type="button"
         onClick={onToggle}
         className="w-full flex items-center gap-3 px-3.5 py-3 text-left transition-colors"
-        style={{ background: open ? C.leaf : "#FFF" }}
+        style={{ background: open ? C.leaf : C.card }}
       >
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
@@ -647,11 +647,11 @@ function TingkatCard({
         <div className="px-3.5 pb-4 pt-3" style={{ borderTop: `1px solid ${C.line}` }}>
           <div className="space-y-3 mt-3">
             {targetLama && (
-              <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: "#FFF8E6", border: "1px solid #EBD9A5", color: "#6B5314" }}>
+              <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: "var(--c-emasBg)", border: "1px solid #EBD9A5", color: "#6B5314" }}>
                 <div className="font-semibold">Target bulan ini masih satu gabungan:</div>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {targetLama.map((x) => (
-                    <span key={x} className="px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: "#FFF", border: "1px solid #EBD9A5" }}>
+                    <span key={x} className="px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: C.card, border: "1px solid #EBD9A5" }}>
                       {x}
                     </span>
                   ))}
@@ -669,7 +669,7 @@ function TingkatCard({
                     }))
                   }
                   className="mt-2 px-3 py-1.5 rounded-lg text-xs font-bold"
-                  style={{ background: "#FFF", color: C.green, border: `1px solid ${C.green}` }}
+                  style={{ background: C.card, color: C.green, border: `1px solid ${C.green}` }}
                 >
                   Salin ke semua pekan
                 </button>
@@ -687,7 +687,7 @@ function TingkatCard({
                       rows={2}
                       placeholder="Kegiatan olahraga pekan ini…"
                       className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
-                      style={{ border: `1px solid ${C.line}`, background: "#FFF" }}
+                      style={{ border: `1px solid ${C.line}`, background: C.card }}
                     />
                   </Field>
                   <Field label="Target olahraga pekan ini">
@@ -700,7 +700,7 @@ function TingkatCard({
                       rows={1}
                       placeholder="Bola, cone, tali, matras…"
                       className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-y"
-                      style={{ border: `1px solid ${C.line}`, background: "#FFF" }}
+                      style={{ border: `1px solid ${C.line}`, background: C.card }}
                     />
                   </Field>
                 </div>
@@ -708,7 +708,7 @@ function TingkatCard({
             ))}
 
             {alatLama && (
-              <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: "#FFF8E6", border: "1px solid #EBD9A5", color: "#6B5314" }}>
+              <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: "var(--c-emasBg)", border: "1px solid #EBD9A5", color: "#6B5314" }}>
                 <div className="font-semibold">Alat bulan ini masih satu untuk sebulan:</div>
                 <p className="mt-1 whitespace-pre-wrap">{alatLama}</p>
                 <p className="mt-1.5 leading-relaxed">Sekarang alat diisi per pekan, sesuai kegiatan tiap pekan.</p>
@@ -718,7 +718,7 @@ function TingkatCard({
                     setForm((p) => ({ ...p, alat_pekan1: alatLama, alat_pekan2: alatLama, alat_pekan3: alatLama, alat_pekan4: alatLama }))
                   }
                   className="mt-2 px-3 py-1.5 rounded-lg text-xs font-bold"
-                  style={{ background: "#FFF", color: C.green, border: `1px solid ${C.green}` }}
+                  style={{ background: C.card, color: C.green, border: `1px solid ${C.green}` }}
                 >
                   Salin ke semua pekan
                 </button>
@@ -752,7 +752,7 @@ function TingkatCard({
                                 onChange={(e) => setRubrikForm((p) => ({ ...p, [kunciAspek(a)]: { ...r, [k]: e.target.value } }))}
                                 placeholder={CONTOH_RUBRIK[n]}
                                 className="flex-1 min-w-0 text-sm outline-none px-3 py-1.5 rounded-lg"
-                                style={{ border: `1px solid ${C.line}`, background: "#FFF" }}
+                                style={{ border: `1px solid ${C.line}`, background: C.card }}
                               />
                             </label>
                           );
@@ -765,7 +765,7 @@ function TingkatCard({
             )}
           </div>
 
-          {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
+          {err && <p className="mt-3 text-xs" style={{ color: "var(--c-bahayaTeks)" }}>{err}</p>}
           {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
 
           <button
@@ -805,7 +805,7 @@ function TargetPicker({ value, onChange }: { value: string[]; onChange: (v: stri
               onClick={() => toggle(t)}
               className="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
               style={{
-                background: on ? C.green : "#FFF",
+                background: on ? C.green : C.card,
                 color: on ? "#FFF" : C.ink,
                 border: `1px solid ${on ? C.green : C.line}`,
               }}
@@ -1013,13 +1013,13 @@ function AbsenOlahragaDayCard({
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{ background: "#FFF", border: `1px solid ${isToday && !open ? C.green : C.line}` }}
+      style={{ background: C.card, border: `1px solid ${isToday && !open ? C.green : C.line}` }}
     >
       <button
         type="button"
         onClick={onToggle}
         className="w-full flex items-center gap-3 px-3.5 py-3 text-left transition-colors"
-        style={{ background: open ? C.leaf : "#FFF" }}
+        style={{ background: open ? C.leaf : C.card }}
       >
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
@@ -1082,7 +1082,7 @@ function AbsenOlahragaDayCard({
                       onClick={() => set("status", s)}
                       className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
                       style={{
-                        background: on ? C.green : "#FFF",
+                        background: on ? C.green : C.card,
                         color: on ? "#FFF" : C.ink,
                         border: `1px solid ${on ? C.green : C.line}`,
                       }}
@@ -1109,7 +1109,7 @@ function AbsenOlahragaDayCard({
                 </label>
               )}
 
-              {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
+              {err && <p className="mt-3 text-xs" style={{ color: "var(--c-bahayaTeks)" }}>{err}</p>}
               {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
 
               <button
@@ -1172,7 +1172,7 @@ export function OlahragaModePicker() {
             title="Jurnal"
             desc="Jurnal harian guru olahraga"
             icon={<JurnalIcon />}
-            gradient="linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)"
+            gradient="linear-gradient(135deg, #2F8F83 0%, var(--c-toscaTeks) 100%)"
             to="/olahraga/jurnal"
           />
         </main>
@@ -1301,7 +1301,7 @@ function ManagementRencana() {
       ) : (
         <>
           {error && (
-            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
               {error}
             </div>
           )}
@@ -1386,7 +1386,7 @@ function ManagementEvaluasi() {
       ) : anakNama == null ? (
         <>
           {error && (
-            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
               {error}
             </div>
           )}
@@ -1416,7 +1416,7 @@ function ManagementEvaluasi() {
         </>
       ) : (
         <>
-          <div className="mt-6 rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+          <div className="mt-6 rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}>
             {!isEvalAnakFilled(entry) ? (
               <p className="text-sm" style={{ color: C.muted }}>Belum diisi.</p>
             ) : (
@@ -1515,7 +1515,7 @@ function ManagementJurnalOlahraga() {
             }}
           />
           {error && (
-            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
               {error}
             </div>
           )}
@@ -1558,7 +1558,7 @@ function ReadOnlyTingkat({
   const filled = isRencanaFilled(entry);
 
   return (
-    <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl p-3.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <div className="flex items-center gap-3">
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
@@ -1620,7 +1620,7 @@ function NilaiAspek({ aspek, nilai, rubrik, onPilih }: { aspek: string; nilai?: 
                 disabled={!onPilih}
                 aria-pressed={on}
                 className="w-8 h-8 rounded-lg text-sm font-bold transition-colors"
-                style={{ background: on ? C.green : "#FFF", color: on ? "#FFF" : onPilih ? C.ink : C.muted, border: `1px solid ${on ? C.green : C.line}` }}
+                style={{ background: on ? C.green : C.card, color: on ? "#FFF" : onPilih ? C.ink : C.muted, border: `1px solid ${on ? C.green : C.line}` }}
               >
                 {n}
               </button>
@@ -1677,7 +1677,7 @@ function RubrikDaftar({ aspek, rubrik }: { aspek: string[]; rubrik: Record<strin
 function SebaranNilai({ aspek, data, roster }: { aspek: string[]; data: Record<string, EvalAnakEntry>; roster: string[] }) {
   if (!aspek.length) return null;
   return (
-    <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl p-3.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Sebaran nilai</div>
       <table className="w-full text-xs">
         <thead>
@@ -1732,7 +1732,7 @@ function ManagementAbsenTab() {
   const [tab, setTab] = useState<"santri" | "guru">("santri");
   return (
     <>
-      <div className="mt-4 grid grid-cols-2 gap-1 p-1.5 rounded-full" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <div className="mt-4 grid grid-cols-2 gap-1 p-1.5 rounded-full" style={{ background: C.card, border: `1px solid ${C.line}` }}>
         {(["santri", "guru"] as const).map((m) => (
           <button
             key={m}
@@ -1800,7 +1800,7 @@ function ManagementAbsenSantriOlahraga() {
         }}
       />
       {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
           {error}
         </div>
       )}
@@ -1810,7 +1810,7 @@ function ManagementAbsenSantriOlahraga() {
         </div>
       ) : (
         <div className="mt-5 space-y-3">
-          <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+          <div className="rounded-2xl p-3.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
             <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: C.green }}>Kehadiran pekan ini</div>
             {ringkas.length === 0 ? (
               <p className="text-sm" style={{ color: C.muted }}>Belum ada absen santri pekan ini.</p>
@@ -1824,7 +1824,7 @@ function ManagementAbsenSantriOlahraga() {
                         {KELOMPOK_LABEL[r.k]} · KA {r.t.replace("KA ", "")}
                       </span>
                       <span style={{ color: C.muted }}>{r.hadir}/{r.total}</span>
-                      <span className="w-12 text-right font-semibold" style={{ color: pct >= 90 ? C.green : pct >= 75 ? "#8A6A20" : "#9F240B" }}>{pct}%</span>
+                      <span className="w-12 text-right font-semibold" style={{ color: pct >= 90 ? C.green : pct >= 75 ? "var(--c-emasTeks)" : "var(--c-bahayaTeks)" }}>{pct}%</span>
                     </div>
                   );
                 })}
@@ -1836,7 +1836,7 @@ function ManagementAbsenSantriOlahraga() {
             const key = ymd(d);
             const hari = baris.filter((x) => x.tanggal === key);
             return (
-              <div key={key} className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+              <div key={key} className="rounded-2xl p-3.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
                 <div className="text-sm font-semibold mb-2" style={{ color: C.ink }}>{labelHari(d)} · {labelTanggal(d)}</div>
                 {hari.length === 0 ? (
                   <p className="text-xs" style={{ color: C.muted }}>Belum diabsen.</p>
@@ -1919,7 +1919,7 @@ function ManagementAbsenOlahraga() {
         }}
       />
       {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
           {error}
         </div>
       )}
@@ -1942,7 +1942,7 @@ function ReadOnlyAbsenOlahragaDay({ date, entries }: { date: Date; entries: Abse
   const kelompokList: OlahragaKelompok[] = ["ikhwan", "akhwat"];
   const anyFilled = kelompokList.some((k) => isAbsenOlahragaFilled(entries?.[k]));
   return (
-    <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl p-3.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <div className="flex items-center gap-3">
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
@@ -2104,7 +2104,7 @@ function WeekNav({
       <ArrowBtn dir="prev" disabled={!onPrev} onClick={onPrev} />
       <div
         className="flex-1 text-center rounded-xl px-3 py-2"
-        style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+        style={{ background: C.card, border: `1px solid ${C.line}` }}
       >
         <div className="text-sm font-semibold" style={{ color: C.ink }}>{label}</div>
         {sub && <div className="text-[11px]" style={{ color: C.green }}>{sub}</div>}
@@ -2123,7 +2123,7 @@ function ArrowBtn({ dir, disabled, onClick }: { dir: "prev" | "next"; disabled?:
       aria-label={dir === "prev" ? "Pekan sebelumnya" : "Pekan berikutnya"}
       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
       style={{
-        background: "#FFF",
+        background: C.card,
         border: `1px solid ${C.line}`,
         color: C.green,
         opacity: disabled ? 0.35 : 1,
@@ -2149,7 +2149,7 @@ function AbsenOlahragaTab({ kelompok }: { kelompok: OlahragaKelompok }) {
   const [tab, setTab] = useState<"guru" | "santri">("santri");
   return (
     <>
-      <div className="mt-4 grid grid-cols-2 gap-1 p-1.5 rounded-full" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <div className="mt-4 grid grid-cols-2 gap-1 p-1.5 rounded-full" style={{ background: C.card, border: `1px solid ${C.line}` }}>
         {(["santri", "guru"] as const).map((m) => (
           <button
             key={m}
@@ -2304,8 +2304,8 @@ function HariAbsenSantriOlahraga({
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${isToday ? C.green : C.line}` }}>
-      <button type="button" onClick={onToggle} className="w-full flex items-center gap-3 px-3.5 py-3 text-left" style={{ background: open ? C.leaf : "#FFF" }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${isToday ? C.green : C.line}` }}>
+      <button type="button" onClick={onToggle} className="w-full flex items-center gap-3 px-3.5 py-3 text-left" style={{ background: open ? C.leaf : C.card }}>
         <span className="flex-1 min-w-0">
           <span className="block text-sm font-semibold" style={{ color: C.ink }}>
             {labelHari(date)} · {labelTanggal(date)}
@@ -2330,7 +2330,7 @@ function HariAbsenSantriOlahraga({
                 {roster[t].map((nama) => {
                   const e = form[t]?.[nama] ?? entriBaru();
                   return (
-                    <div key={nama} className="rounded-xl px-3 py-2" style={{ background: e.status === "hadir" ? C.mist : "#FFF1EE", border: `1px solid ${C.line}` }}>
+                    <div key={nama} className="rounded-xl px-3 py-2" style={{ background: e.status === "hadir" ? C.mist : "var(--c-bahayaBg)", border: `1px solid ${C.line}` }}>
                       <div className="flex items-center gap-2">
                         <span className="flex-1 min-w-0 text-sm truncate" style={{ color: C.ink }}>{nama}</span>
                         {(["hadir", "tidak_hadir"] as const).map((s) => (
@@ -2341,7 +2341,7 @@ function HariAbsenSantriOlahraga({
                             aria-pressed={e.status === s}
                             className="px-2.5 py-1 rounded-full text-[11px] font-bold"
                             style={{
-                              background: e.status === s ? (s === "hadir" ? C.green : "#C0392B") : "#FFF",
+                              background: e.status === s ? (s === "hadir" ? C.green : "#C0392B") : C.card,
                               color: e.status === s ? "#FFF" : C.muted,
                               border: `1px solid ${e.status === s ? "transparent" : C.line}`,
                             }}
@@ -2357,7 +2357,7 @@ function HariAbsenSantriOlahraga({
                           placeholder="Keterangan (sakit, izin, …)"
                           aria-label={`Keterangan ${nama}`}
                           className="mt-1.5 w-full text-xs outline-none px-2.5 py-1.5 rounded-md"
-                          style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                          style={{ background: C.card, border: `1px solid ${C.line}` }}
                         />
                       )}
                     </div>
@@ -2366,7 +2366,7 @@ function HariAbsenSantriOlahraga({
               </div>
             </div>
           ))}
-          {err && <p className="text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
+          {err && <p className="text-xs" style={{ color: "var(--c-bahayaTeks)" }}>{err}</p>}
           {totalSantri > 0 && (
             <button
               onClick={simpan}

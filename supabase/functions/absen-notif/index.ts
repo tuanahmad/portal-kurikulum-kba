@@ -1,5 +1,6 @@
 // Absen guru lewat NOTIFIKASI (pusat). Satu fungsi, tiga aksi:
 //   ?aksi=kirim  (dipanggil pg_cron, header x-cron-secret)  -> kirim notifikasi "Isi absen sekarang" ke guru yang belum absen
+//                                                              (sesi pagi/siang: jam datang/pulang; sesi olahraga: Hadir hari itu, Senin-Rabu)
 //   ?aksi=uji    (header x-cron-secret)                     -> kirim notifikasi uji ke SATU akun; tombolnya tidak mengubah data
 //   aksi=isi     (POST {token}, tanpa login)                -> dipanggil service worker saat guru menekan tombol di notifikasi
 //
@@ -14,10 +15,16 @@ import webpush from "npm:web-push@3.6.7";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = Deno.env.get("CRON_SECRET");
-const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY")!;
-const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
-
-webpush.setVapidDetails("mailto:kurikulum.kba@gmail.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY");
+const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY");
+// Kunci VAPID hanya dipasang saat benar-benar mengirim (aksi isi/uji-token tetap jalan walau kunci belum ada).
+let vapidSiap = false;
+function siapkanVapid() {
+  if (vapidSiap) return;
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) throw new Error("VAPID keys belum di-set");
+  webpush.setVapidDetails("mailto:kurikulum.kba@gmail.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  vapidSiap = true;
+}
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 const cors = {
@@ -27,8 +34,11 @@ const cors = {
 };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 
-type Sesi = "pagi" | "siang";
-type Jenis = "datang" | "pulang";
+type Sesi = "pagi" | "siang" | "olahraga";
+type Jenis = "datang" | "pulang" | "hadir";
+/** Pasangan sesi-jenis yang sah. Olahraga hanya mencatat Hadir per hari (tanpa jam datang/pulang). */
+const SAH: Record<Sesi, Jenis[]> = { pagi: ["datang", "pulang"], siang: ["datang", "pulang"], olahraga: ["hadir"] };
+const sah = (s: unknown, j: unknown) => typeof s === "string" && typeof j === "string" && (SAH as Record<string, string[]>)[s]?.includes(j) === true;
 type Isi = { u: string; s: Sesi; j: Jenis; t: string; x: number; d?: 1 };
 
 /* ───────── token ───────── */
@@ -71,10 +81,13 @@ const wib = (d = new Date()) => new Date(d.getTime() + 7 * 3600 * 1000);
 const ymdW = (w: Date) => `${w.getUTCFullYear()}-${pad(w.getUTCMonth() + 1)}-${pad(w.getUTCDate())}`;
 const hmW = (w: Date) => `${pad(w.getUTCHours())}:${pad(w.getUTCMinutes())}`;
 /** Batas akhir tombol berlaku (jam WIB) menurut sesi dan jenis. */
-const BATAS: Record<Sesi, Record<Jenis, number>> = { pagi: { datang: 9, pulang: 13 }, siang: { datang: 16, pulang: 19 } };
-const expEpoch = (w: Date, s: Sesi, j: Jenis) => Math.floor(Date.UTC(w.getUTCFullYear(), w.getUTCMonth(), w.getUTCDate(), BATAS[s][j] - 7, 0, 0) / 1000);
+const BATAS: Record<Sesi, Partial<Record<Jenis, number>>> = { pagi: { datang: 9, pulang: 13 }, siang: { datang: 16, pulang: 19 }, olahraga: { hadir: 19 } };
+const expEpoch = (w: Date, s: Sesi, j: Jenis) => Math.floor(Date.UTC(w.getUTCFullYear(), w.getUTCMonth(), w.getUTCDate(), (BATAS[s][j] ?? 19) - 7, 0, 0) / 1000);
 
-const LABEL: Record<Sesi, Record<Jenis, { judul: string; isi: (nama: string) => string }>> = {
+const LABEL: Record<Sesi, Partial<Record<Jenis, { judul: string; isi: (nama: string) => string }>>> = {
+  olahraga: {
+    hadir: { judul: "Absen olahraga", isi: (n) => `Assalamu'alaikum, ${n}. Hari ini ada olahraga. Catat kehadiranmu sekarang.` },
+  },
   pagi: {
     datang: { judul: "Absen datang · kelas pagi", isi: (n) => `Assalamu'alaikum, ${n}. Sudah sampai di kuttab? Catat jam datang sekarang.` },
     pulang: { judul: "Absen pulang · kelas pagi", isi: () => "Kelas pagi sudah selesai? Catat jam pulang sekarang." },
@@ -84,18 +97,32 @@ const LABEL: Record<Sesi, Record<Jenis, { judul: string; isi: (nama: string) => 
     pulang: { judul: "Absen pulang · kelas siang", isi: () => "Kelas siang sudah selesai? Catat jam pulang sekarang." },
   },
 };
-const namaAbsen = (s: Sesi, j: Jenis) => `absen ${j} kelas ${s}`;
+const namaAbsen = (s: Sesi, j: Jenis) => (s === "olahraga" ? "absen olahraga" : `absen ${j} kelas ${s}`);
 
 /* ───────── aksi: isi (dari tombol notifikasi) ───────── */
 async function isi(req: Request) {
   const { token } = await req.json().catch(() => ({}));
   const p = await bacaToken(token);
-  if (!p || !["pagi", "siang"].includes(p.s) || !["datang", "pulang"].includes(p.j)) return json({ ok: false, pesan: "Tautan absen tidak sah. Isi lewat aplikasi." }, 400);
+  if (!p || !sah(p.s, p.j)) return json({ ok: false, pesan: "Tautan absen tidak sah. Isi lewat aplikasi." }, 400);
 
   const w = wib();
   if (Date.now() / 1000 > p.x || ymdW(w) !== p.t) return json({ ok: false, kadaluarsa: true, pesan: "Waktu absen lewat. Isi lewat aplikasi." }, 410);
   const jam = hmW(w);
   if (p.d) return json({ ok: true, uji: true, jam, pesan: `Uji berhasil: ${namaAbsen(p.s, p.j)} akan tercatat pukul ${jam}. Tidak ada data yang diubah.` });
+
+  if (p.s === "olahraga") {
+    const { data: po } = await admin.from("profiles").select("kelompok, role").eq("id", p.u).maybeSingle();
+    if (!po || po.role !== "olahraga" || !po.kelompok) return json({ ok: false, pesan: "Akun tidak dikenali." }, 403);
+    const { data: adaO } = await admin.from("absen_olahraga").select("status").eq("user_id", p.u).eq("tanggal", p.t).maybeSingle();
+    if (adaO) return json({ ok: true, sudah: true, pesan: `Absen olahraga hari ini sudah tercatat (${adaO.status}). Tidak diubah.` });
+    const { error: eo } = await admin.from("absen_olahraga").upsert(
+      { user_id: p.u, kelompok: po.kelompok, tanggal: p.t, status: "hadir", keterangan: "", updated_at: new Date().toISOString() },
+      { onConflict: "user_id,tanggal" }
+    );
+    const { data: cekO } = eo ? { data: null } : await admin.from("absen_olahraga").select("status").eq("user_id", p.u).eq("tanggal", p.t).maybeSingle();
+    if (eo || !cekO) return json({ ok: false, pesan: "Belum tercatat. Isi lewat aplikasi." }, 500);
+    return json({ ok: true, jam, pesan: `Absen olahraga tercatat (hadir) pukul ${jam}.` });
+  }
 
   const statusF = `status_${p.s}`;
   const jamF = `jam_${p.j}_${p.s}`;
@@ -120,6 +147,7 @@ async function isi(req: Request) {
 
 /* ───────── pengiriman ───────── */
 async function kirimKe(subs: any[], payload: object): Promise<number> {
+  siapkanVapid();
   let sent = 0;
   for (const sub of subs) {
     try {
@@ -134,13 +162,15 @@ async function kirimKe(subs: any[], payload: object): Promise<number> {
 
 async function buatPayload(userId: string, nama: string, s: Sesi, j: Jenis, w: Date, uji: boolean) {
   const token = await buatToken({ u: userId, s, j, t: ymdW(w), x: uji ? Math.floor(Date.now() / 1000) + 1800 : expEpoch(w, s, j), ...(uji ? { d: 1 as const } : {}) });
-  const l = LABEL[s][j];
+  const l = LABEL[s][j]!;
+  const olahraga = s === "olahraga";
   return {
     title: uji ? `UJI · ${l.judul}` : l.judul,
     body: l.isi(nama),
     tag: `absen-${s}-${j}`,
     requireInteraction: true,
-    url: `/absen-cepat?s=${s}&j=${j}`,
+    url: olahraga ? "/olahraga/absen" : `/absen-cepat?s=${s}&j=${j}`,
+    urlBuka: olahraga ? "/olahraga/absen" : "/absen",
     aksi: { token, api: `${SUPABASE_URL}/functions/v1/absen-notif` },
     actions: [
       { action: "isi", title: "Isi absen sekarang" },
@@ -152,7 +182,7 @@ async function buatPayload(userId: string, nama: string, s: Sesi, j: Jenis, w: D
 function cekParam(url: URL) {
   const s = url.searchParams.get("sesi") as Sesi;
   const j = url.searchParams.get("jenis") as Jenis;
-  if (!["pagi", "siang"].includes(s) || !["datang", "pulang"].includes(j)) return null;
+  if (!sah(s, j)) return null;
   return { s, j };
 }
 
@@ -166,16 +196,17 @@ async function kirim(url: URL) {
   const w = tglUji && /^\d{4}-\d{2}-\d{2}$/.test(tglUji) ? new Date(`${tglUji}T05:00:00Z`) : wib();
   const dow = w.getUTCDay();
   if (dow === 0 || dow === 6) return json({ skipped: "weekend" });
+  if (s === "olahraga" && dow > 3) return json({ skipped: "bukan hari olahraga (hanya Senin-Rabu)" });
   const today = ymdW(w);
 
   const { data: libur } = await admin.from("kalender_akademik").select("judul").eq("jenis", "libur").lte("tanggal_mulai", today).gte("tanggal_selesai", today).limit(1);
   if (libur && libur.length) return json({ skipped: "libur", judul: libur[0].judul });
 
-  const { data: guru } = await admin.from("profiles").select("id, full_name, kelas").eq("role", "guru");
+  const { data: guru } = await admin.from("profiles").select("id, full_name, kelas").eq("role", s === "olahraga" ? "olahraga" : "guru");
   const ka1ab = (k: string | null) => k === "Kuttab Awwal 1A" || k === "Kuttab Awwal 1B";
   const dipilih = (guru ?? []).filter((g: any) => (filter === "ka1ab" ? ka1ab(g.kelas) : filter === "lain" ? !ka1ab(g.kelas) : true));
 
-  const { data: baris } = await admin.from("absen_guru").select("*").eq("tanggal", today);
+  const { data: baris } = await admin.from(s === "olahraga" ? "absen_olahraga" : "absen_guru").select("*").eq("tanggal", today);
   const byUser = new Map<string, any>((baris ?? []).map((r: any) => [r.user_id, r]));
   const { data: subs } = await admin.from("push_subscriptions").select("id, user_id, endpoint, p256dh, auth");
   const subsBy = new Map<string, any[]>();
@@ -184,7 +215,7 @@ async function kirim(url: URL) {
   const hasil: any[] = [];
   for (const g of dipilih) {
     const r = byUser.get(g.id);
-    const perlu = !r ? true : r[`status_${s}`] === "hadir" && !r[`jam_${j}_${s}`];
+    const perlu = s === "olahraga" ? !r : !r ? true : r[`status_${s}`] === "hadir" && !r[`jam_${j}_${s}`];
     if (!perlu) continue;
     const mine = subsBy.get(g.id) ?? [];
     if (!mine.length) { hasil.push({ guru: g.full_name, sent: 0, alasan: "belum berlangganan notifikasi" }); continue; }

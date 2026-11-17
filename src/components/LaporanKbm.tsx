@@ -21,7 +21,7 @@ import {
 // Tampilan layar laporan KBM (Sajian Data). Susunannya sama dengan PDF: laporan utama (narasi + tabel + grafik +
 // kesimpulan) lalu lampiran per bulan (checklist, grafik pekanan, refleksi, data pendukung, kualitas data, aturan).
 
-const card = { background: "#FFF", border: `1px solid ${C.line}`, borderRadius: 16 } as const;
+const card = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 16 } as const;
 export const warnaPersen = (p: number | null) => (p == null ? C.muted : p >= 75 ? W.ok : p >= 40 ? W.warn : W.bad);
 const bgPersen = (p: number | null) => (p == null ? undefined : p >= 75 ? C.leaf : p >= 40 ? W.krem : W.badBg);
 const teksRasio = (r: Rasio | null | undefined, satuan = "") => (!r || r.p == null ? "–" : `${r.a} dari ${r.b}${satuan} (${r.p}%)`);
@@ -460,9 +460,9 @@ function KesimpulanEditor({ kunci, teks, setTeks, bisaUbah }: { kunci: string; t
         rows={8}
         placeholder={"Setelah membaca dan menganalisis data KBM, tim kurikulum menyimpulkan dan mengevaluasi beberapa hal berikut:\n1. ...\n\nSolusi yang akan dijalankan:\n1. ..."}
         className="w-full text-sm outline-none px-3.5 py-3 rounded-xl leading-relaxed"
-        style={{ border: `1px solid ${C.line}`, background: "#FFF" }}
+        style={{ border: `1px solid ${C.line}`, background: C.card }}
       />
-      {error && <div className="mt-2 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: W.badBg, color: "#8A2A20" }}>{error}</div>}
+      {error && <div className="mt-2 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: W.badBg, color: "var(--c-bahayaTeks)" }}>{error}</div>}
       <button
         type="button"
         disabled={!berubah || saving}
@@ -514,7 +514,7 @@ function Akordeon({ judul, sub, children }: { judul: string; sub?: string; child
   const [buka, setBuka] = useState(false);
   return (
     <div className="mt-2 overflow-hidden" style={card}>
-      <button type="button" onClick={() => setBuka((b) => !b)} className="w-full flex items-center gap-3 px-4 py-3 text-left" aria-expanded={buka} style={{ background: buka ? C.leaf : "#FFF" }}>
+      <button type="button" onClick={() => setBuka((b) => !b)} className="w-full flex items-center gap-3 px-4 py-3 text-left" aria-expanded={buka} style={{ background: buka ? C.leaf : C.card }}>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold" style={{ color: C.ink }}>{judul}</div>
           {sub && <div className="text-xs truncate" style={{ color: C.muted }}>{sub}</div>}

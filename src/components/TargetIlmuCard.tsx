@@ -85,7 +85,7 @@ export function TargetIlmuCard({ kelas, bulan, bisaUbah, onTersimpan }: { kelas:
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <button type="button" onClick={() => setBuka((b) => !b)} className="w-full flex items-center gap-3 px-4 py-3 text-left" aria-expanded={buka}>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold" style={{ color: C.green }}>Target RPB {bulan}</div>
@@ -123,7 +123,7 @@ export function TargetIlmuCard({ kelas, bulan, bisaUbah, onTersimpan }: { kelas:
                     <div className="flex gap-2 mt-2">
                       {(["sudah", "belum"] as const).map((st) => {
                         const aktif = tn?.status === st;
-                        const warna = st === "sudah" ? C.green : "#B3261E";
+                        const warna = st === "sudah" ? C.green : "var(--c-bahaya)";
                         return (
                           <button
                             key={st}
@@ -132,7 +132,7 @@ export function TargetIlmuCard({ kelas, bulan, bisaUbah, onTersimpan }: { kelas:
                             onClick={() => pilih(t.urutan, st)}
                             aria-pressed={aktif}
                             className="flex-1 text-xs font-semibold py-2 rounded-lg transition-colors disabled:cursor-default"
-                            style={{ background: aktif ? warna : "#FFF", color: aktif ? "#FFF" : warna, border: `1px solid ${aktif ? warna : C.line}` }}
+                            style={{ background: aktif ? warna : C.card, color: aktif ? "#FFF" : warna, border: `1px solid ${aktif ? warna : C.line}` }}
                           >
                             {st === "sudah" ? "✓ Sudah tercapai" : "✗ Belum tercapai"}
                           </button>
@@ -146,7 +146,7 @@ export function TargetIlmuCard({ kelas, bulan, bisaUbah, onTersimpan }: { kelas:
                           onChange={(e) => setTanda((p) => ({ ...p, [t.urutan]: { status: p[t.urutan]!.status, keterangan: e.target.value } }))}
                           placeholder={tn?.status === "belum" ? "Keterangan: mis. santri yang belum, sampai mana, materi lain" : "Keterangan (boleh dikosongkan)"}
                           className="mt-2 w-full text-xs outline-none px-2.5 py-2 rounded-lg"
-                          style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                          style={{ background: C.card, border: `1px solid ${C.line}` }}
                         />
                       ) : (
                         tn?.keterangan && <p className="text-xs mt-2" style={{ color: C.muted }}>{tn.keterangan}</p>
@@ -156,7 +156,7 @@ export function TargetIlmuCard({ kelas, bulan, bisaUbah, onTersimpan }: { kelas:
                 );
               })}
               {error && (
-                <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>{error}</div>
+                <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>{error}</div>
               )}
               {bisaUbah && (
                 <button

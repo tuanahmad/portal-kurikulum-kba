@@ -100,3 +100,10 @@ a:active,
   .toast-masuk,
   .skeleton-kilau::after { animation: none !important; }
 }
+
+/* Logo di layar masuk: di tema terang menyatu dengan latar (multiply); di tema gelap diberi alas putih supaya tetap terbaca. */
+.logo-login { mix-blend-mode: multiply; }
+html[data-tema="gelap"] .logo-login { mix-blend-mode: normal; background: #fff; border-radius: 18px; padding: 10px 14px; }
+
+/* Sertifikat (syahadah) selalu terang, meski aplikasi sedang gelap: hasil unduhan harus sama. */
+html[data-tema="gelap"] .cert-page { --c-green:#1C4A33; --c-greenDeep:#143726; --c-gold:#C79A3B; --c-goldSoft:#F3E8D2; --c-mist:#FBFAF7; --c-leaf:#EDF3EE; --c-ink:#22301F; --c-muted:#68705F; --c-line:#E2DFD5; --c-card:#FFFFFF; color-scheme: light; }

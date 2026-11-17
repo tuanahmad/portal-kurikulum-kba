@@ -45,7 +45,7 @@ export function ToastHost() {
           key={x.id}
           role="status"
           className="toast-masuk inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg max-w-sm"
-          style={{ background: x.jenis === "sukses" ? C.green : "#9F240B" }}
+          style={{ background: x.jenis === "sukses" ? C.green : "var(--c-bahayaTeks)" }}
         >
           {x.jenis === "sukses" && (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">

@@ -2,7 +2,7 @@ import { GagalMuat } from "../components/GagalMuat";
 import { toast } from "../components/Toast";
 import { rayakan } from "../components/Perayaan";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { C } from "../data";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
@@ -63,10 +63,13 @@ export default function AbsenPage() {
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<"guru" | "santri">(searchParams.get("tab") === "santri" ? "santri" : "guru");
 
+  // Guru olahraga punya halaman absen sendiri (mis. dari pintasan ikon aplikasi).
+  if (role === "olahraga") return <Navigate to="/olahraga/absen" replace />;
+
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 sm:pt-9 pb-32 sm:pb-40">
-        <div className="grid grid-cols-2 gap-1 p-1 rounded-xl" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-xl" style={{ background: C.card, border: `1px solid ${C.line}` }}>
           {(["guru", "santri"] as const).map((t) => {
             const active = tab === t;
             return (
@@ -274,13 +277,13 @@ function AbsenDayCard({
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{ background: "#FFF", border: `1px solid ${isToday && !open ? C.green : C.line}` }}
+      style={{ background: C.card, border: `1px solid ${isToday && !open ? C.green : C.line}` }}
     >
       <button
         type="button"
         onClick={onToggle}
         className="w-full flex items-center gap-3 px-3.5 py-3 text-left transition-colors"
-        style={{ background: open ? C.leaf : "#FFF" }}
+        style={{ background: open ? C.leaf : C.card }}
       >
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
@@ -339,7 +342,7 @@ function AbsenDayCard({
                 ))}
               </div>
 
-              {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
+              {err && <p className="mt-3 text-xs" style={{ color: "var(--c-bahayaTeks)" }}>{err}</p>}
               {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
 
               <button
@@ -384,7 +387,7 @@ function SesiBlock({
               onClick={() => set("status", s)}
               className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
               style={{
-                background: on ? C.green : "#FFF",
+                background: on ? C.green : C.card,
                 color: on ? "#FFF" : C.ink,
                 border: `1px solid ${on ? C.green : C.line}`,
               }}
@@ -504,7 +507,7 @@ function ManagementAbsen() {
         <p className="text-sm mt-1" style={{ color: C.muted }}>Rekap kehadiran harian guru</p>
       </header>
 
-      <div className="mt-5 grid grid-cols-3 gap-1 p-1 rounded-xl" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <div className="mt-5 grid grid-cols-3 gap-1 p-1 rounded-xl" style={{ background: C.card, border: `1px solid ${C.line}` }}>
         {(["kelas", "hari", "bulan"] as const).map((t) => {
           const active = tab === t;
           return (
@@ -521,7 +524,7 @@ function ManagementAbsen() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
           {error}
         </div>
       )}
@@ -588,7 +591,7 @@ function ManagementAbsenPerKelas({ kelasList }: { kelasList: string[] }) {
           />
 
           {error && (
-            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+            <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
               {error}
             </div>
           )}
@@ -656,7 +659,7 @@ function ManagementAbsenPerHari({ kelasList }: { kelasList: string[] }) {
       )}
 
       {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
           {error}
         </div>
       )}
@@ -679,7 +682,7 @@ function ReadOnlyAbsenKelasRow({ kelas, entry }: { kelas: string; entry: AbsenEn
   const filled = isAbsenFilled(entry);
   const lengkap = isAbsenLengkap(entry);
   return (
-    <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: lengkap ? C.green : filled ? C.gold : C.line }} aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <div className="text-sm font-semibold truncate" style={{ color: C.ink }}>{kelas}</div>
@@ -699,7 +702,7 @@ function ReadOnlyAbsenDay({ date, entry }: { date: Date; entry: AbsenEntry | und
   const filled = isAbsenFilled(entry);
   const lengkap = isAbsenLengkap(entry);
   return (
-    <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl p-3.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <div className="flex items-center gap-3">
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
@@ -790,7 +793,7 @@ function WeekNav({
       <ArrowBtn dir="prev" disabled={!onPrev} onClick={onPrev} />
       <div
         className="flex-1 text-center rounded-xl px-3 py-2"
-        style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+        style={{ background: C.card, border: `1px solid ${C.line}` }}
       >
         <div className="text-sm font-semibold" style={{ color: C.ink }}>{label}</div>
         {sub && <div className="text-[11px]" style={{ color: C.green }}>{sub}</div>}
@@ -809,7 +812,7 @@ function ArrowBtn({ dir, disabled, onClick }: { dir: "prev" | "next"; disabled?:
       aria-label={dir === "prev" ? "Pekan sebelumnya" : "Pekan berikutnya"}
       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
       style={{
-        background: "#FFF",
+        background: C.card,
         border: `1px solid ${C.line}`,
         color: C.green,
         opacity: disabled ? 0.35 : 1,
@@ -952,7 +955,7 @@ function GuruAbsenSantri() {
       />
 
       {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
           {error}
         </div>
       )}
@@ -978,7 +981,7 @@ function GuruAbsenSantri() {
 
           {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
           {belumLengkap && !msg && (
-            <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>
+            <p className="mt-3 text-xs" style={{ color: "var(--c-bahayaTeks)" }}>
               Masih ada santri yang belum dipilih status kehadirannya.
             </p>
           )}
@@ -1007,7 +1010,7 @@ function SantriRow({
   onChangeSesi: (sesi: "pagi" | "siang", v: FormSesiEntry) => void;
 }) {
   return (
-    <div className="rounded-xl p-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-xl p-3" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <span className="text-sm font-semibold block truncate" style={{ color: C.ink }}>{nama}</span>
 
       <div className="mt-2.5 grid grid-cols-2 gap-2.5">
@@ -1040,7 +1043,7 @@ function SantriSesiToggle({
               onClick={() => onChange({ status: s, keterangan: s === "hadir" ? "" : value.keterangan })}
               className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
               style={{
-                background: on ? (s === "hadir" ? C.green : "#C0524A") : "#FFF",
+                background: on ? (s === "hadir" ? C.green : "#C0524A") : C.card,
                 color: on ? "#FFF" : C.ink,
                 border: `1px solid ${on ? (s === "hadir" ? C.green : "#C0524A") : C.line}`,
               }}
@@ -1151,7 +1154,7 @@ function ManagementAbsenSantri() {
       />
 
       {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
           {error}
         </div>
       )}
@@ -1169,7 +1172,7 @@ function ManagementAbsenSantri() {
               ? `${s.kejadianTidakHadir} kejadian tidak hadir`
               : "Semua hadir minggu ini";
             return (
-              <div key={s.kelas} className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+              <div key={s.kelas} className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.line}` }}>
                 <button
                   type="button"
                   onClick={() => s.hasData && setExpanded(isOpen ? null : s.kelas)}
@@ -1199,7 +1202,7 @@ function ManagementAbsenSantri() {
                         <span
                           className="w-9 h-9 rounded-lg flex flex-col items-center justify-center shrink-0 leading-none"
                           style={{
-                            background: h.tidakHadir.length > 0 ? "#FDEBEA" : h.adaData ? C.leaf : C.mist,
+                            background: h.tidakHadir.length > 0 ? "var(--c-bahayaBg)" : h.adaData ? C.leaf : C.mist,
                             color: h.tidakHadir.length > 0 ? "#C0524A" : C.green,
                           }}
                         >
@@ -1214,12 +1217,12 @@ function ManagementAbsenSantri() {
                           ) : (
                             <ul className="space-y-2">
                               {h.tidakHadir.map((t) => (
-                                <li key={t.nama} className="rounded-xl px-3 py-2" style={{ background: "#FDF3F2", border: "1px solid #F1CFCB" }}>
+                                <li key={t.nama} className="rounded-xl px-3 py-2" style={{ background: "var(--c-bahayaBg)", border: "1px solid #F1CFCB" }}>
                                   <div className="flex items-start justify-between gap-2">
                                     <span className="text-sm font-semibold" style={{ color: C.ink }}>{t.nama}</span>
                                     <span className="flex gap-1 shrink-0">
-                                      {t.pagi && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#FFF", color: "#9F240B", border: "1px solid #E8A6A0" }}>Pagi</span>}
-                                      {t.siang && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#FFF", color: "#9F240B", border: "1px solid #E8A6A0" }}>Siang</span>}
+                                      {t.pagi && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: C.card, color: "var(--c-bahayaTeks)", border: "1px solid var(--c-bahayaGaris)" }}>Pagi</span>}
+                                      {t.siang && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: C.card, color: "var(--c-bahayaTeks)", border: "1px solid var(--c-bahayaGaris)" }}>Siang</span>}
                                     </span>
                                   </div>
                                   {(t.ketPagi || t.ketSiang) && (

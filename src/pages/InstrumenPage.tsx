@@ -10,7 +10,7 @@ import { listDriveFolders, type DriveNode } from "../lib/drive";
 
 const GRADIENTS = [
   `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`,
-  "linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)",
+  "linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)",
   `linear-gradient(135deg, #2F8A63 0%, #1F6244 100%)`,
 ];
 
@@ -115,7 +115,7 @@ export default function InstrumenPage() {
             </div>
 
             {state.error && (
-              <p className="text-sm px-1 py-3" style={{ color: "#B3441C" }}>
+              <p className="text-sm px-1 py-3" style={{ color: "var(--c-bahayaTeks)" }}>
                 Gagal memuat: {state.error}
               </p>
             )}
@@ -133,7 +133,7 @@ export default function InstrumenPage() {
             )}
 
             {state.error && (
-              <p className="text-sm px-1 py-2" style={{ color: "#B3441C" }}>
+              <p className="text-sm px-1 py-2" style={{ color: "var(--c-bahayaTeks)" }}>
                 Gagal memuat: {state.error}
               </p>
             )}

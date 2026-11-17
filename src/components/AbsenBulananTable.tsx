@@ -7,10 +7,10 @@ import { buildRekapBulanan, type Guru, type SesiCell } from "../lib/absenBulanan
 import { LEGENDA_DATANG, LEGENDA_GANJIL } from "../lib/absenAturan";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-const RED_BG = "#FDEBEA";
-const RED_TX = "#B3261E";
-const YEL_BG = "#FAEEDA";
-const YEL_TX = "#854F0B";
+const RED_BG = "var(--c-bahayaBg)";
+const RED_TX = "var(--c-bahaya)";
+const YEL_BG = "var(--c-emasBg)";
+const YEL_TX = "var(--c-emasTeks)";
 
 function weekdaysOfMonth(year: number, month0: number): Date[] {
   const out: Date[] = [];
@@ -140,11 +140,11 @@ export function AbsenBulananTable() {
           onClick={() => shift(-1)}
           aria-label="Bulan sebelumnya"
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "#FFF", border, color: C.green }}
+          style={{ background: C.card, border, color: C.green }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-        <div className="flex-1 text-center rounded-xl px-3 py-2" style={{ background: "#FFF", border }}>
+        <div className="flex-1 text-center rounded-xl px-3 py-2" style={{ background: C.card, border }}>
           <div className="text-sm font-semibold" style={{ color: C.ink }}>{BULAN[month0]} {year}</div>
           {atThisMonth && <div className="text-[11px]" style={{ color: C.green }}>Bulan ini</div>}
         </div>
@@ -154,7 +154,7 @@ export function AbsenBulananTable() {
           disabled={atThisMonth}
           aria-label="Bulan berikutnya"
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "#FFF", border, color: C.green, opacity: atThisMonth ? 0.35 : 1, cursor: atThisMonth ? "not-allowed" : "pointer" }}
+          style={{ background: C.card, border, color: C.green, opacity: atThisMonth ? 0.35 : 1, cursor: atThisMonth ? "not-allowed" : "pointer" }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ transform: "rotate(180deg)" }}><path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
@@ -179,7 +179,7 @@ export function AbsenBulananTable() {
       </p>
 
       {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
           {error}
         </div>
       )}
@@ -187,7 +187,7 @@ export function AbsenBulananTable() {
       {loading ? (
         <div className="mt-5"><PageLoadingSkeleton /></div>
       ) : (
-        <div className="mt-4 rounded-2xl overflow-x-auto" style={{ background: "#FFF", border }}>
+        <div className="mt-4 rounded-2xl overflow-x-auto" style={{ background: C.card, border }}>
           <table className="text-[11px]" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
             <thead>
               <tr style={{ background: C.leaf }}>
@@ -234,7 +234,7 @@ export function AbsenBulananTable() {
                 <tr key={r.guru.kelas}>
                   <td
                     className="px-2.5 py-1.5 align-top"
-                    style={{ position: "sticky", left: 0, zIndex: 1, background: "#FFF", borderTop: border, borderRight: border, minWidth: 120 }}
+                    style={{ position: "sticky", left: 0, zIndex: 1, background: C.card, borderTop: border, borderRight: border, minWidth: 120 }}
                   >
                     <div className="font-semibold truncate" style={{ color: C.ink, maxWidth: 130 }}>{r.guru.nama}</div>
                     <div className="text-[10px] truncate" style={{ color: C.muted, maxWidth: 130 }}>{r.guru.kelas}</div>

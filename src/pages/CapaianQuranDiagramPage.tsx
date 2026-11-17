@@ -12,14 +12,14 @@ const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Dese
 
 // Warna per section (fallback cycle kalau ada section tak terduga)
 const SECTION_COLORS: Record<string, string> = {
-  "talaqqi al-qur'an": "#1C4A33",
-  "ziyadah al-qur'an": "#1C4A33",
+  "talaqqi al-qur'an": "var(--c-green)",
+  "ziyadah al-qur'an": "var(--c-green)",
   baghdadiyah: "#C79A3B",
   murojaah: "#3B6EA5",
   wirid: "#7A5AA6",
   tilawah: "#2F8F83",
 };
-const FALLBACK_COLORS = ["#1C4A33", "#C79A3B", "#3B6EA5", "#7A5AA6", "#2F8F83", "#B5563F"];
+const FALLBACK_COLORS = ["var(--c-green)", "#C79A3B", "#3B6EA5", "#7A5AA6", "#2F8F83", "#B5563F"];
 
 function colorFor(name: string, idx: number): string {
   return SECTION_COLORS[name.toLowerCase().replace(/\s+/g, " ").trim()] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
@@ -185,7 +185,7 @@ export default function CapaianQuranDiagramPage() {
             }
             aria-label="Kembali"
             className="absolute left-0 inset-y-0 my-auto w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
+            style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -214,7 +214,7 @@ export default function CapaianQuranDiagramPage() {
           </div>
 
           {error && (
-            <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+            <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
               {error}
             </div>
           )}
@@ -235,7 +235,7 @@ export default function CapaianQuranDiagramPage() {
                 {roster.map((nama, i) => {
                   const series = seriesForStudent(data, roster, i, weeksInMonth, bulan).filter((s) => s.hasData);
                   return (
-                    <div key={i} className="rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                    <div key={i} className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}>
                       <div className="text-sm font-semibold mb-3" style={{ color: C.ink }}>
                         {i + 1}. {nama}
                       </div>

@@ -112,7 +112,7 @@ export default function AbsenCepatPage() {
         <p className="mt-5 text-4xl font-bold" style={{ color: C.green }}>{j}</p>
         <p className="mt-2 text-sm" style={{ color: C.muted }}>{tercatat ? "Tercatat. Terima kasih." : "Sudah tercatat sebelumnya."}</p>
         <div className="mt-6 flex flex-col gap-2">
-          <Link to="/absen" className="py-2.5 rounded-xl text-sm font-semibold" style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}>Lihat absen lengkap</Link>
+          <Link to="/absen" className="py-2.5 rounded-xl text-sm font-semibold" style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}>Lihat absen lengkap</Link>
           <Link to="/home" className="py-2.5 rounded-xl text-sm font-semibold" style={{ color: C.muted }}>Ke Beranda</Link>
         </div>
       </>
@@ -150,7 +150,7 @@ export default function AbsenCepatPage() {
           >
             {sibuk ? "Menyimpan…" : `Hadir sekarang · ${jenis}`}
           </button>
-          {galat && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{galat}</p>}
+          {galat && <p className="mt-3 text-xs" style={{ color: "var(--c-bahayaTeks)" }}>{galat}</p>}
           <Link to="/absen" className="inline-block mt-5 text-sm font-semibold" style={{ color: C.green }}>Izin, sakit, atau cuti? Buka halaman Absen</Link>
         </>
       )}

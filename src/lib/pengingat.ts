@@ -12,10 +12,10 @@ export type KeyPengingat = "quran" | "akhirBulan" | "rpb" | "lengkapi";
 export type Pengingat = { key: KeyPengingat; judul: string; warna: string; latar: string };
 
 export const PENGINGAT: Record<KeyPengingat, Pengingat> = {
-  quran: { key: "quran", judul: "Isi Capaian Al-Qur'an", warna: "#8A6A20", latar: "#FFF1D6" },
-  akhirBulan: { key: "akhirBulan", judul: "Isi Refleksi dan Capaian Ilmu", warna: "#274C74", latar: "#E3EDF8" },
-  rpb: { key: "rpb", judul: "Isi RPB", warna: "#1C5A52", latar: "#DDF1EE" },
-  lengkapi: { key: "lengkapi", judul: "Lengkapi Jurnal dan Absen", warna: "#B3261E", latar: "#FDEBEA" },
+  quran: { key: "quran", judul: "Isi Capaian Al-Qur'an", warna: "var(--c-emasTeks)", latar: "var(--c-emasBg)" },
+  akhirBulan: { key: "akhirBulan", judul: "Isi Refleksi dan Capaian Ilmu", warna: "var(--c-biruTeks)", latar: "var(--c-biruBg)" },
+  rpb: { key: "rpb", judul: "Isi RPB", warna: "var(--c-toscaTeks)", latar: "var(--c-toscaBg)" },
+  lengkapi: { key: "lengkapi", judul: "Lengkapi Jurnal dan Absen", warna: "var(--c-bahaya)", latar: "var(--c-bahayaBg)" },
 };
 
 /** Aturan rutin untuk satu tanggal. `lengkapi` ditambahkan terpisah (butuh data guru). */

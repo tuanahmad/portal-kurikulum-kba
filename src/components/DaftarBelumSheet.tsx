@@ -47,7 +47,7 @@ export function DaftarBelumSheet({ judul, sub, rincian, tutup }: { judul: string
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label={`Belum mengisi ${judul}`}>
       <button type="button" aria-label="Tutup" onClick={tutup} className="absolute inset-0" style={{ background: "rgba(10,25,20,0.5)" }} />
-      <div className="relative w-full sm:max-w-md max-h-[82dvh] flex flex-col rounded-t-3xl sm:rounded-3xl overflow-hidden" style={{ background: "#FFF", boxShadow: "0 -8px 40px rgba(0,0,0,0.25)" }}>
+      <div className="relative w-full sm:max-w-md max-h-[82dvh] flex flex-col rounded-t-3xl sm:rounded-3xl overflow-hidden" style={{ background: C.card, boxShadow: "0 -8px 40px rgba(0,0,0,0.25)" }}>
         <div className="px-5 pt-4 pb-3 shrink-0" style={{ borderBottom: `1px solid ${C.line}` }}>
           <div className="mx-auto w-10 h-1 rounded-full mb-3 sm:hidden" style={{ background: C.line }} aria-hidden="true" />
           <div className="flex items-start justify-between gap-3">
@@ -79,7 +79,7 @@ export function DaftarBelumSheet({ judul, sub, rincian, tutup }: { judul: string
                 </h3>
                 <span
                   className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                  style={g.isi.length ? { background: "#FDEBEA", color: "#9F240B" } : { background: C.leaf, color: C.green }}
+                  style={g.isi.length ? { background: "var(--c-bahayaBg)", color: "var(--c-bahayaTeks)" } : { background: C.leaf, color: C.green }}
                 >
                   {g.isi.length ? `${g.isi.length} belum` : "semua sudah ✓"}
                 </span>

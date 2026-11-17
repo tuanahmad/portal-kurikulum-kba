@@ -48,7 +48,7 @@ export default function JurnalGabungan({
   const adaIsi = potongan.some((p) => p.jenis === "isi");
 
   return (
-    <section className="mt-5 rounded-2xl p-4 sm:p-5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <section className="mt-5 rounded-2xl p-4 sm:p-5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <div className="pb-3 mb-1" style={{ borderBottom: `1px solid ${C.line}` }}>
         <div className="text-base font-semibold" style={{ color: C.ink }}>{guru}</div>
         <div className="text-xs mt-0.5" style={{ color: C.muted }}>

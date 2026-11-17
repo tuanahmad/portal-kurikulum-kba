@@ -38,12 +38,12 @@ export function PickerCard({
   const sel = value != null ? items[value] : null;
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-3 px-3.5 py-3 text-left transition-colors"
-        style={{ background: open ? C.leaf : "#FFF" }}
+        style={{ background: open ? C.leaf : C.card }}
       >
         <span
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -93,7 +93,7 @@ export function PickerCard({
                   borderTop: i === 0 ? "none" : `1px solid ${C.line}`,
                   borderLeft: `3px solid ${active ? C.green : "transparent"}`,
                 }}
-                onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "#F7F6F1"; }}
+                onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "var(--c-leaf)"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = active ? C.leaf : "transparent"; }}
               >
                 <span

@@ -74,18 +74,18 @@ export function KartuAktifkanNotif() {
         : "Dapat pengingat absen, dan di Android bisa absen langsung dari notifikasi tanpa membuka aplikasi.";
 
   return (
-    <div className="mb-4 rounded-2xl p-3.5" style={{ background: "#FFF8E6", border: "1px solid #EBD79B" }} role="region" aria-label="Aktifkan notifikasi">
+    <div className="mb-4 rounded-2xl p-3.5" style={{ background: "var(--c-emasBg)", border: "1px solid var(--c-emasGaris)" }} role="region" aria-label="Aktifkan notifikasi">
       <div className="flex items-start gap-3">
-        <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#F3E3B0" }}>
+        <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--c-emasBg)" }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M6 9a6 6 0 0 1 12 0v4.5l1.5 2.5h-15L6 13.5V9Z" stroke="#8A6A20" strokeWidth="1.7" strokeLinejoin="round" />
-            <path d="M9.5 18.5a2.5 2.5 0 0 0 5 0" stroke="#8A6A20" strokeWidth="1.7" strokeLinecap="round" />
+            <path d="M6 9a6 6 0 0 1 12 0v4.5l1.5 2.5h-15L6 13.5V9Z" stroke="var(--c-emasTeks)" strokeWidth="1.7" strokeLinejoin="round" />
+            <path d="M9.5 18.5a2.5 2.5 0 0 0 5 0" stroke="var(--c-emasTeks)" strokeWidth="1.7" strokeLinecap="round" />
           </svg>
         </span>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold" style={{ color: C.ink }}>Aktifkan notifikasi absen</div>
           <p className="mt-0.5 text-xs leading-relaxed" style={{ color: C.muted }}>{isi}</p>
-          {galat && <p className="mt-1 text-xs" style={{ color: "#8A2A20" }}>{galat}</p>}
+          {galat && <p className="mt-1 text-xs" style={{ color: "var(--c-bahayaTeks)" }}>{galat}</p>}
           {status === "off" && (
             <div className="mt-2.5 flex items-center gap-3">
               <button type="button" onClick={aktifkan} disabled={sibuk} className="px-4 py-2 rounded-xl text-sm font-bold" style={{ background: C.green, color: "#FFF", opacity: sibuk ? 0.6 : 1 }}>

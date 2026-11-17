@@ -65,7 +65,7 @@ export default function TasmiRekapPage() {
             onClick={() => navigate(-1)}
             aria-label="Kembali"
             className="absolute left-0 inset-y-0 my-auto w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
+            style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -88,7 +88,7 @@ export default function TasmiRekapPage() {
                 key={y}
                 onClick={() => setYear(y)}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-                style={{ background: active ? C.green : "#FFF", color: active ? "#FFF" : C.ink, border: `1px solid ${active ? C.green : C.line}` }}
+                style={{ background: active ? C.green : C.card, color: active ? "#FFF" : C.ink, border: `1px solid ${active ? C.green : C.line}` }}
               >
                 {y}
               </button>
@@ -97,7 +97,7 @@ export default function TasmiRekapPage() {
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
             {error}
           </div>
         )}
@@ -109,15 +109,15 @@ export default function TasmiRekapPage() {
         ) : (
           <div className="mt-5 space-y-6">
             {/* Ringkasan: angka penting + kelas yang belum tasmi', dipisah per jenjang */}
-            <section className="rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+            <section className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}>
               <div className="grid grid-cols-3 gap-2 text-center">
                 {[
                   { angka: totalSantri, label: "tasmi' tercatat" },
                   { angka: KELAS_LIST.length - kelasKosong.length, label: "kelas sudah" },
                   { angka: kelasKosong.length, label: "kelas belum", merah: kelasKosong.length > 0 },
                 ].map((x) => (
-                  <div key={x.label} className="rounded-xl py-2.5" style={{ background: x.merah ? "#FDEBEA" : C.leaf }}>
-                    <div className="text-2xl font-semibold leading-none" style={{ color: x.merah ? "#9F240B" : C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>
+                  <div key={x.label} className="rounded-xl py-2.5" style={{ background: x.merah ? "var(--c-bahayaBg)" : C.leaf }}>
+                    <div className="text-2xl font-semibold leading-none" style={{ color: x.merah ? "var(--c-bahayaTeks)" : C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>
                       {x.angka}
                     </div>
                     <div className="text-[11px] mt-1" style={{ color: C.muted }}>{x.label}</div>
@@ -126,7 +126,7 @@ export default function TasmiRekapPage() {
               </div>
 
               <div className="mt-4">
-                <div className="text-xs font-bold uppercase tracking-wider" style={{ color: kelasKosong.length ? "#9F240B" : C.green }}>
+                <div className="text-xs font-bold uppercase tracking-wider" style={{ color: kelasKosong.length ? "var(--c-bahayaTeks)" : C.green }}>
                   {kelasKosong.length ? `Belum ada tasmi' di ${year}` : `Semua kelas sudah ada tasmi' di ${year} 🎉`}
                 </div>
                 {kelasKosong.length > 0 && (
@@ -141,7 +141,7 @@ export default function TasmiRekapPage() {
                           {kosong.length > 0 && (
                             <div className="flex flex-wrap gap-1.5">
                               {kosong.map((s) => (
-                                <span key={s.kelas} className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "#FDEBEA", color: "#8A2A20", border: "1px solid #E8A6A0" }}>
+                                <span key={s.kelas} className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--c-bahayaBg)", color: "var(--c-bahayaTeks)", border: "1px solid var(--c-bahayaGaris)" }}>
                                   {s.kelas}
                                 </span>
                               ))}
@@ -168,10 +168,10 @@ export default function TasmiRekapPage() {
                     // kelas yang belum ada tasmi' sudah tercantum di ringkasan atas, tidak diulang di sini
                     .filter((s) => jenjangOf(s.kelas) === j.nama && s.entries.length > 0)
                     .map((s) => (
-                      <div key={s.kelas} className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
-                        <div className="flex items-center justify-between gap-2 px-4 py-2.5" style={{ background: s.entries.length ? C.leaf : "#FDEBEA" }}>
-                          <div className="text-sm font-bold" style={{ color: s.entries.length ? C.green : "#9F240B" }}>{s.kelas}</div>
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#FFF", color: s.entries.length ? C.green : "#9F240B" }}>
+                      <div key={s.kelas} className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.line}` }}>
+                        <div className="flex items-center justify-between gap-2 px-4 py-2.5" style={{ background: s.entries.length ? C.leaf : "var(--c-bahayaBg)" }}>
+                          <div className="text-sm font-bold" style={{ color: s.entries.length ? C.green : "var(--c-bahayaTeks)" }}>{s.kelas}</div>
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: C.card, color: s.entries.length ? C.green : "var(--c-bahayaTeks)" }}>
                             {s.entries.length ? `${s.entries.length} santri` : "belum ada"}
                           </span>
                         </div>

@@ -88,7 +88,7 @@ export function PushNotifToggle({ variant }: { variant: "light" | "dark" }) {
         )}
       </button>
       {error && (
-        <p className="px-3.5 text-[11px]" style={{ color: "#E8A6A0" }}>
+        <p className="px-3.5 text-[11px]" style={{ color: "var(--c-bahayaGaris)" }}>
           {error}
         </p>
       )}

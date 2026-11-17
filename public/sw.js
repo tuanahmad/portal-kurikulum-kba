@@ -143,7 +143,7 @@ self.addEventListener("push", (event) => {
     body: data.body,
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    data: { url: data.url || "/home", aksi: data.aksi || null, actions: data.actions || null },
+    data: { url: data.url || "/home", urlBuka: data.urlBuka || null, aksi: data.aksi || null, actions: data.actions || null },
   };
   if (data.tag) opsi.tag = data.tag;
   if (data.requireInteraction) opsi.requireInteraction = true;
@@ -157,7 +157,7 @@ async function isiDariNotifikasi(notif, d) {
   const tag = notif.tag || "absen";
   notif.close();
   const hasil = (judul, body, extra = {}) =>
-    self.registration.showNotification(judul, { body, icon: "/icon-192.png", badge: "/icon-192.png", tag: tag + "-hasil", data: { url: d.url || "/absen" }, ...extra });
+    self.registration.showNotification(judul, { body, icon: "/icon-192.png", badge: "/icon-192.png", tag: tag + "-hasil", data: { url: d.urlBuka || d.url || "/absen" }, ...extra });
   try {
     const res = await fetch(d.aksi.api, {
       method: "POST",
@@ -194,7 +194,7 @@ self.addEventListener("notificationclick", (event) => {
     return;
   }
   event.notification.close();
-  const url = event.action === "buka" ? "/absen" : d.url || "/home";
+  const url = event.action === "buka" ? d.urlBuka || "/absen" : d.url || "/home";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientsList) => {
       for (const client of clientsList) {

@@ -209,7 +209,7 @@ export function KartuGeser({ slides }: { slides: SlideKartu[] }) {
           </button>
           <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 pointer-events-none">
             {slides.map((s, i) => (
-              <span key={s.key} className="h-1.5 rounded-full transition-all" style={{ width: i === aktif ? 14 : 6, background: "#FFF", opacity: i === aktif ? 0.95 : 0.5 }} />
+              <span key={s.key} className="h-1.5 rounded-full transition-all" style={{ width: i === aktif ? 14 : 6, background: C.card, opacity: i === aktif ? 0.95 : 0.5 }} />
             ))}
           </div>
         </>

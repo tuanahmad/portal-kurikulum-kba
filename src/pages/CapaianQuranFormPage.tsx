@@ -26,7 +26,7 @@ import { DAFTAR_SURAT, bagianPunyaSurat, bacaSuratBulan, simpanSurat, kunciSurat
 const BULAN_LIST = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 const QUICK = ["0", "0,5", "1", "2", "3", "4", "5"]; // tombol cepat; guru tetap bisa ketik angka lain
 
-const GOLD = "linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)";
+const GOLD = "linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)";
 
 /** Halaman isi Capaian Al-Qur'an — nulis langsung ke dokumen produksi (KELAS_LIST[].quranId).
  *  Alur: pilih Bulan -> pilih Section (Talaqqi/Ziyadah/...) ->
@@ -233,7 +233,7 @@ export default function CapaianQuranFormPage() {
             onClick={() => navigate(isGuru ? "/capaian" : `/capaian?kelas=${encodeURIComponent(kelas ?? "")}`)}
             aria-label="Kembali"
             className="absolute left-0 inset-y-0 my-auto w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
+            style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -279,7 +279,7 @@ export default function CapaianQuranFormPage() {
           </Step>
 
           {error && (
-            <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+            <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
               {error}
             </div>
           )}
@@ -356,7 +356,7 @@ export default function CapaianQuranFormPage() {
                       }}
                       className={`rounded-lg font-semibold transition-colors ${nonaktif ? "cursor-not-allowed " : ""}${isPekanSec ? "px-3 h-11 text-sm text-left" : "flex-1 min-w-0 sm:flex-none sm:w-14 h-14 text-sm"}`}
                       style={{
-                        background: active ? C.green : "#FFF",
+                        background: active ? C.green : C.card,
                         color: active ? "#FFF" : C.ink,
                         border: `1px solid ${active ? C.green : hariIniIni ? C.gold : C.line}`,
                         boxShadow: hariIniIni && !active ? `0 0 0 2px ${C.goldSoft}` : undefined,
@@ -441,7 +441,7 @@ export default function CapaianQuranFormPage() {
                     <EmptyState ikon="santri" judul="Belum ada daftar santri" petunjuk="Hubungi koordinator kurikulum untuk menambahkan santri kelas ini." padat />
                   )}
                   {roster.map((nama, i) => (
-                    <div key={i} className="rounded-xl p-3" style={{ background: "#FFF" }}>
+                    <div key={i} className="rounded-xl p-3" style={{ background: C.card }}>
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-sm font-semibold truncate" style={{ color: C.ink }}>
                           {i + 1}. {nama}
@@ -485,7 +485,7 @@ export default function CapaianQuranFormPage() {
                           disabled={suratGagal || suratMuat}
                           aria-label={`Surat yang dibaca ${nama}`}
                           className="mt-2 w-full text-sm outline-none px-2.5 py-2 rounded-lg"
-                          style={{ border: `1px solid ${C.line}`, background: "#FFF", color: surat[i] ? C.ink : C.muted }}
+                          style={{ border: `1px solid ${C.line}`, background: C.card, color: surat[i] ? C.ink : C.muted }}
                         >
                           <option value="">Pilih surat yang dibaca…</option>
                           {DAFTAR_SURAT.map((s, n) => (
@@ -631,12 +631,12 @@ function WeekRekapAccordion({
   });
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
-        style={{ background: open ? C.leaf : "#FFF" }}
+        style={{ background: open ? C.leaf : C.card }}
       >
         <span className="flex-1 text-sm font-semibold" style={{ color: C.ink }}>
           Pekan {week}

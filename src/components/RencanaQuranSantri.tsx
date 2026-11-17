@@ -27,10 +27,10 @@ export function RencanaQuranSantri({ q, i, label, alurTasmi, onIsi, onTarget, on
   const mode: ModeQuran = q.mode ?? "ziyadah";
   const tasmi = alurTasmi && mode !== "ziyadah";
   const katKetiga = alurTasmi ? "wirid" : "baghdadiyah";
-  const kotak = { background: "#FFF", border: `1px solid ${C.line}` } as const;
+  const kotak = { background: C.card, border: `1px solid ${C.line}` } as const;
 
   const Bagian = ({ j, kat, judul, angkaPekan, putaranPekan, tanpaPekan }: { j: number; kat: string; judul: string; angkaPekan?: boolean; putaranPekan?: boolean; tanpaPekan?: boolean }) => (
-    <div className="rounded-lg p-2.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-lg p-2.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <div className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: C.green }}>{judul}</div>
       <span className="block text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: C.muted }}>
         Target keseluruhan bulan ini
@@ -116,7 +116,7 @@ export function RencanaQuranSantri({ q, i, label, alurTasmi, onIsi, onTarget, on
                 onClick={() => onMode(i, m)}
                 aria-pressed={on}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
-                style={{ background: on ? C.green : "#FFF", color: on ? "#FFF" : C.ink, border: `1px solid ${on ? C.green : C.line}` }}
+                style={{ background: on ? C.green : C.card, color: on ? "#FFF" : C.ink, border: `1px solid ${on ? C.green : C.line}` }}
               >
                 {LABEL_MODE[m]}
               </button>

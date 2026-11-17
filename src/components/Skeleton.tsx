@@ -32,7 +32,7 @@ export function PageLoadingSkeleton() {
   return (
     <div className="space-y-3" aria-busy="true" aria-label="Memuat">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="rounded-2xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        <div key={i} className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}>
           <div className="flex items-center gap-3">
             <SkeletonBlock className="w-10 h-10 rounded-xl shrink-0" />
             <div className="flex-1 space-y-2">
@@ -52,7 +52,7 @@ export function PageLoadingSkeleton() {
 export function DashboardSkeleton() {
   return (
     <div className="mt-6 space-y-4">
-      <div className="rounded-2xl p-4 sm:p-5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+      <div className="rounded-2xl p-4 sm:p-5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
         <div className="flex items-center justify-between mb-3">
           <SkeletonBlock className="w-40 h-4" />
           <SkeletonBlock className="w-16 h-3" />
@@ -66,7 +66,7 @@ export function DashboardSkeleton() {
       </div>
 
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="rounded-2xl p-4 sm:p-5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        <div key={i} className="rounded-2xl p-4 sm:p-5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
           <div className="flex items-center justify-between mb-3">
             <SkeletonBlock className="w-32 h-4" />
             <SkeletonBlock className="w-14 h-3" />

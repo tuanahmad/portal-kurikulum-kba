@@ -1,3 +1,5 @@
+import { C_TERANG } from "../data";
+
 /** Kartu "kaca": warna dijenuhkan sedikit (supaya segar, bukan kusam) lalu dibuat agak tembus (alpha).
  *  Tiap warna heksa (#RRGGBB) pada gradient diubah jadi rgba. Tanpa lapisan putih di atasnya karena itu membuat warna pucat. */
 function jenuhkan(hex: string, alpha: number): string {
@@ -28,5 +30,7 @@ function jenuhkan(hex: string, alpha: number): string {
 }
 
 export function lembut(gradient: string, alpha = 0.86): string {
+  // C.* sekarang berupa var(--c-...): untuk gradient diubah dulu ke heksa terang supaya efek kaca tetap sama di tema terang maupun gelap.
+  gradient = gradient.replace(/var(--c-(w+))/g, (s, k: string) => (C_TERANG as Record<string, string>)[k] ?? s);
   return gradient.replace(/#([0-9a-f]{6})\b/gi, (_, h: string) => jenuhkan(h, alpha));
 }

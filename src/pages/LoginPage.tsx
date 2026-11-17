@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { C, LOGO } from "../data";
 import { GoldDivider } from "../components/PortalComponents";
 import { useAuth } from "../contexts/AuthContext";
+import { masukDenganSidikJari, perangkatPunyaSidikJari, sidikJariDidukung } from "../lib/passkey";
 
 export default function LoginPage() {
   const { session, signIn, loading } = useAuth();
@@ -11,6 +12,19 @@ export default function LoginPage() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Tombol sidik jari hanya muncul di HP yang sudah pernah mengaktifkannya (dari menu profil setelah login biasa).
+  const [bisaJari, setBisaJari] = useState(false);
+  useEffect(() => {
+    if (perangkatPunyaSidikJari()) sidikJariDidukung().then(setBisaJari);
+  }, []);
+
+  async function masukJari() {
+    setError(null);
+    setSubmitting(true);
+    const r = await masukDenganSidikJari();
+    setSubmitting(false);
+    if (!r.ok) setError(r.error ?? "Sidik jari tidak berhasil. Masuk dengan username dan PIN.");
+  }
 
   if (!loading && session) {
     const from = (location.state as any)?.from || "/home";
@@ -37,7 +51,7 @@ export default function LoginPage() {
     <div className="min-h-dvh flex items-center justify-center px-4" style={{ background: C.mist, color: C.ink }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
-          <img src={LOGO} alt="Logo Kuttab Budi Ashari" className="mx-auto w-44 h-auto" style={{ mixBlendMode: "multiply" }} />
+          <img src={LOGO} alt="Logo Kuttab Budi Ashari" className="logo-login mx-auto w-44 h-auto" />
           <div className="max-w-xs mx-auto mt-3">
             <GoldDivider />
           </div>
@@ -49,10 +63,30 @@ export default function LoginPage() {
           </h1>
         </div>
 
+        {bisaJari && (
+          <div className="mb-3">
+            <button
+              type="button"
+              onClick={masukJari}
+              disabled={submitting}
+              className="w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+              style={{ background: C.card, border: `1.5px solid ${C.green}`, color: C.green }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 4a6 6 0 0 0-6 6v1.5M12 4a6 6 0 0 1 6 6v2.5c0 2.2.5 4 1.5 5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                <path d="M9 20c.8-1.6 1.2-3.3 1.2-5.2V10a1.8 1.8 0 0 1 3.6 0v4.5c0 1.6.4 3 1.2 4.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                <path d="M6 14.5c0 2-.4 3.6-1.2 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              </svg>
+              Masuk dengan Sidik Jari
+            </button>
+            <p className="text-center text-[11px] mt-2" style={{ color: C.muted }}>atau masuk dengan username dan PIN</p>
+          </div>
+        )}
+
         <form
           onSubmit={handleSubmit}
           className="space-y-3 p-5 rounded-2xl"
-          style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+          style={{ background: C.card, border: `1px solid ${C.line}` }}
         >
           <div>
             <label className="text-xs font-semibold" style={{ color: C.muted }}>Username</label>
@@ -83,7 +117,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p className="text-xs px-1" style={{ color: "#B3441C" }}>{error}</p>
+            <p className="text-xs px-1" style={{ color: "var(--c-bahayaTeks)" }}>{error}</p>
           )}
 
           <button

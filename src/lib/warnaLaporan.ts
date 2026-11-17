@@ -3,9 +3,9 @@
 export const W = {
   ok: "#1D9E75",
   warn: "#BA7517",
-  bad: "#B3261E",
-  badBg: "#FDEBEA",
-  krem: "#FAEEDA",
+  bad: "var(--c-bahaya)",
+  badBg: "var(--c-bahayaBg)",
+  krem: "var(--c-emasBg)",
   perhatianBorder: "#EFD9AE",
   perhatianTeks: "#633806",
   emas: "#C79A3B",

@@ -322,7 +322,7 @@ export default function RpbFormPage() {
             onClick={() => navigate(`/rpb/${bulan}`)}
             aria-label="Kembali"
             className="absolute left-0 inset-y-0 my-auto w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
+            style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -347,7 +347,7 @@ export default function RpbFormPage() {
         ) : (
           <div className="mt-6 space-y-7">
             {error && (
-              <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+              <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
                 {error}
               </div>
             )}
@@ -356,7 +356,7 @@ export default function RpbFormPage() {
                 Qonuni Juli–September gak render ini sama sekali — RpbRekap di bawah udah punya kartu
                 Informasi RPB sendiri (read-only), gak perlu 2 kartu info yang tumpang tindih. */}
             {qonuniWriteBlocked ? null : editingInfo ? (
-              <div className="rounded-2xl p-4 sm:p-5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+              <div className="rounded-2xl p-4 sm:p-5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: C.leaf }}>
@@ -653,7 +653,7 @@ function RencanaQuranCard({
                     placeholder="0"
                     aria-label={`Target ${labelTarget} ${q.nama} (baris per pertemuan)`}
                     className="w-14 text-xs text-center outline-none px-2 py-1 rounded-md"
-                    style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                    style={{ background: C.card, border: `1px solid ${C.line}` }}
                   />
                   baris/pertemuan
                 </label>
@@ -674,7 +674,7 @@ function RencanaQuranCard({
                           placeholder="0"
                           aria-label={`Target pekan ${p + 1} ${q.nama} (baris)`}
                           className="w-12 text-xs text-center outline-none px-1.5 py-1 rounded-md"
-                          style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                          style={{ background: C.card, border: `1px solid ${C.line}` }}
                         />
                       </label>
                     ))}
@@ -682,7 +682,7 @@ function RencanaQuranCard({
                 </div>
               )}
               {onRincian && (
-                <details className="mb-2 rounded-lg" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                <details className="mb-2 rounded-lg" style={{ background: C.card, border: `1px solid ${C.line}` }}>
                   <summary className="cursor-pointer text-[11px] font-semibold px-2.5 py-1.5" style={{ color: C.green }}>
                     Rincian per pekan (boleh dikosongkan)
                   </summary>
@@ -702,7 +702,7 @@ function RencanaQuranCard({
                               placeholder={`${label[j]} pekan ${p + 1}`}
                               aria-label={`${label[j]} pekan ${p + 1} ${q.nama}`}
                               className="flex-1 min-w-0 text-xs outline-none px-2 py-1 rounded-md"
-                              style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                              style={{ background: C.card, border: `1px solid ${C.line}` }}
                             />
                             {kat === "wirid" && (
                               <input
@@ -712,7 +712,7 @@ function RencanaQuranCard({
                                 placeholder="putaran"
                                 aria-label={`Target putaran wirid pekan ${p + 1} ${q.nama}`}
                                 className="w-16 text-xs text-center outline-none px-1.5 py-1 rounded-md"
-                                style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                                style={{ background: C.card, border: `1px solid ${C.line}` }}
                               />
                             )}
                           </div>
@@ -734,7 +734,7 @@ function RencanaQuranCard({
                       placeholder={`Rencana ${l}`}
                       rows={1}
                       className="block w-full text-xs outline-none px-2.5 py-1.5 rounded-md"
-                      style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+                      style={{ background: C.card, border: `1px solid ${C.line}` }}
                     />
                   </label>
                 ))}
@@ -793,14 +793,14 @@ function EntryCard({
   return (
     <div
       className="relative rounded-2xl p-3.5 sm:p-4 flex gap-3 transition-shadow hover:shadow-md"
-      style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+      style={{ background: C.card, border: `1px solid ${C.line}` }}
     >
       {onRemove && (
         <button
           onClick={onRemove}
           aria-label="Hapus Bidang Ilmu ini"
           className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:opacity-70"
-          style={{ background: "#FDEBEA", color: "#B3441C" }}
+          style={{ background: "var(--c-bahayaBg)", color: "var(--c-bahayaTeks)" }}
         >
           <TrashIcon />
         </button>
@@ -870,7 +870,7 @@ function WeeklyBreakdown({
               placeholder="Sub-Ilmu"
               satuBaris
               className="block w-full text-xs outline-none px-2.5 py-1.5 rounded-md mb-1.5"
-              style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+              style={{ background: C.card, border: `1px solid ${C.line}` }}
             />
             <AutoTextarea
               value={it.metode}
@@ -878,7 +878,7 @@ function WeeklyBreakdown({
               placeholder="Metode Pengajaran"
               rows={2}
               className="block w-full text-xs outline-none px-2.5 py-1.5 rounded-md"
-              style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+              style={{ background: C.card, border: `1px solid ${C.line}` }}
             />
           </div>
         ))}

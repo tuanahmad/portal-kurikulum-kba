@@ -172,7 +172,7 @@ export default function TasmiSertifikatPage() {
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
+          style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />

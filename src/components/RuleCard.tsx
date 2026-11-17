@@ -22,7 +22,7 @@ export function RuleCard({
   return (
     <div
       className="mt-4 rounded-2xl overflow-hidden"
-      style={{ border: `1px solid ${C.line}`, background: "#FFF", boxShadow: "0 4px 14px rgba(28,74,51,0.06)" }}
+      style={{ border: `1px solid ${C.line}`, background: C.card, boxShadow: "0 4px 14px rgba(28,74,51,0.06)" }}
     >
       <button
         type="button"

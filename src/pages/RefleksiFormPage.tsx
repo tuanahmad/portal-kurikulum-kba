@@ -234,7 +234,7 @@ export default function RefleksiFormPage() {
             onClick={() => navigate(`/rpb/${bulan}`)}
             aria-label="Kembali"
             className="absolute left-0 inset-y-0 my-auto w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
+            style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -257,14 +257,14 @@ export default function RefleksiFormPage() {
         ) : (
           <div className="mt-6 space-y-7">
             {error && (
-              <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+              <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
                 {error}
               </div>
             )}
 
             {/* Informasi umum */}
             {editingInfo ? (
-              <div className="rounded-2xl p-4 sm:p-5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+              <div className="rounded-2xl p-4 sm:p-5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: C.leaf }}>
@@ -300,7 +300,7 @@ export default function RefleksiFormPage() {
                 </div>
               </div>
             ) : (
-              <div className="relative rounded-2xl p-4 sm:p-5" style={{ background: lembut(`linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)`), boxShadow: "0 4px 14px rgba(28,74,51,0.14), inset 0 0 0 1px rgba(255,255,255,0.28)" }}>
+              <div className="relative rounded-2xl p-4 sm:p-5" style={{ background: lembut(`linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)`), boxShadow: "0 4px 14px rgba(28,74,51,0.14), inset 0 0 0 1px rgba(255,255,255,0.28)" }}>
                 <div className="absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">
                   <span className="absolute -right-6 -top-6 w-28 h-28 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }} />
                 </div>
@@ -341,7 +341,7 @@ export default function RefleksiFormPage() {
               {CAPAIAN_LABELS.map((label, i) => {
                 const status = capaianTarget[i][0] === "TRUE" ? "ya" : capaianTarget[i][1] === "TRUE" ? "sebagian" : capaianTarget[i][2] === "TRUE" ? "belum" : "";
                 return (
-                  <div key={i} className="rounded-2xl p-3.5 sm:p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                  <div key={i} className="rounded-2xl p-3.5 sm:p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}>
                     <div className="text-sm font-medium mb-2.5" style={{ color: C.ink }}>{label}</div>
                     <div className="flex gap-2 mb-2.5">
                       {(["ya", "sebagian", "belum"] as const).map((opt) => (
@@ -372,7 +372,7 @@ export default function RefleksiFormPage() {
 
             {/* B. Analisis Keberhasilan */}
             <SectionHeading no="B" title="Analisis Keberhasilan" subtitle="Apa yang jalan baik bulan ini?" />
-            <div className="rounded-2xl p-3.5 sm:p-4 space-y-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+            <div className="rounded-2xl p-3.5 sm:p-4 space-y-3" style={{ background: C.card, border: `1px solid ${C.line}` }}>
               <Field label="Program/strategi yang paling berhasil" compact>
                 <textarea value={keberhasilan[0]} onChange={(e) => setKeberhasilan((p) => [e.target.value, p[1]])} rows={2} className="w-full text-sm outline-none px-3 py-2 rounded-lg resize-none" style={{ border: `1px solid ${C.line}` }} />
               </Field>
@@ -401,7 +401,7 @@ export default function RefleksiFormPage() {
 
             {/* D. Evaluasi Diri Guru */}
             <SectionHeading no="D" title="Evaluasi Diri Guru" subtitle="Nilai diri sendiri 1-4 tiap aspek" />
-            <div className="rounded-2xl p-3.5 sm:p-4 space-y-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+            <div className="rounded-2xl p-3.5 sm:p-4 space-y-3" style={{ background: C.card, border: `1px solid ${C.line}` }}>
               {EVALUASI_LABELS.map((label, i) => (
                 <div key={i} className="flex items-center justify-between gap-3">
                   <span className="text-sm" style={{ color: C.ink }}>{label}</span>
@@ -426,7 +426,7 @@ export default function RefleksiFormPage() {
 
             {/* E. Refleksi Guru */}
             <SectionHeading no="E" title="Refleksi Guru" subtitle="Renungan pribadi bulan ini" />
-            <div className="rounded-2xl p-3.5 sm:p-4 space-y-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+            <div className="rounded-2xl p-3.5 sm:p-4 space-y-3" style={{ background: C.card, border: `1px solid ${C.line}` }}>
               {REFLEKSI_GURU_LABELS.map((label, i) => (
                 <Field key={i} label={label} compact>
                   <textarea
@@ -468,7 +468,7 @@ export default function RefleksiFormPage() {
                   const filled = murid[i]?.some((v) => v.trim());
                   const open = openStudent === i;
                   return (
-                    <div key={i} className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${open ? C.green : C.line}` }}>
+                    <div key={i} className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${open ? C.green : C.line}` }}>
                       <button
                         onClick={() => setOpenStudent(open ? null : i)}
                         className="w-full flex items-center justify-between gap-3 px-3.5 py-3 text-left"
@@ -552,7 +552,7 @@ function SectionHeading({ no, title, subtitle }: { no: string; title: string; su
 
 function EntryCard({ badge, children }: { badge: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl p-3.5 sm:p-4 flex gap-3 transition-shadow hover:shadow-md" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl p-3.5 sm:p-4 flex gap-3 transition-shadow hover:shadow-md" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <div className="shrink-0">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold" style={{ background: C.leaf, color: C.green }}>
           {badge}

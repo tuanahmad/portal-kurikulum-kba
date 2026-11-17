@@ -231,13 +231,13 @@ function DayCard({
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{ background: "#FFF", border: `1px solid ${isToday && !open ? C.green : C.line}` }}
+      style={{ background: C.card, border: `1px solid ${isToday && !open ? C.green : C.line}` }}
     >
       <button
         type="button"
         onClick={onToggle}
         className="w-full flex items-center gap-3 px-3.5 py-3 text-left transition-colors"
-        style={{ background: open ? C.leaf : "#FFF" }}
+        style={{ background: open ? C.leaf : C.card }}
       >
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
@@ -292,7 +292,7 @@ function DayCard({
             ))}
           </div>
 
-          {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
+          {err && <p className="mt-3 text-xs" style={{ color: "var(--c-bahayaTeks)" }}>{err}</p>}
           {msg && <p className="mt-3 text-xs font-medium" style={{ color: C.green }}>{msg}</p>}
 
           <button
@@ -415,7 +415,7 @@ function ManagementJurnal() {
                 title="Per Pekan"
                 desc="Pilih kelas, lalu baca jurnal gurunya selama satu pekan penuh dalam satu tulisan."
                 icon={<IkonPekan />}
-                gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
+                gradient="linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)"
                 onClick={() => setMode("pekan")}
               />
             </div>
@@ -446,7 +446,7 @@ function ManagementJurnal() {
                 />
 
                 {error && (
-                  <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+                  <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
                     {error}
                   </div>
                 )}
@@ -469,7 +469,7 @@ function ManagementJurnal() {
 function ReadOnlyDay({ date, entry }: { date: Date; entry: JurnalEntry | undefined }) {
   const filled = isEntryFilled(entry);
   return (
-    <div className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl p-3.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <div className="flex items-center gap-3">
         <span
           className="w-10 h-10 rounded-xl flex flex-col items-center justify-center shrink-0 leading-none"
@@ -533,7 +533,7 @@ function WeekNav({
       <ArrowBtn dir="prev" disabled={!onPrev} onClick={onPrev} />
       <div
         className="flex-1 text-center rounded-xl px-3 py-2"
-        style={{ background: "#FFF", border: `1px solid ${C.line}` }}
+        style={{ background: C.card, border: `1px solid ${C.line}` }}
       >
         <div className="text-sm font-semibold" style={{ color: C.ink }}>{label}</div>
         {sub && <div className="text-[11px]" style={{ color: C.green }}>{sub}</div>}
@@ -552,7 +552,7 @@ function ArrowBtn({ dir, disabled, onClick }: { dir: "prev" | "next"; disabled?:
       aria-label={dir === "prev" ? "Pekan sebelumnya" : "Pekan berikutnya"}
       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
       style={{
-        background: "#FFF",
+        background: C.card,
         border: `1px solid ${C.line}`,
         color: C.green,
         opacity: disabled ? 0.35 : 1,

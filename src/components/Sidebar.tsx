@@ -5,6 +5,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { sidebarItemsFor, LogoutIcon, CalendarCheckIcon } from "./navIcons";
 import { ProfileNameField } from "./ProfileNameField";
 import { PushNotifToggle } from "./PushNotifToggle";
+import { SidikJariToggle } from "./SidikJariToggle";
+import { TemaToggle } from "./TemaToggle";
 
 /** Menu desktop (lg ke atas) — hamburger di kiri-atas membuka panel melayang di atas konten.
  *  Panel ini juga isinya info akun, Absen, & Keluar (di desktop gak ada ProfileMenu terpisah lagi). */
@@ -34,7 +36,7 @@ export function Sidebar() {
         aria-expanded={open}
         className="fixed top-4 left-4 z-30 w-10 h-10 rounded-full flex items-center justify-center transition-shadow hover:shadow-md"
         style={{
-          background: "rgba(255,255,255,0.45)",
+          background: "color-mix(in srgb, var(--c-card) 55%, transparent)",
           border: "1px solid rgba(255,255,255,0.6)",
           boxShadow: "0 1px 4px rgba(28,74,51,0.10)",
         }}
@@ -91,6 +93,8 @@ export function Sidebar() {
           )}
 
           {(role === "guru" || role === "olahraga" || role === "management") && <PushNotifToggle variant="dark" />}
+          <SidikJariToggle variant="dark" />
+          <TemaToggle variant="dark" />
 
           <button
             onClick={() => {

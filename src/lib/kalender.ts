@@ -8,9 +8,9 @@ export type JenisAcara = "libur" | "ujian" | "kegiatan";
 export type Acara = { id: string; judul: string; jenis: JenisAcara; tanggal_mulai: string; tanggal_selesai: string; catatan: string | null };
 
 export const JENIS: Record<JenisAcara, { label: string; warna: string; latar: string }> = {
-  libur: { label: "Libur", warna: "#B3261E", latar: "#FDEBEA" },
-  ujian: { label: "Ujian", warna: "#8A6A20", latar: "#FFF1D6" },
-  kegiatan: { label: "Kegiatan", warna: "#1C4A33", latar: "#E4EFE7" },
+  libur: { label: "Libur", warna: "var(--c-bahaya)", latar: "var(--c-bahayaBg)" },
+  ujian: { label: "Ujian", warna: "var(--c-emasTeks)", latar: "var(--c-emasBg)" },
+  kegiatan: { label: "Kegiatan", warna: "var(--c-green)", latar: "var(--c-leaf)" },
 };
 export const JENIS_URUT: JenisAcara[] = ["libur", "ujian", "kegiatan"];
 

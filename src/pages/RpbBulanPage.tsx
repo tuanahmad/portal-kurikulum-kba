@@ -23,7 +23,7 @@ export default function RpbBulanPage() {
             onClick={() => navigate("/rpb")}
             aria-label="Kembali"
             className="absolute left-0 inset-y-0 my-auto w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
+            style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -50,7 +50,7 @@ export default function RpbBulanPage() {
             title="Refleksi Bulanan"
             desc="Capaian target, evaluasi diri, & refleksi perkembangan murid."
             icon={<ReflectIcon />}
-            gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
+            gradient="linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)"
           />
         </main>
       </div>

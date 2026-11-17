@@ -22,7 +22,7 @@ export function EmptyState({
   padat?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl text-center ${padat ? "px-4 py-5" : "px-5 py-8"}`} style={{ background: "#FFF", border: `1px dashed ${C.line}` }}>
+    <div className={`rounded-2xl text-center ${padat ? "px-4 py-5" : "px-5 py-8"}`} style={{ background: C.card, border: `1px dashed ${C.line}` }}>
       <span className="mx-auto w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: C.leaf, color: C.green }}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           {IKON[ikon]}

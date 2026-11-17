@@ -206,7 +206,7 @@ export default function CapaianIlmuFormPage() {
             onClick={() => navigate(isGuru ? "/capaian" : `/capaian?kelas=${encodeURIComponent(kelas ?? "")}`)}
             aria-label="Kembali"
             className="absolute left-0 inset-y-0 my-auto w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
+            style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -235,7 +235,7 @@ export default function CapaianIlmuFormPage() {
           </Step>
 
           {error && (
-            <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+            <div className="rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
               {error}
             </div>
           )}
@@ -292,7 +292,7 @@ export default function CapaianIlmuFormPage() {
                       )}
                       <div className="space-y-2.5">
                         {g.items.map((b) => (
-                          <div key={b.key} className="rounded-xl p-3" style={{ background: "#FFF" }}>
+                          <div key={b.key} className="rounded-xl p-3" style={{ background: C.card }}>
                             <div className="flex items-center justify-between gap-2 mb-1.5">
                               <span className="text-xs font-bold uppercase tracking-wide" style={{ color: C.green }}>
                                 {b.label}
@@ -340,7 +340,7 @@ export default function CapaianIlmuFormPage() {
                     onClick={handleSave}
                     disabled={saving}
                     className="mt-4 w-full py-3.5 rounded-xl text-sm font-bold transition-opacity"
-                    style={{ background: "#FFF", color: C.green, opacity: saving ? 0.6 : 1 }}
+                    style={{ background: C.card, color: C.green, opacity: saving ? 0.6 : 1 }}
                   >
                     {saving ? "Menyimpan…" : `Simpan capaian ${roster[anakI].split(" ")[0]}`}
                   </button>

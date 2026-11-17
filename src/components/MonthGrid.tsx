@@ -32,7 +32,7 @@ export function MonthGrid({
               background: active
                 ? `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`
                 : open
-                  ? "#FFF"
+                  ? C.card
                   : C.leaf,
               border: `1px solid ${active ? C.green : C.line}`,
               boxShadow: active ? "0 4px 14px rgba(28,74,51,0.22)" : "none",

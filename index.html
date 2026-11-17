@@ -10,8 +10,22 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#FBFAF7" />
+    <script>
+      // Tema terang/gelap dipasang SEBELUM halaman tergambar supaya tidak berkedip. Pilihan: "otomatis" (ikut HP, bawaan) / "terang" / "gelap".
+      (function () {
+        try {
+          var p = localStorage.getItem("tema") || "otomatis";
+          var g = p === "gelap" || (p === "otomatis" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.setAttribute("data-tema", g ? "gelap" : "terang");
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute("content", g ? "#0F1713" : "#FBFAF7");
+        } catch (e) {}
+      })();
+    </script>
     <style>
-      html, body { background: #FBFAF7; }
+      :root { --c-green: #1C4A33; --c-greenDeep: #143726; --c-gold: #C79A3B; --c-goldSoft: #F3E8D2; --c-mist: #FBFAF7; --c-leaf: #EDF3EE; --c-ink: #22301F; --c-muted: #68705F; --c-line: #E2DFD5; --c-card: #FFFFFF; --c-bahaya: #B3261E; --c-bahayaTeks: #8A2A20; --c-bahayaBg: #FDEBEA; --c-bahayaGaris: #E8A6A0; --c-emasTeks: #8A6A20; --c-emasBg: #FFF1D6; --c-emasGaris: #EBD79B; --c-biruTeks: #274C74; --c-biruBg: #E3EDF8; --c-toscaTeks: #1C5A52; --c-toscaBg: #DDF1EE; color-scheme: light; }
+      html[data-tema="gelap"] { --c-green: #3E9468; --c-greenDeep: #1F5A3F; --c-gold: #D4A94C; --c-goldSoft: #3A3220; --c-mist: #0F1713; --c-leaf: #1E3027; --c-ink: #E6ECE7; --c-muted: #9DAAA2; --c-line: #2A3A31; --c-card: #17231D; --c-bahaya: #FF8A80; --c-bahayaTeks: #FFB4AB; --c-bahayaBg: #3A1F1D; --c-bahayaGaris: #7A3A34; --c-emasTeks: #E8C170; --c-emasBg: #3A3220; --c-emasGaris: #5A4A22; --c-biruTeks: #9CC1F0; --c-biruBg: #1D2D40; --c-toscaTeks: #7FD6C9; --c-toscaBg: #1B3535; color-scheme: dark; }
+      html, body { background: var(--c-mist); color: var(--c-ink); }
       #app-splash {
         position: fixed;
         inset: 0;
@@ -19,7 +33,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #FBFAF7;
+        background: var(--c-mist);
       }
       /* Ukuran & tampilan disamakan dengan layar logo bawaan Android (ikon aplikasi di tengah, tanpa bayangan),
          supaya perpindahan dari layar Android ke animasi ini tidak terasa -- logonya langsung "berdetak". */

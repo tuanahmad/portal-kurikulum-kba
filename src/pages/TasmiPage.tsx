@@ -77,7 +77,7 @@ export default function TasmiPage() {
             onClick={() => navigate(isGuru ? "/capaian" : `/capaian?kelas=${encodeURIComponent(kelas ?? "")}`)}
             aria-label="Kembali"
             className="absolute left-0 inset-y-0 my-auto w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}
+            style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -95,7 +95,7 @@ export default function TasmiPage() {
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
             {error}
           </div>
         )}
@@ -241,7 +241,7 @@ function TasmiForm({
   }
 
   return (
-    <div className="mt-5 rounded-2xl p-4 sm:p-5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="mt-5 rounded-2xl p-4 sm:p-5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <div className="text-sm font-bold uppercase tracking-[0.1em] mb-3.5" style={{ color: C.green }}>
         {existing ? "Edit Catatan Tasmi'" : "Catat Tasmi' Baru"}
       </div>
@@ -340,7 +340,7 @@ function TasmiForm({
         </div>
       </div>
 
-      {err && <p className="mt-3 text-xs" style={{ color: "#8A2A20" }}>{err}</p>}
+      {err && <p className="mt-3 text-xs" style={{ color: "var(--c-bahayaTeks)" }}>{err}</p>}
 
       <div
         className="flex gap-2 mt-4">
@@ -392,7 +392,7 @@ function TasmiCard({
   }
 
   return (
-    <div className="rounded-2xl p-3.5 sm:p-4" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl p-3.5 sm:p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold truncate" style={{ color: C.ink }}>{record.nama_santri}</div>
@@ -416,7 +416,7 @@ function TasmiCard({
                 onClick={handleDelete}
                 disabled={deleting}
                 className="text-[11px] font-semibold px-2.5 h-8 rounded-lg"
-                style={{ background: "#FDEBEA", color: "#B3441C" }}
+                style={{ background: "var(--c-bahayaBg)", color: "var(--c-bahayaTeks)" }}
               >
                 {deleting ? "…" : "Yakin?"}
               </button>
@@ -425,7 +425,7 @@ function TasmiCard({
                 onClick={() => setConfirmDelete(true)}
                 aria-label="Hapus"
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: "#FDEBEA", color: "#B3441C" }}
+                style={{ background: "var(--c-bahayaBg)", color: "var(--c-bahayaTeks)" }}
               >
                 <TrashIcon />
               </button>

@@ -29,6 +29,7 @@ const TasmiRekapPage = lazy(() => import("./pages/TasmiRekapPage"));
 const SajianDataPage = lazy(() => import("./pages/SajianDataPage"));
 const KalenderPage = lazy(() => import("./pages/KalenderPage"));
 const AbsenCepatPage = lazy(() => import("./pages/AbsenCepatPage"));
+const ProfilSantriPage = lazy(() => import("./pages/ProfilSantriPage"));
 
 export default function App() {
   return (
@@ -55,6 +56,14 @@ export default function App() {
             <Route path="/jurnal" element={<JurnalPage />} />
             <Route path="/kalender" element={<KalenderPage />} />
             <Route path="/absen-cepat" element={<AbsenCepatPage />} />
+            <Route
+              path="/santri"
+              element={
+                <ProtectedRoute allowedRoles={["management"]}>
+                  <ProfilSantriPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/sajian-data"
               element={

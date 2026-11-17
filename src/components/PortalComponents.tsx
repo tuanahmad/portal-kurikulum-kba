@@ -19,7 +19,7 @@ export function BackButton({
   className?: string;
 }) {
   const cls = `w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-shadow hover:shadow-md ${className}`;
-  const style = { background: "#FFF", border: `1px solid ${C.line}`, color: C.green };
+  const style = { background: C.card, border: `1px solid ${C.line}`, color: C.green };
   const icon = (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -120,7 +120,7 @@ export function TypeBadge({ type }: { type: "g" | "x" }) {
       className="text-[10px] px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0"
       style={{
         background: isSheet ? C.leaf : C.goldSoft,
-        color: isSheet ? C.green : "#8A6A20",
+        color: isSheet ? C.green : "var(--c-emasTeks)",
       }}
     >
       {isSheet ? "Sheet" : "Excel"}
@@ -133,7 +133,7 @@ export function FileRow({ file }: { file: { id: string; name: string; type: "g" 
   return (
     <div
       className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl transition-shadow hover:shadow-sm"
-      style={{ background: "#FFFFFF", border: `1px solid ${C.line}` }}
+      style={{ background: C.card, border: `1px solid ${C.line}` }}
     >
       <div className="flex items-center gap-2.5 min-w-0">
         <svg width="14" height="14" viewBox="0 0 10 10" className="shrink-0">
@@ -181,7 +181,7 @@ export function Section({ section, filter }: { section: any; filter: string }) {
   return (
     <section
       className="rounded-2xl overflow-hidden"
-      style={{ background: "#FFFFFF", border: `1px solid ${C.line}`, boxShadow: "0 1px 2px rgba(28,74,51,0.05)" }}
+      style={{ background: C.card, border: `1px solid ${C.line}`, boxShadow: "0 1px 2px rgba(28,74,51,0.05)" }}
     >
       <button
         onClick={() => setOpen(!open)}

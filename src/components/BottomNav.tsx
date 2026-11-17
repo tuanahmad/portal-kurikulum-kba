@@ -20,7 +20,7 @@ export function BottomNav() {
         className="max-w-xs mx-auto flex items-center p-2 pointer-events-auto"
         style={{
           borderRadius: 34,
-          background: "rgba(255,255,255,0.55)",
+          background: "color-mix(in srgb, var(--c-card) 62%, transparent)",
           backdropFilter: "blur(18px) saturate(1.6)",
           WebkitBackdropFilter: "blur(18px) saturate(1.6)",
           border: "1px solid rgba(255,255,255,0.75)",
@@ -62,7 +62,7 @@ export function BottomNav() {
                   yang lain diam di tempat. Bar tidak berubah tinggi saat pindah halaman. */}
               <span
                 className="relative rounded-[20px] transition-colors"
-                style={{ width: 56, height: 58, color: active ? C.green : C.muted, background: active ? `${C.green}1F` : "transparent" }}
+                style={{ width: 56, height: 58, color: active ? C.green : C.muted, background: active ? `color-mix(in srgb, ${C.green} 12%, transparent)` : "transparent" }}
               >
                 <span
                   className="absolute left-1/2 top-1/2 transition-transform duration-200 ease-out"

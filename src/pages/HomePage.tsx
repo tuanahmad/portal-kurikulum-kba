@@ -16,6 +16,8 @@ import { bacaNamaGuruKelas } from "../lib/namaGuru";
 import { bacaAcara, acaraPadaTanggal, type Acara } from "../lib/kalender";
 import { pengingatRutin } from "../lib/pengingat";
 import { KartuAktifkanNotif } from "../components/KartuAktifkanNotif";
+import { KotakCariSantri } from "../components/KotakCariSantri";
+import { KartuSidikJari } from "../components/KartuSidikJari";
 
 export default function HomePage() {
   const { role, kelas, fullName } = useAuth();
@@ -118,7 +120,7 @@ function KartuKalender() {
       to="/kalender"
       aria-label={`Kalender ${NAMA_BULAN[bl]} ${th}`}
       className="kartu-muncul group relative overflow-hidden mt-3 sm:mt-5 rounded-2xl p-3.5 sm:p-5 flex items-center gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2"
-      style={{ background: lembut("linear-gradient(135deg, #3B6EA5 0%, #274C74 100%)"), boxShadow: "0 4px 14px rgba(28,74,51,0.14), inset 0 0 0 1px rgba(255,255,255,0.28)", "--tw-ring-color": C.gold } as any}
+      style={{ background: lembut("linear-gradient(135deg, #3B6EA5 0%, var(--c-biruTeks) 100%)"), boxShadow: "0 4px 14px rgba(28,74,51,0.14), inset 0 0 0 1px rgba(255,255,255,0.28)", "--tw-ring-color": C.gold } as any}
     >
       <span className="absolute -left-6 -top-6 w-24 h-24 sm:w-28 sm:h-28 rounded-full transition-transform duration-500 group-hover:scale-125" style={{ background: "rgba(255,255,255,0.08)" }} aria-hidden="true" />
       <div className="relative flex-1 min-w-0 self-stretch flex flex-col justify-between">
@@ -165,6 +167,7 @@ function GuruMenu() {
   return (
     <main>
     <KartuAktifkanNotif />
+    <KartuSidikJari />
     <GuruHariIni />
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
       <HomeCard
@@ -178,7 +181,7 @@ function GuruMenu() {
         to="/rpb"
         title="Rencana & Refleksi"
         desc="Isi RPB bulanan dan refleksi, lalu centang kalau sudah selesai."
-        gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
+        gradient="linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)"
         icon={<DocIcon />}
       />
       <HomeCard
@@ -192,7 +195,7 @@ function GuruMenu() {
         to="/jurnal"
         title="Daily Jurnal"
         desc="Catatan harian kelas."
-        gradient={`linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)`}
+        gradient={`linear-gradient(135deg, #2F8F83 0%, var(--c-toscaTeks) 100%)`}
         icon={<NotebookIcon />}
       />
     </div>
@@ -204,9 +207,9 @@ type HariIniState = "selesai" | "belum" | "sebagian" | "libur";
 
 const CHIP: Record<HariIniState, { bg: string; fg: string; teks: string }> = {
   selesai: { bg: C.leaf, fg: C.green, teks: "Sudah" },
-  sebagian: { bg: "#FFF1D6", fg: "#8A6A20", teks: "Sebagian" },
-  belum: { bg: "#FFDCD5", fg: "#9F240B", teks: "Belum" },
-  libur: { bg: "#F4F1EC", fg: C.muted, teks: "Libur" },
+  sebagian: { bg: "var(--c-emasBg)", fg: "var(--c-emasTeks)", teks: "Sebagian" },
+  belum: { bg: "var(--c-bahayaBg)", fg: "var(--c-bahayaTeks)", teks: "Belum" },
+  libur: { bg: "color-mix(in srgb, var(--c-muted) 16%, transparent)", fg: C.muted, teks: "Libur" },
 };
 
 function SantriIcon() {
@@ -242,7 +245,7 @@ function GuruHariIni() {
   const libur = now.getDay() === 0 || now.getDay() === 6;
 
   if (!s) {
-    return <div className="mb-5 rounded-2xl animate-pulse" style={{ background: "#FFF", border: `1px solid ${C.line}`, height: 196 }} />;
+    return <div className="mb-5 rounded-2xl animate-pulse" style={{ background: C.card, border: `1px solid ${C.line}`, height: 196 }} />;
   }
 
   const rows: { key: string; label: string; sub: string; to: string; state: HariIniState | null; icon: React.ReactNode }[] = [
@@ -389,6 +392,8 @@ function GuruHariIni() {
 function ManagementMenu() {
   return (
     <main>
+      <KotakCariSantri />
+      <KartuSidikJari />
       <RingkasanHariIni />
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
       <HomeCard
@@ -402,7 +407,7 @@ function ManagementMenu() {
         to="/rpb"
         title="Rekap Rencana & Refleksi"
         desc="Lihat progres pengisian RPB & refleksi seluruh guru."
-        gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
+        gradient="linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)"
         icon={<DocIcon />}
       />
       <HomeCard
@@ -423,7 +428,7 @@ function ManagementMenu() {
         to="/jurnal"
         title="Rekap Daily Jurnal"
         desc="Pilih kelas untuk lihat jurnal harian guru per pekan."
-        gradient={`linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)`}
+        gradient={`linear-gradient(135deg, #2F8F83 0%, var(--c-toscaTeks) 100%)`}
         icon={<NotebookIcon />}
       />
       <HomeCard
@@ -479,7 +484,7 @@ function RingkasanHariIni() {
   if (error) return null; // gagal muat ringkasan bukan hal fatal, cukup disembunyikan
   if (!status) {
     return (
-      <div className="mb-5 rounded-2xl p-4 sm:p-5 animate-pulse" style={{ background: "#FFF", border: `1px solid ${C.line}`, height: 168 }} />
+      <div className="mb-5 rounded-2xl p-4 sm:p-5 animate-pulse" style={{ background: C.card, border: `1px solid ${C.line}`, height: 168 }} />
     );
   }
 
@@ -517,6 +522,7 @@ function OlahragaMenu() {
   return (
     <main>
     <KartuAktifkanNotif />
+    <KartuSidikJari />
     <OlahragaHariIni />
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
       <HomeCard
@@ -544,14 +550,14 @@ function OlahragaMenu() {
         to="/olahraga/absen"
         title="Absen"
         desc="Absen kedatangan Senin, Selasa & Rabu."
-        gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
+        gradient="linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)"
         icon={<CalendarCheckIcon />}
       />
       <HomeCard
         to="/jurnal"
         title="Daily Jurnal"
         desc="Catatan harian guru olahraga."
-        gradient="linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)"
+        gradient="linear-gradient(135deg, #2F8F83 0%, var(--c-toscaTeks) 100%)"
         icon={<NotebookIcon />}
       />
     </div>
@@ -577,7 +583,7 @@ function OlahragaHariIni() {
     };
   }, [uid, kel]);
 
-  if (!s) return <div className="mb-5 rounded-2xl animate-pulse" style={{ background: "#FFF", border: `1px solid ${C.line}`, height: 176 }} />;
+  if (!s) return <div className="mb-5 rounded-2xl animate-pulse" style={{ background: C.card, border: `1px solid ${C.line}`, height: 176 }} />;
 
   const now = new Date();
   const hariAktif = [1, 2, 3].includes(now.getDay()); // Senin-Rabu

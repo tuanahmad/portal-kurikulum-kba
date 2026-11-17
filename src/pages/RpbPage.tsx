@@ -135,7 +135,7 @@ function GuruView() {
                 : "Belum diisi";
 
         const rowStyle = {
-          background: "#FFF",
+          background: C.card,
           border: `1px solid ${open && bothOk ? C.green : C.line}`,
           opacity: open ? 1 : 0.65,
         };
@@ -266,7 +266,7 @@ function ManagementView() {
       )}
 
       {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
           {error}
         </div>
       )}
@@ -525,7 +525,7 @@ function RefleksiRekap({ data, namaGuru }: { data: ReflectionData; namaGuru?: st
     <div className="space-y-6">
       <InfoCard
         title="Informasi Refleksi"
-        gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
+        gradient="linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)"
         icon={<ReflectIcon />}
         primary={{ label: "Nama Guru", value: namaGuru || data.namaGuru }}
         rows={[
@@ -544,7 +544,7 @@ function RefleksiRekap({ data, namaGuru }: { data: ReflectionData; namaGuru?: st
             const s = statusOf(data.capaianTarget?.[i] ?? []);
             const ket = (data.capaianTarget?.[i]?.[3] ?? "").trim();
             return (
-              <div key={i} className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+              <div key={i} className="rounded-2xl p-3.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
                 <div className="flex items-start justify-between gap-3">
                   <span className="text-sm" style={{ color: C.ink }}>{label}</span>
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: s.bg, color: s.color }}>{s.text}</span>
@@ -558,7 +558,7 @@ function RefleksiRekap({ data, namaGuru }: { data: ReflectionData; namaGuru?: st
 
       <div>
         <SectionBar no="B" title="Analisis Keberhasilan" />
-        <div className="mt-3 rounded-2xl p-3.5 space-y-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        <div className="mt-3 rounded-2xl p-3.5 space-y-3" style={{ background: C.card, border: `1px solid ${C.line}` }}>
           <ReadField label="Program/strategi yang paling berhasil" value={data.keberhasilan?.[0] ?? ""} />
           <ReadField label="Faktor yang membuatnya berhasil" value={data.keberhasilan?.[1] ?? ""} />
         </div>
@@ -583,7 +583,7 @@ function RefleksiRekap({ data, namaGuru }: { data: ReflectionData; namaGuru?: st
 
       <div>
         <SectionBar no="D" title="Evaluasi Diri Guru" subtitle="Nilai 1–4 tiap aspek" />
-        <div className="mt-3 rounded-2xl p-3.5 space-y-2.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        <div className="mt-3 rounded-2xl p-3.5 space-y-2.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
           {EVALUASI_LABELS.map((label, i) => {
             const v = (data.evaluasiDiri?.[i] ?? "").trim();
             return (
@@ -603,7 +603,7 @@ function RefleksiRekap({ data, namaGuru }: { data: ReflectionData; namaGuru?: st
 
       <div>
         <SectionBar no="E" title="Refleksi Guru" />
-        <div className="mt-3 rounded-2xl p-3.5 space-y-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        <div className="mt-3 rounded-2xl p-3.5 space-y-3" style={{ background: C.card, border: `1px solid ${C.line}` }}>
           {REFLEKSI_GURU_LABELS.map((label, i) => (
             <ReadField key={i} label={label} value={data.refleksiGuru?.[i] ?? ""} />
           ))}
@@ -651,7 +651,7 @@ function RefleksiRekap({ data, namaGuru }: { data: ReflectionData; namaGuru?: st
 
 function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-1 p-1.5 rounded-full" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="grid grid-cols-2 gap-1 p-1.5 rounded-full" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       {(["rpb", "refleksi"] as Mode[]).map((m) => {
         const active = m === mode;
         return (
@@ -732,12 +732,12 @@ function SectionBar({ title, subtitle }: { no?: string; title: string; subtitle?
 function RekapAccordion({ badge, title, children }: { badge?: string; title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-3 px-3.5 py-3 text-left transition-colors"
-        style={{ background: open ? C.leaf : "#FFF" }}
+        style={{ background: open ? C.leaf : C.card }}
       >
         {badge && (
           <span className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold" style={{ background: C.leaf, color: C.green }}>
@@ -764,7 +764,7 @@ function RekapAccordion({ badge, title, children }: { badge?: string; title: str
 
 function NumberedCard({ n, children }: { n: number; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl p-3.5 flex gap-3" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="rounded-2xl p-3.5 flex gap-3" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold" style={{ background: C.leaf, color: C.green }}>{n}</span>
       <div className="flex-1 min-w-0 space-y-2.5">{children}</div>
     </div>

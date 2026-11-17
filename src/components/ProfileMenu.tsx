@@ -5,6 +5,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { LogoutIcon, CalendarCheckIcon, BarChartIcon } from "./navIcons";
 import { ProfileNameField } from "./ProfileNameField";
 import { PushNotifToggle } from "./PushNotifToggle";
+import { SidikJariToggle } from "./SidikJariToggle";
+import { TemaToggle } from "./TemaToggle";
 
 /** Ikon profil melayang di kanan atas, ada di semua halaman — isinya info akun & tombol keluar. */
 export function ProfileMenu() {
@@ -30,7 +32,7 @@ export function ProfileMenu() {
         aria-expanded={open}
         className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-shadow hover:shadow-md"
         style={{
-          background: "rgba(255,255,255,0.45)",
+          background: "color-mix(in srgb, var(--c-card) 55%, transparent)",
           color: C.green,
           border: "1px solid rgba(255,255,255,0.6)",
           boxShadow: "0 1px 4px rgba(28,74,51,0.10)",
@@ -42,7 +44,7 @@ export function ProfileMenu() {
       {open && (
         <div
           className="absolute right-0 mt-2 w-52 rounded-2xl p-2 overflow-hidden backdrop-blur-lg"
-          style={{ background: "rgba(255,255,255,0.72)", border: "1px solid rgba(255,255,255,0.6)", boxShadow: "0 8px 24px rgba(28,74,51,0.14)" }}
+          style={{ background: "color-mix(in srgb, var(--c-card) 78%, transparent)", border: "1px solid var(--c-line)", boxShadow: "0 8px 24px rgba(28,74,51,0.14)" }}
         >
           <ProfileNameField variant="light" />
           {role === "guru" && (
@@ -59,6 +61,7 @@ export function ProfileMenu() {
               </Link>
               <div className="h-px my-1" style={{ background: C.line }} />
               <PushNotifToggle variant="light" />
+              <SidikJariToggle variant="light" />
             </>
           )}
           {role === "management" && (
@@ -75,6 +78,7 @@ export function ProfileMenu() {
               </Link>
               <div className="h-px my-1" style={{ background: C.line }} />
               <PushNotifToggle variant="light" />
+              <SidikJariToggle variant="light" />
             </>
           )}
           {role === "olahraga" && (
@@ -91,8 +95,11 @@ export function ProfileMenu() {
               </Link>
               <div className="h-px my-1" style={{ background: C.line }} />
               <PushNotifToggle variant="light" />
+              <SidikJariToggle variant="light" />
             </>
           )}
+          <div className="h-px my-1" style={{ background: C.line }} />
+          <TemaToggle variant="light" />
           <div className="h-px my-1" style={{ background: C.line }} />
           <button
             onClick={() => {

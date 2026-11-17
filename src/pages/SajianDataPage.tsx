@@ -11,10 +11,10 @@ import { kosongkanSimpananLaporan, muatPeriode, periodeBulan, periodeTriwulan, b
 const BULAN_12 = ["Juli", "Agustus", "September", "Oktober", "November", "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni"];
 const OK = "#1D9E75";
 const WARN = "#BA7517";
-const BAD = "#B3261E";
-const BAD_BG = "#FDEBEA";
+const BAD = "var(--c-bahaya)";
+const BAD_BG = "var(--c-bahayaBg)";
 
-const card = { background: "#FFF", border: `1px solid ${C.line}`, borderRadius: 16 } as const;
+const card = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 16 } as const;
 const warna = (p: number | null) => (p == null ? C.muted : p >= 85 ? OK : p >= 60 ? WARN : BAD);
 
 /** Sajian Data masih dalam pengembangan, jadi dikunci PIN (6 angka, disimpan sebagai hash di database,
@@ -106,9 +106,9 @@ function PinGate({ onBuka }: { onBuka: () => void }) {
             }}
             aria-label="PIN"
             className="mt-4 w-full text-center text-2xl tracking-[0.5em] outline-none rounded-xl py-2.5"
-            style={{ border: `1px solid ${msg ? "#E8A6A0" : C.line}`, background: "#FFF" }}
+            style={{ border: `1px solid ${msg ? "var(--c-bahayaGaris)" : C.line}`, background: C.card }}
           />
-          <div className="mt-3 text-xs min-h-4" style={{ color: msg ? "#8A2A20" : C.muted }}>{busy ? "Memeriksa…" : msg}</div>
+          <div className="mt-3 text-xs min-h-4" style={{ color: msg ? "var(--c-bahayaTeks)" : C.muted }}>{busy ? "Memeriksa…" : msg}</div>
         </div>
       </div>
     </div>
@@ -164,7 +164,7 @@ function GantiPinPanel({ onTutup }: { onTutup: () => void }) {
           <input type="password" inputMode="numeric" autoComplete="off" placeholder="••••••" value={baru} onChange={(e) => setBaru(angka(e.target.value))} className={kotak} style={{ border: `1px solid ${C.line}`, background: C.mist }} />
         </label>
       </div>
-      {msg && <div className="mt-3 text-xs font-medium" style={{ color: msg.ok ? OK : "#8A2A20" }}>{msg.t}</div>}
+      {msg && <div className="mt-3 text-xs font-medium" style={{ color: msg.ok ? OK : "var(--c-bahayaTeks)" }}>{msg.t}</div>}
       <button type="button" onClick={simpan} disabled={!siap} className="mt-4 w-full py-2.5 rounded-xl text-sm font-bold transition-opacity" style={{ background: C.green, color: "#FFF", opacity: siap ? 1 : 0.45 }}>
         {busy ? "Menyimpan…" : "Simpan PIN baru"}
       </button>
@@ -283,7 +283,7 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
     }
   }
 
-  const pilihan = (aktif: boolean) => ({ background: aktif ? C.green : "#FFF", color: aktif ? "#FFF" : C.green, border: `1px solid ${aktif ? C.green : C.line}` });
+  const pilihan = (aktif: boolean) => ({ background: aktif ? C.green : C.card, color: aktif ? "#FFF" : C.green, border: `1px solid ${aktif ? C.green : C.line}` });
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
@@ -300,7 +300,7 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
                 onClick={() => setPinOpen((o) => !o)}
                 aria-expanded={pinOpen}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors hover:opacity-80"
-                style={{ background: pinOpen ? C.green : "#FFF", color: pinOpen ? "#FFF" : C.green, border: "1px solid " + C.line }}
+                style={{ background: pinOpen ? C.green : C.card, color: pinOpen ? "#FFF" : C.green, border: "1px solid " + C.line }}
               >
                 <IkonKunci />
                 Ganti PIN
@@ -361,7 +361,7 @@ function SajianDataIsi({ onKunci }: { onKunci: () => void }) {
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: BAD_BG, border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+          <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: BAD_BG, border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
             {error}
           </div>
         )}

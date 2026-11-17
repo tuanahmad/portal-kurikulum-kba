@@ -8,5 +8,11 @@
   "theme_color": "#FBFAF7",
   "background_color": "#FBFAF7",
   "display": "standalone",
+  "shortcuts": [
+    { "name": "Absen", "short_name": "Absen", "url": "/absen", "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Daily Jurnal", "short_name": "Jurnal", "url": "/jurnal", "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Capaian Santri", "short_name": "Capaian", "url": "/capaian", "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Kalender", "short_name": "Kalender", "url": "/kalender", "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+  ],
   "start_url": "/"
 }

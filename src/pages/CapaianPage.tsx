@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { C, KELAS_LIST, jenjangOf } from "../data";
 import { AccentCard } from "../components/PortalComponents";
 import { useAuth } from "../contexts/AuthContext";
@@ -11,6 +11,7 @@ export default function CapaianPage() {
   if (role === "guru") {
     return <GuruCapaian kelasName={myKelas} />;
   }
+  if (role === "olahraga") return <Navigate to="/home" replace />; // guru olahraga tidak punya capaian kelas
   return <ManagementCapaian />;
 }
 
@@ -89,9 +90,9 @@ function ManagementCapaian() {
   const menu = kelas
     ? [
         { label: "Capaian Ilmu", icon: <BookIcon />, grad: `linear-gradient(135deg, ${C.green} 0%, ${C.greenDeep} 100%)`, to: `/capaian/ilmu?kelas=${encodeURIComponent(kelas.name)}` },
-        { label: "Capaian Al-Qur'an", icon: <ChartIcon />, grad: "linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)", to: `/capaian/quran?kelas=${encodeURIComponent(kelas.name)}` },
-        { label: "Diagram Perkembangan", icon: <TrendIcon />, grad: "linear-gradient(135deg, #3B6EA5 0%, #274C74 100%)", to: `/capaian/quran/diagram?kelas=${encodeURIComponent(kelas.name)}` },
-        { label: "Tasmi'", icon: <TasmiIcon />, grad: "linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)", to: `/capaian/tasmi?kelas=${encodeURIComponent(kelas.name)}` },
+        { label: "Capaian Al-Qur'an", icon: <ChartIcon />, grad: "linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)", to: `/capaian/quran?kelas=${encodeURIComponent(kelas.name)}` },
+        { label: "Diagram Perkembangan", icon: <TrendIcon />, grad: "linear-gradient(135deg, #3B6EA5 0%, var(--c-biruTeks) 100%)", to: `/capaian/quran/diagram?kelas=${encodeURIComponent(kelas.name)}` },
+        { label: "Tasmi'", icon: <TasmiIcon />, grad: "linear-gradient(135deg, #2F8F83 0%, var(--c-toscaTeks) 100%)", to: `/capaian/tasmi?kelas=${encodeURIComponent(kelas.name)}` },
       ]
     : [];
 
@@ -104,7 +105,7 @@ function ManagementCapaian() {
         </header>
 
         {/* Pilih kelas */}
-        <section className="mt-5 rounded-3xl p-4" style={{ background: "#FFF", border: `1px solid ${C.line}`, boxShadow: "0 6px 20px rgba(28,74,51,0.07)" }}>
+        <section className="mt-5 rounded-3xl p-4" style={{ background: C.card, border: `1px solid ${C.line}`, boxShadow: "0 6px 20px rgba(28,74,51,0.07)" }}>
           <div className="grid grid-cols-2 gap-1 p-1.5 rounded-full" style={{ background: C.mist, border: `1px solid ${C.line}` }} role="tablist" aria-label="Jenjang">
             {JENJANG_LIST.map((j) => (
               <button
@@ -165,7 +166,7 @@ function ManagementCapaian() {
             </div>
             <div className="grid grid-cols-2 gap-2.5">
               {menu.map((m) => (
-                <Link key={m.label} to={m.to} className="flex items-center gap-2.5 rounded-2xl p-2.5 transition-transform active:scale-[0.98]" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                <Link key={m.label} to={m.to} className="flex items-center gap-2.5 rounded-2xl p-2.5 transition-transform active:scale-[0.98]" style={{ background: C.card, border: `1px solid ${C.line}` }}>
                   <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: m.grad }}>{m.icon}</span>
                   <span className="text-[13px] font-semibold leading-snug" style={{ color: C.ink }}>{m.label}</span>
                 </Link>
@@ -212,21 +213,21 @@ function CapaianLinks({
         title="Capaian Al-Qur'an"
         desc={guru ? "Isi langsung di app · per pertemuan" : "Sifatnya angka · Diisi tiap Jum'at"}
         icon={<ChartIcon />}
-        gradient="linear-gradient(135deg, #C79A3B 0%, #8A6A20 100%)"
+        gradient="linear-gradient(135deg, #C79A3B 0%, var(--c-emasTeks) 100%)"
         to={quranTo}
       />
       <AccentCard
         title="Diagram Perkembangan"
         desc="Grafik capaian Al-Qur'an tiap anak per pekan"
         icon={<TrendIcon />}
-        gradient={`linear-gradient(135deg, #3B6EA5 0%, #274C74 100%)`}
+        gradient={`linear-gradient(135deg, #3B6EA5 0%, var(--c-biruTeks) 100%)`}
         to={diagramTo}
       />
       <AccentCard
         title="Tasmi'"
         desc={guru ? "Data Tasmi' Santri" : "Riwayat tasmi' santri di kelas ini"}
         icon={<TasmiIcon />}
-        gradient="linear-gradient(135deg, #2F8F83 0%, #1C5A52 100%)"
+        gradient="linear-gradient(135deg, #2F8F83 0%, var(--c-toscaTeks) 100%)"
         to={tasmiTo}
       />
     </main>

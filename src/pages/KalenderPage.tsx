@@ -111,7 +111,7 @@ export default function KalenderPage() {
   }
 
   const input = "w-full rounded-xl px-3 py-2 text-sm outline-none";
-  const inputStyle = { background: "#FFF", border: `1px solid ${C.line}`, color: C.ink } as const;
+  const inputStyle = { background: C.card, border: `1px solid ${C.line}`, color: C.ink } as const;
 
   return (
     <div className="min-h-dvh" style={{ background: C.mist, color: C.ink }}>
@@ -123,17 +123,17 @@ export default function KalenderPage() {
 
         {/* Pindah bulan */}
         <div className="mt-5 flex items-center gap-2">
-          <button type="button" onClick={() => pindah(-1)} aria-label="Bulan sebelumnya" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}>
+          <button type="button" onClick={() => pindah(-1)} aria-label="Bulan sebelumnya" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
           <div className="flex-1 text-center text-base font-semibold" style={{ color: C.ink }}>{NAMA_BULAN[bulan.getMonth()]} {bulan.getFullYear()}</div>
-          <button type="button" onClick={() => pindah(1)} aria-label="Bulan berikutnya" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.green }}>
+          <button type="button" onClick={() => pindah(1)} aria-label="Bulan berikutnya" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: C.card, border: `1px solid ${C.line}`, color: C.green }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
         </div>
 
         {/* Grid bulan */}
-        <div className="mt-3 rounded-2xl p-2.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        <div className="mt-3 rounded-2xl p-2.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
           <div className="grid grid-cols-7 text-center text-[10px] font-bold uppercase tracking-wider pb-1.5" style={{ color: C.muted }}>
             {HARI_SINGKAT.map((h) => <div key={h}>{h}</div>)}
           </div>
@@ -184,11 +184,11 @@ export default function KalenderPage() {
           )}
         </div>
 
-        {galat && <div className="mt-3 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>{galat}</div>}
+        {galat && <div className="mt-3 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>{galat}</div>}
         {dipilih && pengingatHari(dipilih).length > 0 && (
           <ul className="mt-2.5 space-y-2">
             {pengingatHari(dipilih).map((p) => (
-              <li key={p.key} className="flex gap-3 rounded-2xl p-3" style={{ background: p.latar, border: `1px solid ${p.warna}33` }}>
+              <li key={p.key} className="flex gap-3 rounded-2xl p-3" style={{ background: p.latar, border: `1px solid color-mix(in srgb, ${p.warna} 28%, transparent)` }}>
                 <span className="shrink-0 w-1.5 self-stretch rounded-full" style={{ background: p.warna }} />
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold" style={{ color: p.warna }}>{p.judul}</div>
@@ -219,7 +219,7 @@ export default function KalenderPage() {
                   </div>
                 </>
               );
-              const gaya = { background: "#FFF", border: `1px solid ${C.line}` };
+              const gaya = { background: C.card, border: `1px solid ${C.line}` };
               return (
                 <li key={a.id}>
                   {boleh ? (
@@ -234,7 +234,7 @@ export default function KalenderPage() {
         )}
 
         {tampilPengingat && (
-          <div className="mt-6 rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+          <div className="mt-6 rounded-2xl p-3.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
             <div className="text-xs font-bold uppercase tracking-wider" style={{ color: C.green }}>Pengingat rutin</div>
             <ul className="mt-2 space-y-1.5 text-sm" style={{ color: C.ink }}>
               {[
@@ -267,7 +267,7 @@ export default function KalenderPage() {
                 <div className="text-xs font-semibold" style={{ color: C.muted }}>Jenis</div>
                 <div className="mt-1 grid grid-cols-3 gap-2">
                   {JENIS_URUT.map((j) => (
-                    <button key={j} type="button" onClick={() => setForm({ ...form, jenis: j })} aria-pressed={form.jenis === j} className="py-2 rounded-xl text-sm font-semibold" style={{ background: form.jenis === j ? JENIS[j].warna : "#FFF", color: form.jenis === j ? "#FFF" : JENIS[j].warna, border: `1.5px solid ${JENIS[j].warna}` }}>
+                    <button key={j} type="button" onClick={() => setForm({ ...form, jenis: j })} aria-pressed={form.jenis === j} className="py-2 rounded-xl text-sm font-semibold" style={{ background: form.jenis === j ? JENIS[j].warna : C.card, color: form.jenis === j ? "#FFF" : JENIS[j].warna, border: `1.5px solid ${JENIS[j].warna}` }}>
                       {JENIS[j].label}
                     </button>
                   ))}
@@ -290,8 +290,8 @@ export default function KalenderPage() {
               {form.jenis === "libur" && <p className="text-[11px]" style={{ color: C.muted }}>Tanggal libur tidak dihitung sebagai hari efektif di PDF kehadiran.</p>}
             </div>
             <div className="mt-4 flex gap-2">
-              {form.id && <button type="button" onClick={hapus} disabled={sibuk} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "#FDEBEA", color: "#B3261E" }}>Hapus</button>}
-              <button type="button" onClick={() => setForm(null)} disabled={sibuk} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "#FFF", border: `1px solid ${C.line}`, color: C.ink }}>Batal</button>
+              {form.id && <button type="button" onClick={hapus} disabled={sibuk} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "var(--c-bahayaBg)", color: "var(--c-bahaya)" }}>Hapus</button>}
+              <button type="button" onClick={() => setForm(null)} disabled={sibuk} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: C.card, border: `1px solid ${C.line}`, color: C.ink }}>Batal</button>
               <button type="button" onClick={simpan} disabled={sibuk} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: C.green, color: "#FFF", opacity: sibuk ? 0.6 : 1 }}>{sibuk ? "Menyimpan…" : "Simpan"}</button>
             </div>
           </div>

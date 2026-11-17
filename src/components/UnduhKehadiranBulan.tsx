@@ -33,7 +33,7 @@ export default function UnduhKehadiranBulan({
 
   const tombol = "w-9 h-9 rounded-xl flex items-center justify-center shrink-0";
   return (
-    <div className="mt-4 rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+    <div className="mt-4 rounded-2xl p-3.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
       <div className="text-xs font-bold uppercase tracking-wider" style={{ color: C.green }}>{judul}</div>
       <p className="mt-1 text-[11px] leading-relaxed" style={{ color: C.muted }}>{keterangan}</p>
       <div className="mt-2.5 flex items-center gap-2">
@@ -64,7 +64,7 @@ export default function UnduhKehadiranBulan({
       >
         {sibuk ? "Menyiapkan PDF…" : "Unduh PDF"}
       </button>
-      {galat && <p className="mt-2 text-xs" style={{ color: "#8A2A20" }}>{galat}</p>}
+      {galat && <p className="mt-2 text-xs" style={{ color: "var(--c-bahayaTeks)" }}>{galat}</p>}
     </div>
   );
 }

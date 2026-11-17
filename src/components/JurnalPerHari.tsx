@@ -32,7 +32,7 @@ function ArrowBtn({ dir, disabled, onClick }: { dir: "prev" | "next"; disabled?:
       aria-label={dir === "prev" ? "Hari sebelumnya" : "Hari berikutnya"}
       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
       style={{
-        background: "#FFF",
+        background: C.card,
         border: `1px solid ${C.line}`,
         color: C.green,
         opacity: disabled ? 0.35 : 1,
@@ -118,7 +118,7 @@ export default function JurnalPerHari() {
     <main className="mt-6">
       <div className="flex items-center gap-2">
         <ArrowBtn dir="prev" onClick={() => setTgl(geserHariKerja(tgl, -1))} />
-        <div className="flex-1 text-center rounded-xl px-3 py-2" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+        <div className="flex-1 text-center rounded-xl px-3 py-2" style={{ background: C.card, border: `1px solid ${C.line}` }}>
           <div className="text-sm font-semibold" style={{ color: C.ink }}>
             {labelHari(tgl)}, {labelTanggal(tgl)}
           </div>
@@ -130,7 +130,7 @@ export default function JurnalPerHari() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
           {error}
         </div>
       )}
@@ -142,7 +142,7 @@ export default function JurnalPerHari() {
       )}
 
       {pdfError && (
-        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "#FDEBEA", border: "1px solid #E8A6A0", color: "#8A2A20" }}>
+        <div className="mt-4 rounded-xl px-3.5 py-2.5 text-xs" style={{ background: "var(--c-bahayaBg)", border: "1px solid var(--c-bahayaGaris)", color: "var(--c-bahayaTeks)" }}>
           {pdfError}
         </div>
       )}
@@ -154,8 +154,8 @@ export default function JurnalPerHari() {
               <div className="text-2xl font-semibold leading-none" style={{ color: C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>{terisi}</div>
               <div className="text-[11px] mt-1" style={{ color: C.muted }}>sudah mengisi</div>
             </div>
-            <div className="rounded-xl py-2.5" style={{ background: items.length - terisi > 0 ? "#FDEBEA" : C.leaf }}>
-              <div className="text-2xl font-semibold leading-none" style={{ color: items.length - terisi > 0 ? "#9F240B" : C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>{items.length - terisi}</div>
+            <div className="rounded-xl py-2.5" style={{ background: items.length - terisi > 0 ? "var(--c-bahayaBg)" : C.leaf }}>
+              <div className="text-2xl font-semibold leading-none" style={{ color: items.length - terisi > 0 ? "var(--c-bahayaTeks)" : C.green, fontFamily: "Georgia, 'Times New Roman', serif" }}>{items.length - terisi}</div>
               <div className="text-[11px] mt-1" style={{ color: C.muted }}>belum mengisi</div>
             </div>
           </div>
@@ -169,7 +169,7 @@ export default function JurnalPerHari() {
                 <h2 className="text-sm font-bold mb-2" style={{ color: C.green }}>{j} · {daftar.length} sudah mengisi</h2>
                 <div className="space-y-3">
                   {daftar.map((it) => (
-                    <article key={it.userId} className="rounded-2xl p-3.5" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                    <article key={it.userId} className="rounded-2xl p-3.5" style={{ background: C.card, border: `1px solid ${C.line}` }}>
                       <div className="flex items-center gap-3">
                         <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold" style={{ background: C.green, color: "#FFF" }}>
                           {(it.nama || it.kelas).trim().charAt(0).toUpperCase()}
@@ -203,7 +203,7 @@ export default function JurnalPerHari() {
           {/* Belum mengisi: daftar ringkas per jenjang (nama + kelas), tanpa kartu besar */}
           {items.length - terisi > 0 && (
             <section className="mt-6">
-              <h2 className="text-sm font-bold mb-2" style={{ color: "#9F240B" }}>Belum mengisi · {items.length - terisi}</h2>
+              <h2 className="text-sm font-bold mb-2" style={{ color: "var(--c-bahayaTeks)" }}>Belum mengisi · {items.length - terisi}</h2>
               <div className="space-y-3">
                 {JENJANG_JURNAL.map((j) => {
                   const daftar = items.filter((it) => !isEntryFilled(it.entry) && jenjangOf(it.kelas) === j);
@@ -211,10 +211,10 @@ export default function JurnalPerHari() {
                   return (
                     <div key={`kosong-${j}`}>
                       <div className="text-xs font-semibold mb-1" style={{ color: C.muted }}>{j} · {daftar.length} kelas</div>
-                      <ul className="rounded-2xl overflow-hidden" style={{ background: "#FFF", border: `1px solid ${C.line}` }}>
+                      <ul className="rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.line}` }}>
                         {daftar.map((it, i) => (
                           <li key={it.userId} className="flex items-center gap-3 px-3.5 py-2.5" style={{ borderTop: i ? `1px solid ${C.line}` : undefined }}>
-                            <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold" style={{ background: "#FDEBEA", color: "#9F240B" }}>
+                            <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold" style={{ background: "var(--c-bahayaBg)", color: "var(--c-bahayaTeks)" }}>
                               {(it.nama || it.kelas).trim().charAt(0).toUpperCase()}
                             </span>
                             <div className="min-w-0 flex-1">
