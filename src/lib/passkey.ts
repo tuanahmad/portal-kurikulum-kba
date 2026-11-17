@@ -41,23 +41,6 @@ function bacaLokal(kunci: string): string | null {
   }
 }
 
-/** Semua id kunci yang pernah didaftarkan di HP ini (satu per akun). */
-function idTersimpanDiHp(): string[] {
-  const out: string[] = [];
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k?.startsWith("passkey-id:")) {
-        const v = localStorage.getItem(k);
-        if (v) out.push(v);
-      }
-    }
-  } catch {
-    /* abaikan */
-  }
-  return out;
-}
-
 /** HP ini punya sensor sidik jari / kunci layar yang bisa dipakai? */
 export async function sidikJariDidukung(): Promise<boolean> {
   try {
@@ -116,8 +99,7 @@ export async function aktifkanSidikJari(): Promise<Hasil> {
         timeout: opts.timeout,
         attestation: opts.attestation,
         excludeCredentials: (opts.excludeCredentials ?? []).map((c: any) => ({ ...c, id: dari64u(c.id) })),
-        // Kunci terikat ke HP ini saja (tidak disimpan di brankas akun Google), jadi tidak ikut masalah "kunci sandi terkunci".
-        authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "discouraged", requireResidentKey: false },
+        authenticatorSelection: opts.authenticatorSelection,
       },
     })) as PublicKeyCredential | null;
     if (!cred) return { ok: false, error: "Dibatalkan." };
@@ -153,14 +135,7 @@ export async function masukDenganSidikJari(): Promise<Hasil> {
     if (!o.ok) return { ok: false, error: o.json?.pesan || "Gagal menyiapkan sidik jari." };
     const opts = o.json;
     const cred = (await navigator.credentials.get({
-      publicKey: {
-        challenge: dari64u(opts.challenge),
-        rpId: opts.rpId,
-        timeout: opts.timeout,
-        userVerification: "required",
-        // Kunci yang terikat ke HP tidak bisa "ditemukan" sendiri, jadi sebutkan id yang pernah didaftarkan di HP ini.
-        allowCredentials: idTersimpanDiHp().map((id) => ({ type: "public-key" as const, id: dari64u(id), transports: ["internal"] as AuthenticatorTransport[] })),
-      },
+      publicKey: { challenge: dari64u(opts.challenge), rpId: opts.rpId, timeout: opts.timeout, userVerification: "required", allowCredentials: [] },
     })) as PublicKeyCredential | null;
     if (!cred) return { ok: false, error: "Dibatalkan." };
     const r = cred.response as AuthenticatorAssertionResponse;
