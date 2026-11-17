@@ -488,30 +488,35 @@ function RingkasanHariIni() {
     );
   }
 
-  const jurnalMissing = ALL_KELAS_NAMES.filter((k) => !status.jurnalFilled.includes(k));
-  const absenMissing = ALL_KELAS_NAMES.filter((k) => !status.absenFilled.includes(k));
+  // "Kosong" = belum mengisi sama sekali; "sebagian" = sudah mengisi tapi belum lengkap (jurnal: kondisi guru/santri, absen: satu sesi saja).
+  const jurnalSebagian = status.jurnalSebagian;
+  const absenSebagian = status.absenSebagian;
+  const jurnalMissing = ALL_KELAS_NAMES.filter((k) => !status.jurnalFilled.includes(k) && !jurnalSebagian.includes(k));
+  const absenMissing = ALL_KELAS_NAMES.filter((k) => !status.absenFilled.includes(k) && !absenSebagian.includes(k));
   const quranKnown = ALL_KELAS_NAMES.filter((k) => !status.quranUnknown.includes(k));
   const quranMissing = quranKnown.filter((k) => !status.quranFilled.includes(k));
 
   // Management: tiga kartu geser (Jurnal hari ini / Absen guru hari ini / Al-Qur'an pekan ini). Nama kelas yang belum
   // mengisi dibuka lewat tombol "Lihat yang belum" (singkatan, tanpa kalimat panjang).
-  const buat = (key: string, judul: string, sub: string, filled: number, total: number, missing: string[], to: string): SlideKartu => {
-    const nada: Nada = total > 0 && filled >= total ? "selesai" : filled > 0 ? "sebagian" : "belum";
+  const buat = (key: string, judul: string, sub: string, filled: number, total: number, missing: string[], to: string, sebagian: string[] = [], ket: Record<string, string> = {}): SlideKartu => {
+    const nada: Nada = total > 0 && filled >= total ? "selesai" : filled > 0 || sebagian.length > 0 ? "sebagian" : "belum";
+    const ringkas = [missing.length ? `${missing.length} kelas belum mengisi` : "", sebagian.length ? `${sebagian.length} belum lengkap` : ""].filter(Boolean).join(" · ");
     return {
       key,
       judul,
       sub,
-      utama: nada === "selesai" ? "Semua kelas sudah mengisi" : nada === "sebagian" ? `${missing.length} kelas belum mengisi` : "Belum ada kelas yang mengisi",
+      utama: nada === "selesai" ? "Semua kelas sudah mengisi" : nada === "sebagian" ? ringkas : "Belum ada kelas yang mengisi",
       angka: `${filled}/${total}`,
       nada,
-      belum: missing.map(abbrevKelas),
+      belum: [...missing, ...sebagian].map(abbrevKelas),
       rincian: missing.map((k) => ({ kelas: k, guru: namaGuru[k] ?? "" })),
+      sebagian: sebagian.length ? sebagian.map((k) => ({ kelas: k, guru: namaGuru[k] ?? "", ket: ket[k] })) : undefined,
       to,
     };
   };
   const slides: SlideKartu[] = [
-    buat("jurnal", "Jurnal", "Hari ini", status.jurnalFilled.length, status.totalKelas, jurnalMissing, "/jurnal"),
-    buat("absen", "Absen guru", "Hari ini", status.absenFilled.length, status.totalKelas, absenMissing, "/absen"),
+    buat("jurnal", "Jurnal", "Hari ini", status.jurnalFilled.length, status.totalKelas, jurnalMissing, "/jurnal", jurnalSebagian, status.jurnalKet),
+    buat("absen", "Absen guru", "Hari ini", status.absenFilled.length, status.totalKelas, absenMissing, "/absen", absenSebagian, status.absenKet),
     buat("quran", "Al-Qur'an", "Pekan ini", quranKnown.length - quranMissing.length, quranKnown.length, quranMissing, "/capaian"),
   ];
   return <KartuGeser slides={slides} />;

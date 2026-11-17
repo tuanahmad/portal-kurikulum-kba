@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { C, jenjangOf } from "../data";
 
-export type BelumRinci = { kelas: string; guru: string };
+export type BelumRinci = { kelas: string; guru: string; ket?: string };
 
 /** Lembar daftar "belum mengisi" untuk management: dipisah per jenjang (Kuttab Awwal / Qonuni), tiap baris memuat
  *  nama guru dan kelasnya, supaya mudah dihubungi satu per satu. Tombol "Salin daftar" menyalin teks siap tempel (WA). */
-export function DaftarBelumSheet({ judul, sub, rincian, tutup }: { judul: string; sub?: string; rincian: BelumRinci[]; tutup: () => void }) {
+export function DaftarBelumSheet({ judul, sub, rincian, sebagian, tutup }: { judul: string; sub?: string; rincian: BelumRinci[]; sebagian?: BelumRinci[]; tutup: () => void }) {
   const [tersalin, setTersalin] = useState(false);
 
   useEffect(() => {
@@ -20,20 +20,37 @@ export function DaftarBelumSheet({ judul, sub, rincian, tutup }: { judul: string
     };
   }, [tutup]);
 
-  const kelompok = [
-    { nama: "Kuttab Awwal", isi: rincian.filter((r) => jenjangOf(r.kelas) === "Kuttab Awwal") },
-    { nama: "Qonuni", isi: rincian.filter((r) => jenjangOf(r.kelas) === "Qonuni") },
-  ];
-  const lain = rincian.filter((r) => !jenjangOf(r.kelas));
-  if (lain.length) kelompok.push({ nama: "Lainnya", isi: lain });
+  const bagi = (daftar: BelumRinci[]) => {
+    const k = [
+      { nama: "Kuttab Awwal", isi: daftar.filter((r) => jenjangOf(r.kelas) === "Kuttab Awwal") },
+      { nama: "Qonuni", isi: daftar.filter((r) => jenjangOf(r.kelas) === "Qonuni") },
+    ];
+    const lain = daftar.filter((r) => !jenjangOf(r.kelas));
+    if (lain.length) k.push({ nama: "Lainnya", isi: lain });
+    return k;
+  };
+  // Dua bagian: belum mengisi sama sekali, dan sudah mengisi tapi belum lengkap (hanya kalau kartunya punya data itu).
+  const bagian = [
+    { judul: sebagian ? "Belum mengisi sama sekali" : "", kunci: "kosong", daftar: rincian },
+    ...(sebagian ? [{ judul: "Sudah mengisi, belum lengkap", kunci: "sebagian", daftar: sebagian }] : []),
+  ].map((b) => ({ ...b, kelompok: bagi(b.daftar) }));
+  const jumlah = rincian.length + (sebagian?.length ?? 0);
 
   async function salin() {
+    const baris = (r: BelumRinci, i: number) => `${i + 1}. ${r.guru ? `${r.guru} — ` : ""}${r.kelas}${r.ket ? ` (${r.ket})` : ""}`;
     const teks =
-      `${judul}${sub ? ` (${sub})` : ""} — belum mengisi (${rincian.length} kelas)\n` +
-      kelompok
-        .filter((g) => g.isi.length)
-        .map((g) => `\n${g.nama}:\n` + g.isi.map((r, i) => `${i + 1}. ${r.guru ? `${r.guru} — ` : ""}${r.kelas}`).join("\n"))
-        .join("\n");
+      `${judul}${sub ? ` (${sub})` : ""}` +
+      bagian
+        .filter((b) => b.daftar.length)
+        .map(
+          (b) =>
+            `\n\n${b.judul || "Belum mengisi"} (${b.daftar.length} kelas)` +
+            b.kelompok
+              .filter((g) => g.isi.length)
+              .map((g) => `\n${g.nama}:\n` + g.isi.map(baris).join("\n"))
+              .join("")
+        )
+        .join("");
     try {
       await navigator.clipboard.writeText(teks);
       setTersalin(true);
@@ -60,7 +77,7 @@ export function DaftarBelumSheet({ judul, sub, rincian, tutup }: { judul: string
               </div>
               {sub && (
                 <div className="text-xs mt-0.5" style={{ color: C.muted }}>
-                  {sub} · {rincian.length} kelas
+                  {sub} · {jumlah} kelas
                 </div>
               )}
             </div>
@@ -71,7 +88,17 @@ export function DaftarBelumSheet({ judul, sub, rincian, tutup }: { judul: string
         </div>
 
         <div className="overflow-y-auto px-5 py-3 space-y-4">
-          {kelompok.map((g) => (
+          {bagian.map((b) => (
+            <div key={b.kunci} className="space-y-4">
+              {b.judul && (
+                <div className="flex items-center gap-2 pt-1">
+                  <h2 className="text-xs font-bold uppercase tracking-[0.12em]" style={{ color: C.ink }}>
+                    {b.judul}
+                  </h2>
+                  <span className="flex-1 h-px" style={{ background: C.line }} aria-hidden="true" />
+                </div>
+              )}
+              {b.kelompok.map((g) => (
             <section key={g.nama}>
               <div className="flex items-center justify-between mb-1.5">
                 <h3 className="text-sm font-bold" style={{ color: C.green }}>
@@ -81,7 +108,7 @@ export function DaftarBelumSheet({ judul, sub, rincian, tutup }: { judul: string
                   className="text-[11px] font-bold px-2 py-0.5 rounded-full"
                   style={g.isi.length ? { background: "var(--c-bahayaBg)", color: "var(--c-bahayaTeks)" } : { background: C.leaf, color: C.green }}
                 >
-                  {g.isi.length ? `${g.isi.length} belum` : "semua sudah ✓"}
+                  {g.isi.length ? `${g.isi.length} ${b.kunci === "sebagian" ? "belum lengkap" : "belum"}` : "semua sudah ✓"}
                 </span>
               </div>
               {g.isi.length > 0 && (
@@ -100,12 +127,19 @@ export function DaftarBelumSheet({ judul, sub, rincian, tutup }: { judul: string
                             {r.kelas}
                           </span>
                         )}
+                        {r.ket && (
+                          <span className="block text-xs" style={{ color: "var(--c-emasTeks)" }}>
+                            {r.ket}
+                          </span>
+                        )}
                       </span>
                     </li>
                   ))}
                 </ul>
               )}
             </section>
+              ))}
+            </div>
           ))}
         </div>
 

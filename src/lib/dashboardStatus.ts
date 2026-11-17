@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { ymd, readJurnalRange, isEntryFilled } from "./jurnal";
-import { readAbsenRange, isAbsenFilled, isAbsenLengkap } from "./absen";
+import { readAbsenRange, isAbsenFilled, isAbsenLengkap, isSesiFilled, hm, type AbsenEntry, type SesiEntry } from "./absen";
 import { capaianRoster, capaianQuranFileId, pekanUntukSlot, slotUntukTanggal, slotsDiPekan, RPB_FILES, REFLEKSI_FILES } from "../data";
 import { readRpbTab, susunRencanaQuran, angkaTargetQuran, type RpbTabData } from "./rpbSheet";
 import { readReflectionTab, type ReflectionData } from "./refleksiSheet";
@@ -12,8 +12,12 @@ import { bacaAbsenSantriOlahraga, sudahDiabsen } from "./absenSantriOlahraga";
 
 export type TodayStatus = {
   totalKelas: number;
-  jurnalFilled: string[]; // nama kelas yang sudah isi Jurnal hari ini
-  absenFilled: string[]; // nama kelas yang sudah isi Absen hari ini (minimal 1 sesi)
+  jurnalFilled: string[]; // nama kelas yang Jurnal hari ini LENGKAP (kondisi guru + kondisi santri; kabar/kendala boleh kosong)
+  jurnalSebagian: string[]; // sudah mengisi tapi belum lengkap
+  jurnalKet: Record<string, string>; // kelas -> bagian yang masih kosong (untuk daftar)
+  absenFilled: string[]; // nama kelas yang Absen hari ini LENGKAP (kedua sesi, pagi dan siang)
+  absenSebagian: string[]; // baru satu sesi yang diisi
+  absenKet: Record<string, string>;
   quranFilled: string[]; // nama kelas yang sudah ada isian Capaian Al-Qur'an MINGGU ini
   quranUnknown: string[]; // gagal dibaca (network/sheet error) - jangan dianggap "belum isi"
 };
@@ -189,8 +193,8 @@ export async function readTodayStatus(allKelas: string[]): Promise<TodayStatus> 
   const pekanIdx = pekanKeBerapa(now, bulanNama);
 
   const [{ data: jurnalRows }, { data: absenRows }, quranResults] = await Promise.all([
-    supabase.from("jurnal_harian").select("kelas").eq("tanggal", today),
-    supabase.from("absen_guru").select("kelas").eq("tanggal", today),
+    supabase.from("jurnal_harian").select("kelas, kondisi_guru, kondisi_santri, kabar_kendala").eq("tanggal", today),
+    supabase.from("absen_guru").select("kelas, status_pagi, jam_datang_pagi, jam_pulang_pagi, status_siang, jam_datang_siang, jam_pulang_siang").eq("tanggal", today),
     Promise.allSettled(
       allKelas.map(async (kelas) => {
         const fileId = capaianQuranFileId(kelas);
@@ -201,8 +205,33 @@ export async function readTodayStatus(allKelas: string[]): Promise<TodayStatus> 
     ),
   ]);
 
-  const jurnalSet = new Set((jurnalRows ?? []).map((r) => r.kelas));
-  const absenSet = new Set((absenRows ?? []).map((r) => r.kelas));
+  // Jurnal: "lengkap" = kondisi guru DAN kondisi santri terisi (kabar/kendala boleh kosong: 1 dari 4 jurnal memang tanpa kendala).
+  // Baris yang tersimpan tapi semuanya kosong dihitung BELUM mengisi sama sekali.
+  const terisi = (v: unknown) => String(v ?? "").trim() !== "";
+  const jurnalSet = new Set<string>();
+  const jurnalSebagianSet = new Set<string>();
+  const jurnalKet: Record<string, string> = {};
+  for (const r of jurnalRows ?? []) {
+    const guru = terisi(r.kondisi_guru);
+    const santri = terisi(r.kondisi_santri);
+    if (guru && santri) jurnalSet.add(r.kelas);
+    else if (guru || santri || terisi(r.kabar_kendala)) {
+      jurnalSebagianSet.add(r.kelas);
+      jurnalKet[r.kelas] = `Belum diisi: ${[!guru && "kondisi guru", !santri && "kondisi santri"].filter(Boolean).join(" dan ")}`;
+    }
+  }
+  const sesi = (st: unknown, d: unknown, p: unknown): SesiEntry => ({ status: (st as SesiEntry["status"]) ?? "hadir", jam_datang: hm(d as string | null), jam_pulang: hm(p as string | null), keterangan: "" });
+  const absenSet = new Set<string>();
+  const absenSebagianSet = new Set<string>();
+  const absenKet: Record<string, string> = {};
+  for (const r of absenRows ?? []) {
+    const e = { tanggal: today, pagi: sesi(r.status_pagi, r.jam_datang_pagi, r.jam_pulang_pagi), siang: sesi(r.status_siang, r.jam_datang_siang, r.jam_pulang_siang) } as AbsenEntry;
+    if (isAbsenLengkap(e)) absenSet.add(r.kelas);
+    else if (isAbsenFilled(e)) {
+      absenSebagianSet.add(r.kelas);
+      absenKet[r.kelas] = isSesiFilled(e.pagi) ? "Sesi siang belum diisi" : "Sesi pagi belum diisi";
+    }
+  }
   const quranFilledSet = new Set<string>();
   const quranUnknownSet = new Set<string>();
   for (const r of quranResults) {
@@ -219,7 +248,11 @@ export async function readTodayStatus(allKelas: string[]): Promise<TodayStatus> 
   return {
     totalKelas: allKelas.length,
     jurnalFilled: allKelas.filter((k) => jurnalSet.has(k)),
+    jurnalSebagian: allKelas.filter((k) => jurnalSebagianSet.has(k)),
+    jurnalKet,
     absenFilled: allKelas.filter((k) => absenSet.has(k)),
+    absenSebagian: allKelas.filter((k) => absenSebagianSet.has(k)),
+    absenKet,
     quranFilled: allKelas.filter((k) => quranFilledSet.has(k)),
     quranUnknown: allKelas.filter((k) => quranUnknownSet.has(k)),
   };

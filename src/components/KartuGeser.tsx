@@ -20,6 +20,7 @@ export type SlideKartu = {
   items?: ItemKartu[];
   belum?: string[]; // nama yang belum mengisi (management); ditampilkan lewat tombol "Lihat yang belum"
   rincian?: BelumRinci[]; // (management) kelas + nama guru yang belum mengisi: dibuka sebagai lembar per jenjang
+  sebagian?: BelumRinci[]; // (management) yang sudah mengisi tapi belum lengkap (bagian kedua di lembar)
   to?: string; // ketuk kartu -> halaman ini
 };
 
@@ -216,7 +217,7 @@ export function KartuGeser({ slides }: { slides: SlideKartu[] }) {
       )}
       {(() => {
         const s = slides.find((x) => x.key === terbuka && x.rincian);
-        return s?.rincian ? <DaftarBelumSheet judul={s.judul} sub={s.sub} rincian={s.rincian} tutup={() => setTerbuka(null)} /> : null;
+        return s?.rincian ? <DaftarBelumSheet judul={s.judul} sub={s.sub} rincian={s.rincian} sebagian={s.sebagian} tutup={() => setTerbuka(null)} /> : null;
       })()}
     </section>
   );
